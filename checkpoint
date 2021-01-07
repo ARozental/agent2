@@ -1,0 +1,2 @@
+model_checkpoint_path: "weights.crap"
+all_model_checkpoint_paths: "weights.crap"

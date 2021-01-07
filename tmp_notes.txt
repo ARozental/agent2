@@ -1,0 +1,57 @@
+# find a name for this 
+
+how to create an answer matrix:
+E = embedding size
+N = number of tokens in a sentence
+D = database size 
+Q = model Q matrix of size <Q_num,Q_size>
+Q_size=E??
+
+1. we have contextual token vectors after the encoder
+2. we use a linear transformation (transformation "to_key_save" matrix is a model parameter) to create a key matrix. The key matrix is of size <N, Q_size>
+3. value matrix is the token matrix itself multiplied by a write gate (MC-CNN that multiply each token vector by a logistic unit) <N,E>
+4. Q matrix is a model parameter <Q_num,Q_size>
+5. we create a self attention head (remember to normalize with root dt):
+
+Q*transpose(K)*V
+<Q_num,Q_size>*<Q_size,N>*<N,E>
+<Q_num,E>
+6. the result of the global attention head (we only have 1 of those) is the Ans(i).
+7. the mean of all  Ans(i) is referred to as Ans matrix is it is calculated for each level during the construction of the DVT.
+
+
+
+at reconstruction time:
+8. read from global memory before auto encoder loss:
+9. Q is still Q <Q_num,Q_size>
+2. we use a linear transformation (transformation "to_key_load" matrix is a model parameter) to create a key matrix from the reconstructed token matrix. The key matrix is of size <N, Q_size>
+
+we use transpose(Q*transpose(K))*Ans
+transpose(Q*transpose(K))*Ans
+transpose(<Q_num,Q_size>*<Q_size,N>)*<Q_num,E> 
+<N,Q_num>*<Q_num,E>
+<N,E>
+
+we multiply <N,E> by a mc-cnn write gate to decide how much to add to each token.
+
+Also add a dense layer before save and load??????? 
+
+
+---------------------
+Have a teacher student model for sentence/paragraph representation from Universal Sentence Encoder.
+1. Universal makes representation from text.
+2. Alternative representation in DVT
+3. We need to get from one to the other with 0-1 intermediate layers
+4. loss can be MSE
+
+
+---------
+tasks:
+make another encoder
+get domains for embedding matrixes.
+
+
+
+ 
+
+

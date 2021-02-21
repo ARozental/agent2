@@ -36,14 +36,8 @@ def calc_mlm_loss(agent, level, encoded_dvt_input, input_tensor):
   :param input_tensor: a Ragged Matrix
   :return:
   """
-  #print("rr")
-  #print(input_tensor)
-  #print(encoded_dvt_input)
   input_mask  = create_input_mask(agent.config, level, min(input_tensor.shape[0], agent.config.sequence_lengths[level]))
   mlm_keep_mask = create_mlm_mask(agent.config, level)
-  #real_length = max(input_tensor.shape[0]+1, agent.config.sequence_lengths[level]) #+1 for eos token
-
-  #todo: do the padding inside the encode??
 
   masked_token_number = tf.reduce_sum((1.0-mlm_keep_mask)*input_mask)
   if masked_token_number<1.0:
@@ -76,14 +70,7 @@ def calc_mlm_loss(agent, level, encoded_dvt_input, input_tensor):
 
   logits = tf.matmul(input_tensor, embeddings, transpose_b=True) #v_size*num_v, v_size*num_e
   log_probs = tf.nn.log_softmax(logits, axis=-1)
-  #probs = tf.nn.softmax(logits, axis=-1) #=> for all texts there are vocab_size probabilities that sum to 1
   per_word_loss = -tf.reduce_sum(log_probs * mlm_mask*tf.transpose(one_hot_labels),axis=-1) #loss for unmasked words = 0.0
-
-  # if level==2:
-  #   print(x)
-  #   print(per_word_loss)
-  #   print(one_hot_labels)
-
   res=tf.reduce_mean(per_word_loss)
   return res
 

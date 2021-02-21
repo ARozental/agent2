@@ -6,7 +6,8 @@ class SimpleDataset:
         with open('../dummy_data1.txt') as f:
             self.text = f.readlines()
         self.text = 'The quick brown fox jumps over the lazy dog'
-        self.text = self.text.split(' ')
+        #self.text = self.text.split(' ')
+        self.text = [c for c in self.text]
 
         self.tokenizer = Tokenizer()
         self.data = [self.tokenizer.tokenize(item) for item in self.text]

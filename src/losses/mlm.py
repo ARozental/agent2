@@ -5,6 +5,7 @@ from functools import reduce
 import math
 import numpy as np
 
+
 def prob_mask_like(t, prob):
     return torch.zeros_like(t).float().uniform_(0, 1) < prob
 
@@ -32,14 +33,16 @@ def get_mask_subset_with_prob(mask, prob):
     return new_mask[:, 1:].bool()
 
 
-def tok_to_rand(c,same=0.1,rand_char=0.1):
+def tok_to_rand(c, same=0.1, rand_char=0.1):
     r = np.random.rand()
     if r < same:
         return c
-    elif r < same+rand_char:
+    elif r < same + rand_char:
         return np.random.randint(0, 80)  # embedding_size
     else:
-        return 1 #[MASK]
+        return 1  # [MASK]
+
+
 tok_to_rand = np.vectorize(tok_to_rand)
 
 
@@ -49,7 +52,9 @@ def make_masked_sequence(seq, input_mask, mask_prob=0.2):
     mlm_mask = np.ceil(np.random.rand(seq.shape[0], seq.shape[1]) - 1.0 + mask_prob)  # position where loss counts
     replacments = tok_to_rand(seq)  # replacment tokens
     masked_seq = (seq * (1 - mlm_mask) + (replacments * mlm_mask)) * input_mask  # new sequence
-    return torch.tensor(mlm_mask*input_mask,dtype=torch.int64),torch.tensor(masked_seq,dtype=torch.int64) #this tensor has (and shouldn't have) a gradient
+    return torch.tensor(mlm_mask * input_mask, dtype=torch.int64), torch.tensor(masked_seq,
+                                                                                dtype=torch.int64)  # this tensor has (and shouldn't have) a gradient
+
 
 # Some code copied from: https://github.com/lucidrains/mlm-pytorch/blob/master/mlm_pytorch/mlm_pytorch.py
 class MLMLoss(nn.Module):
@@ -74,19 +79,17 @@ class MLMLoss(nn.Module):
     def forward(self, inputs, model_mask):
         print('Inside MLM Loss')
 
-        mlm_mask,masked_input = make_masked_sequence(inputs, model_mask, mask_prob=0.5)
-        labels = inputs*mlm_mask
+        mlm_mask, masked_input = make_masked_sequence(inputs, ~model_mask, mask_prob=0.5)
+        labels = inputs * mlm_mask
         logits = self.model(masked_input, model_mask)
         mlm_loss = F.cross_entropy(
             logits.transpose(1, 2),
             labels,
             ignore_index=self.pad_token_id
         )
-        print('mlm_loss', mlm_loss)
+        # print('mlm_loss', mlm_loss)
         return mlm_loss
 
-
-        #
         # no_mask = mask_with_tokens(inputs, self.mask_ignore_token_ids)
         # mask = get_mask_subset_with_prob(~no_mask, self.mask_prob)
         # # get mask indices
@@ -114,9 +117,9 @@ class MLMLoss(nn.Module):
         # # set inverse of mask to padding tokens for labels
         # labels = inputs.masked_fill(~mask, self.pad_token_id)
         #
-        # logits = self.model(masked_input, model_mask)
+        # logits = self.model(masked_input.transpose(0, 1), model_mask)
         # mlm_loss = F.cross_entropy(
-        #     logits.transpose(1, 2),
+        #     logits.transpose(1, 0).transpose(1, 2),
         #     labels,
         #     ignore_index=self.pad_token_id
         # )

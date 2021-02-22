@@ -7,4 +7,5 @@ class Compressor(nn.Module):
         self.recurrent = nn.LSTM(embed_size, embed_size * 2, dropout=0.2, batch_first=True)
 
     def forward(self, x):
+        # TODO - Check if the padding mask needs to be passed to here?
         return self.recurrent(x)[0][:, -1, :]

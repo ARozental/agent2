@@ -1,4 +1,4 @@
-from src.agent import Compressor, Decompressor, Encoder, Decoder
+from src.agent import Compressor, Decompressor, Encoder, Decoder, CoherenceChecker
 import torch.nn as nn
 import torch
 
@@ -17,6 +17,8 @@ class Model(nn.Module):
         self.compressor = Compressor(embed_size)
         self.decompressor = Decompressor(embed_size, max_seq_length)
 
+        self.coherence_checker = CoherenceChecker(embed_size)
+
     def mlm(self, src, mask):
         encoded = self.encoder(src, mask)
 
@@ -26,6 +28,11 @@ class Model(nn.Module):
         output = torch.matmul(output, emb_weight)  # [batch, seq_length, num_tokens]
 
         return output.transpose(1, 0)
+
+    def coherence(self, src, mask):
+        encoded = self.encoder(src, mask)
+        vector = self.compressor(encoded)
+        return self.coherence_checker(vector)
 
     def forward(self, src, mask):
         encoded = self.encoder(src, mask)

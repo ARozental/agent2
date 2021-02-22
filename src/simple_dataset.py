@@ -6,6 +6,7 @@ class SimpleDataset:
         with open('../dummy_data1.txt') as f:
             self.text = f.readlines()
         self.text = 'The quick brown fox jumps over the lazy dog\nThis is the second example as a test'
+        self.text = 'something\nencyclopedia'
         self.text = self.text.split('\n')
         self.text = [[char for char in sent] for sent in self.text]
         self.max_length = max([len(sent) for sent in self.text])

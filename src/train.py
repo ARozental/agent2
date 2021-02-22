@@ -1,4 +1,4 @@
-from src.losses import MLMLoss
+from src.losses import MLMLoss, ReconstructionLoss
 from src.model import Model
 from src.simple_dataset import SimpleDataset
 import torch
@@ -18,6 +18,7 @@ model.train()
 
 losses = {
     'mlm': MLMLoss(model, pad_token_id=0, mask_token_id=1, mask_prob=0.5, random_token_prob=.1, num_tokens=NUM_TOKENS),
+    'reconstruct': ReconstructionLoss(model),
 }
 
 optimizer = torch.optim.Adagrad(model.parameters(), 0.01)
@@ -34,9 +35,10 @@ for epoch in range(500):
 
         mlm_loss = losses['mlm'](inputs, mask)
         coherence_loss = 0
-        reconstruct_loss = 0
+        reconstruct_loss = losses['reconstruct'](inputs, mask)
 
         print('mlm_loss', mlm_loss)
+        print('reconstruct_loss', reconstruct_loss)
         (mlm_loss + coherence_loss + reconstruct_loss).backward()
         optimizer.step()
 

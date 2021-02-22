@@ -8,14 +8,14 @@ class Decompressor(nn.Module):
 
         self.max_seq_length = max_seq_length
         self.embed_size = embed_size
-        self.recurrent = nn.LSTM(embed_size, embed_size, dropout=0.2, batch_first=True)
-        self.out_projection = nn.Linear(embed_size, embed_size)
+        self.recurrent = nn.LSTM(embed_size * 2, embed_size * 2, dropout=0.2, batch_first=True)
+        self.out_projection = nn.Linear(embed_size * 2, embed_size)
         self.dropout = nn.Dropout(0.2)
 
     def forward(self, x):
         # Source: https://pytorch.org/docs/stable/generated/torch.nn.LSTM.html
         # (num_layers * num_directions, batch, hidden_size)
-        state_h, state_c = (torch.zeros(1, 2, self.embed_size), torch.zeros(1, 2, self.embed_size))
+        state_h, state_c = (torch.zeros(1, 2, self.embed_size * 2), torch.zeros(1, 2, self.embed_size * 2))
 
         seq = []
         last_input = x.unsqueeze(1)

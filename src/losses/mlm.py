@@ -77,17 +77,15 @@ class MLMLoss(nn.Module):
         self.mask_ignore_token_ids = set([*mask_ignore_token_ids, pad_token_id])
 
     def forward(self, inputs, model_mask):
-        print('Inside MLM Loss')
-
         mlm_mask, masked_input = make_masked_sequence(inputs, ~model_mask, mask_prob=0.5)
         labels = inputs * mlm_mask
-        logits = self.model(masked_input, model_mask)
+        logits = self.model.mlm(masked_input, model_mask)
         mlm_loss = F.cross_entropy(
             logits.transpose(1, 2),
             labels,
             ignore_index=self.pad_token_id
         )
-        # print('mlm_loss', mlm_loss)
+
         return mlm_loss
 
         # no_mask = mask_with_tokens(inputs, self.mask_ignore_token_ids)

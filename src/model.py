@@ -1,41 +1,36 @@
-from src.transformer import PositionalEncoding
-import torch.nn.functional as F
+from src.agent import Compressor, Decompressor, Encoder
 import torch.nn as nn
 import torch
-import math
 
 
 class Model(nn.Module):
-    def __init__(self, embed_size=200, num_hidden=200, num_layers=2, num_head=2, dropout=0.15, num_tokens=None):
+    def __init__(self, embed_size=200, num_hidden=200, num_layers=2, num_head=2, dropout=0.15, num_tokens=None,
+                 max_seq_length=None):
         super().__init__()
 
-        self.embedding = nn.Embedding(num_tokens, embed_size)
-        self.pos_encoder = PositionalEncoding(embed_size, dropout)
-        encoder_layers = nn.TransformerEncoderLayer(embed_size, num_head, num_hidden, dropout)
-        self.transformer_encoder = nn.TransformerEncoder(encoder_layers, num_layers)
-        self.embed_size = embed_size
+        self.out_transform = nn.Linear(embed_size, embed_size)
 
-        # self.decoder = nn.Linear(embed_size, embed_size)
-        self.out_transform = nn.Linear(embed_size,
-                                       embed_size)  # please don't call it decoder, transform is the name in bert and decoder is something else
-        self.decoder_simple = nn.Linear(embed_size, num_tokens)
+        self.encoder = Encoder(embed_size=embed_size, num_hidden=num_hidden, num_layers=num_layers, num_head=num_head,
+                               dropout=dropout, num_tokens=num_tokens)
+        self.compressor = Compressor(embed_size)
+        self.decompressor = Decompressor(embed_size, max_seq_length)
 
     def forward(self, src, mask):
-        src = src.transpose(0, 1)
-        src = self.embedding(src)  # * math.sqrt(self.embed_size)
-        src = self.pos_encoder(
-            src)  # Commenting out the positional encoder makes it learn faster => only for quick brown foxes
+        encoded = self.encoder(src, mask)
 
-        output = self.transformer_encoder(src, src_key_padding_mask=mask)
+        # This is the original code
+        # TODO - The double transpose should not be necessary in the new code
+        encoded = encoded.transpose(0, 1)
+        output = self.out_transform(encoded)
+        emb_weight = torch.transpose(self.encoder.embedding.weight, 0, 1).unsqueeze(0)
+        output = torch.matmul(output, emb_weight)  # [batch, seq_length, num_tokens]
+        output = output.transpose(1, 0)
 
-        # # Using this makes it super fast and consistent (when using not MLM loss)
-        # return F.softmax(self.decoder_simple(output), dim=1)
+        # TODO - This will be the new code once it works and it will replace the original above
+        # vector = self.compressor(encoded)
+        # decompressed = self.decompressor(vector)
 
-        output = self.out_transform(output)
-        emb_weight = torch.transpose(self.embedding.weight, 0, 1).unsqueeze(0)
-        output = torch.matmul(output, emb_weight)  # [batch,seq_length,num_tokens]
-
-        return output.transpose(1, 0)
+        return output
 
     def decode(self, src, mask):
         logits = self.forward(src, mask)

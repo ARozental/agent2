@@ -88,6 +88,7 @@ class MLMLoss(nn.Module):
 
         return mlm_loss
 
+        # TODO - I believe that can use the code below for better efficiency with the same results
         # no_mask = mask_with_tokens(inputs, self.mask_ignore_token_ids)
         # mask = get_mask_subset_with_prob(~no_mask, self.mask_prob)
         # # get mask indices

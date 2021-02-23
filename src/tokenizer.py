@@ -1,7 +1,7 @@
 class Tokenizer:
     SPECIAL_TOKENS = {
-        '[PAD]': '',
-        '[MASK]': '',
+        '[PAD]': '[PAD]',
+        '[MASK]': '[MASK]',
         '[EOS]': '.',
         '[SEP]': ' ',
     }

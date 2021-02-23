@@ -2,9 +2,9 @@ import torch.nn as nn
 
 
 class Compressor(nn.Module):
-    def __init__(self, embed_size):
+    def __init__(self, embed_size, parent_embed):
         super().__init__()
-        self.recurrent = nn.LSTM(embed_size, embed_size * 2, dropout=0.2, batch_first=True)
+        self.recurrent = nn.LSTM(embed_size, parent_embed, dropout=0.2, batch_first=True)
 
     def forward(self, x):
         # TODO - Check if the padding mask needs to be passed to here?

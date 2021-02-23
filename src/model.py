@@ -1,47 +1,23 @@
-from src.agent import Compressor, Decompressor, Encoder, Decoder, CoherenceChecker
+from src.agent import Level
 import torch.nn as nn
 import torch
 
 
 class Model(nn.Module):
-    def __init__(self, embed_size=200, num_hidden=200, num_layers=2, num_head=2, dropout=0.15, num_tokens=None,
-                 max_seq_length=None):
+    def __init__(self, config, num_tokens, max_seq_length):
         super().__init__()
 
-        self.embedding = nn.Embedding(num_tokens, embed_size)
-        self.encoder = Encoder(self.embedding, embed_size=embed_size, num_hidden=num_hidden, num_layers=num_layers,
-                               num_head=num_head, dropout=dropout)
-        self.encoder_transform = nn.Linear(embed_size, embed_size)  # For the MLM Loss only
-        self.decoder = Decoder(self.embedding, embed_size=embed_size, num_hidden=num_hidden, num_layers=num_layers,
-                               num_head=num_head, dropout=dropout)
-        self.compressor = Compressor(embed_size)
-        self.decompressor = Decompressor(embed_size, max_seq_length)
-
-        self.coherence_checker = CoherenceChecker(embed_size)
-
-    def mlm(self, src, mask):
-        encoded = self.encoder(src, mask)
-
-        encoded = encoded.transpose(0, 1)
-        output = self.encoder_transform(encoded)
-        emb_weight = torch.transpose(self.encoder.embedding.weight, 0, 1).unsqueeze(0)
-        output = torch.matmul(output, emb_weight)  # [batch, seq_length, num_tokens]
-
-        return output.transpose(1, 0)
-
-    def coherence(self, src, mask):
-        encoded = self.encoder(src, mask)
-        vector = self.compressor(encoded)
-        return self.coherence_checker(vector)
+        self.levels = nn.ModuleList()
+        for i, level_config in enumerate(config):
+            if i < len(config) - 1:
+                parent_embed = config[i + 1]['embed_size']
+            else:
+                parent_embed = level_config['embed_size'] * 2  # Figure out what to do for the last level
+            self.levels.append(Level(num_tokens=num_tokens, max_seq_length=max_seq_length, parent_embed=parent_embed,
+                                     **level_config))
 
     def forward(self, src, mask):
-        encoded = self.encoder(src, mask)
-        vector = self.compressor(encoded)
-        decompressed = self.decompressor(vector)
-        output = self.decoder(tgt=src, memory=decompressed, tgt_key_padding_mask=mask)
-
-        return output
+        raise NotImplementedError
 
     def decode(self, src, mask):
-        logits = self.forward(src, mask)
-        return torch.argmax(logits, dim=2)
+        raise NotImplementedError

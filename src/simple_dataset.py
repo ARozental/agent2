@@ -9,24 +9,20 @@ class SimpleDataset:
         self.text = 'something\nencyclopedia'
         self.text = self.text.split('\n')
         self.text = [[char for char in sent] for sent in self.text]
+        # self.text = [[[char for char in word] for word in sent.split(' ')] for sent in self.text]
         self.max_length = max([len(sent) for sent in self.text])
 
         self.tokenizer = Tokenizer()
         # self.data = [self.tokenizer.tokenize(item) for item in self.text]
 
-    def iterator(self, entire_seq=False):
-        if entire_seq:
-            x = []
-            mask = []
-            for sent in self.text:
-                a, b = self.tokenizer.tokenize(sent, pad_length=self.max_length)
-                x.append(a)
-                mask.append(b)
-            yield x, mask
-            # yield [token for word in self.data for token in word]
-        else:
-            for item in self.data:
-                yield item
+    def iterator(self):
+        x = []
+        mask = []
+        for sent in self.text:
+            a, b = self.tokenizer.tokenize(sent, pad_length=self.max_length)
+            x.append(a)
+            mask.append(b)
+        yield x, mask
 
     def decode(self, tokens):
         return self.tokenizer.decode(tokens)

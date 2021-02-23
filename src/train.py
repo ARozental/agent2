@@ -17,7 +17,12 @@ model.to(device)
 model.train()
 
 losses = {
-    'mlm': MLMLoss(model, pad_token_id=0, mask_token_id=1, mask_prob=0.5, random_token_prob=.1, num_tokens=NUM_TOKENS),
+    'mlm': MLMLoss(model,
+                   pad_token_id=dataset.tokenizer.SPECIAL_INDICES['[PAD]'],
+                   mask_token_id=dataset.tokenizer.SPECIAL_INDICES['[MASK]'],
+                   mask_prob=0.5,
+                   random_token_prob=0.1,
+                   num_tokens=NUM_TOKENS),
     'coherence': CoherenceLoss(model),
     'reconstruct': ReconstructionLoss(model),
 }

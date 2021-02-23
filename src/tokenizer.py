@@ -1,17 +1,41 @@
 class Tokenizer:
+    SPECIAL_TOKENS = {
+        '[PAD]': '',
+        '[MASK]': '',
+        '[EOS]': '.',
+        '[SEP]': ' ',
+    }
+
+    SPECIAL_INDICES = {
+        '[PAD]': -1,
+        '[MASK]': -1,
+        '[EOS]': -1,
+        '[SEP]': -1,
+    }
+
     def __init__(self):
         with open('../chars.txt', encoding='utf-8') as f:
-            chars = [char.strip('\r\n') for char in f.readlines()]
-            #chars = [char for char in f.readlines()]
+            chars = [char.strip() for char in f.readlines()]
 
-        self.tokenizer = {char: i for i, char in enumerate(chars)}
-        self.reverse_tokenizer = {i: char for i, char in enumerate(chars)}
+        self.tokenizer = {}
+        self.reverse_tokenizer = {}
+        for i, char in enumerate(chars):
+            special_display = self.SPECIAL_TOKENS.get(char, None)
+            if special_display is not None:
+                self.SPECIAL_INDICES[char] = i
+                self.tokenizer[special_display] = i
+                self.reverse_tokenizer[i] = special_display
+            else:
+                self.tokenizer[char] = i
+                self.reverse_tokenizer[i] = char
 
     def tokenize(self, word, pad_length):
-        tokens = [self.tokenizer[char] for char in word]
+        pad_length += 1  # Add an extra character for the EOS token
+
+        tokens = [self.tokenizer[char] for char in word] + [self.SPECIAL_INDICES['[EOS]']]
         mask = [0 for _ in range(len(tokens))]
         if len(tokens) < pad_length:
-            pad_extra = [self.tokenizer['[PAD]']] * (pad_length - len(tokens))
+            pad_extra = [self.SPECIAL_INDICES['[PAD]']] * (pad_length - len(tokens))
             pad_mask = [1 for _ in range(len(pad_extra))]
 
             tokens = tokens + pad_extra
@@ -20,4 +44,14 @@ class Tokenizer:
         return tokens, mask
 
     def decode(self, tokens):
+        if not isinstance(tokens, list):
+            tokens = tokens.tolist()
+
+        try:
+            eos_index = tokens.index(self.SPECIAL_INDICES['[EOS]'])
+            if eos_index is not None:
+                tokens = tokens[:eos_index]
+        except ValueError:
+            pass
+
         return [self.reverse_tokenizer[token] for token in tokens]

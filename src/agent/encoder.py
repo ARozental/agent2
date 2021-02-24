@@ -14,7 +14,8 @@ class Encoder(nn.Module):
 
     def forward(self, src, mask):
         src = src.transpose(0, 1)
-        src = self.embedding(src)  # * math.sqrt(self.embed_size)
+        if self.embedding is not None:
+            src = self.embedding(src)  # * math.sqrt(self.embed_size)
         src = self.pos_encoder(src)
 
         return self.transformer_encoder(src, src_key_padding_mask=mask).transpose(0, 1)

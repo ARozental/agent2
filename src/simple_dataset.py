@@ -2,26 +2,31 @@ from src.tokenizer import Tokenizer
 
 
 class SimpleDataset:
-    def __init__(self):
+    def __init__(self, max_level=1):
         with open('../dummy_data1.txt') as f:
             self.text = f.readlines()
-        self.text = 'The quick brown fox jumps over the lazy dog\nThis is the second example as a test'
-        self.text = 'something\nencyclopedia'
-        self.text = self.text.split('\n')
-        self.text = [[char for char in sent] for sent in self.text]
-        # self.text = [[[char for char in word] for word in sent.split(' ')] for sent in self.text]
-        self.max_length = max([len(sent) for sent in self.text])
-
-        self.tokenizer = Tokenizer()
-        # self.data = [self.tokenizer.tokenize(item) for item in self.text]
+        if max_level == 2:
+            self.text = 'The\nThis is'
+            self.text = [[[char for char in word] for word in sent.split(' ')] for sent in self.text.split('\n')]
+            self.tokenizer = Tokenizer(max_lengths=[
+                max([len(word) for sent in self.text for word in sent]) + 1,  # Add an extra character for the EOS token
+                max([len(sent) for sent in self.text]),
+            ])
+        else:
+            self.text = 'something\nencyclopedia'
+            self.text = [[char for char in word] for word in self.text.split('\n')]
+            self.tokenizer = Tokenizer(max_lengths=[
+                max([len(word) for word in self.text]) + 1,  # Add an extra character for the EOS token
+            ])
 
     def iterator(self):
         x = []
         mask = []
         for sent in self.text:
-            a, b = self.tokenizer.tokenize(sent, pad_length=self.max_length)
+            a, b = self.tokenizer.tokenize(sent)
             x.append(a)
             mask.append(b)
+
         yield x, mask
 
     def decode(self, tokens):

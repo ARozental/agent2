@@ -15,7 +15,7 @@ class Decompressor(nn.Module):
     def forward(self, x):
         # Source: https://pytorch.org/docs/stable/generated/torch.nn.LSTM.html
         # (num_layers * num_directions, batch, hidden_size)
-        state_h, state_c = (torch.zeros(1, 2, self.parent_embed), torch.zeros(1, 2, self.parent_embed))
+        state_h, state_c = (torch.zeros(1, x.size(0), self.parent_embed), torch.zeros(1, x.size(0), self.parent_embed))
 
         seq = []
         last_input = x.unsqueeze(1)

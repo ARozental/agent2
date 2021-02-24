@@ -4,7 +4,7 @@ import torch
 
 
 class Level(nn.Module):
-    def __init__(self, num_tokens, max_seq_length, embed_size, parent_embed, encoder=None, decoder=None):
+    def __init__(self, num_tokens, max_seq_length, embed_size, parent_embed, is_base=False, encoder=None, decoder=None):
         super().__init__()
 
         if encoder is None:
@@ -13,7 +13,12 @@ class Level(nn.Module):
         if decoder is None:
             decoder = {}
 
-        self.embedding = nn.Embedding(num_tokens, embed_size)
+        if is_base:
+            self.embedding = nn.Embedding(num_tokens, embed_size)
+        else:
+            self.embedding = None
+            self.eos = nn.Parameter(torch.rand(embed_size))
+
         self.encoder = Encoder(self.embedding, embed_size=embed_size, **encoder)
         self.encoder_transform = nn.Linear(embed_size, embed_size)  # For the MLM Loss only
         self.decoder = Decoder(self.embedding, embed_size=embed_size, **decoder)
@@ -44,6 +49,10 @@ class Level(nn.Module):
         output = self.decoder(tgt=src, memory=decompressed, tgt_key_padding_mask=mask)
 
         return output
+
+    def encode(self, src, mask):
+        encoded = self.encoder(src, mask)
+        return self.compressor(encoded)
 
     def decode(self, src, mask):
         logits = self.forward(src, mask)

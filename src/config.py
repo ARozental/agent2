@@ -20,13 +20,13 @@ MODEL_CONFIG = [
     #     # Sentence Level
     #     'embed_size': 160,
     #     'encoder': {
-    #         'num_hidden': 80,
+    #         'num_hidden': 160,
     #         'num_layers': 2,
     #         'num_head': 2,
     #         'dropout': 0.01,
     #     },
     #     'decoder': {
-    #         'num_hidden': 80,
+    #         'num_hidden': 160,
     #         'num_layers': 2,
     #         'num_head': 2,
     #         'dropout': 0.01,

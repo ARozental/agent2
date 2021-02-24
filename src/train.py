@@ -1,4 +1,3 @@
-from src.losses import MLMLoss, CoherenceLoss, ReconstructionLoss
 from src.config import MODEL_CONFIG
 from src.model import Model
 from src.simple_dataset import SimpleDataset
@@ -22,8 +21,9 @@ for epoch in range(500):
     print('Epoch', epoch + 1)
 
     for sentences, mask in dataset.iterator():
-        for sent in sentences:
-            print('Original:', dataset.decode(sent))
+        model.train()
+        # for sent in sentences:
+        #     print('Original:', dataset.decode(sent))
         inputs = torch.tensor(sentences).to(device)
         mask = torch.BoolTensor(mask).to(device)
         optimizer.zero_grad()
@@ -32,11 +32,24 @@ for epoch in range(500):
         (sum(mlm_loss) + sum(coherence_loss) + sum(reconstruct_loss)).backward()
         optimizer.step()
 
+        model.eval()
+        print('Word Level')
         with torch.no_grad():
-            preds = model.decode(inputs, mask)
+            for i, sent in enumerate(sentences):
+                word_vec = model.encode(inputs[i], mask[i], level=0)
+                pred = model.decode(word_vec, level=0)
+                print(dataset.decode(pred), end='')
+                if dataset.decode(pred) == dataset.decode(sent):
+                    print('   MATCHED!', end='')
+                print('')
+
+        print('Sentence Level')
+        with torch.no_grad():
+            sent_vec = model.encode(inputs, mask)
+            preds = model.decode(sent_vec, level=1)
         preds = preds.cpu().detach().numpy()
         for pred, sent in zip(preds, sentences):
-            print('Pred:', dataset.decode(pred), end='')
+            print(dataset.decode(pred), end='')
             if dataset.decode(pred) == dataset.decode(sent):
                 print('   MATCHED!', end='')
             print('')

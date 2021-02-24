@@ -15,6 +15,7 @@ class Level(nn.Module):
 
         self.is_base = is_base
         self.embed_size = embed_size
+        self.max_seq_length = max_seq_length
         if is_base:
             self.embedding = nn.Embedding(num_tokens, embed_size)
         else:
@@ -61,7 +62,11 @@ class Level(nn.Module):
         encoded = self.encoder(src, mask)
         vector = self.compressor(encoded)
         decompressed = self.decompressor(vector)
-        output = self.decoder(tgt=src, memory=decompressed, tgt_key_padding_mask=mask)
+        # Alon - This is the original which I believe is the correct way, but gives garbage out at eval time
+        # output = self.decoder(tgt=src, memory=decompressed, tgt_key_padding_mask=mask)
+
+        # Alon - This gives us correct words at the word level at eval time
+        output = self.decoder(tgt=decompressed, memory=decompressed)
 
         return output
 
@@ -69,6 +74,14 @@ class Level(nn.Module):
         encoded = self.encoder(src, mask)
         return self.compressor(encoded)
 
-    def decode(self, src, mask):
-        logits = self.forward(src, mask)
-        return torch.argmax(logits, dim=2)
+    def decode(self, vectors):
+        decompressed = self.decompressor(vectors)
+
+        # Alon - I believe something is wrong here, working on trying to identify
+        src = torch.zeros((decompressed.size(0), self.max_seq_length), dtype=torch.long)
+        output = self.decoder(tgt=decompressed, memory=decompressed)
+
+        if self.is_base:
+            return torch.argmax(output, dim=2)
+
+        return output

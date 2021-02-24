@@ -86,15 +86,54 @@ class Model(nn.Module):
     def forward(self, src, mask):
         raise NotImplementedError
 
-    def decode(self, inputs, mask, level=None):
+    def encode(self, inputs, mask, level=None):
         if level is None:
             level = len(inputs.size()) - 2
 
-        if level > 0:
-            original_shape = inputs.size()
-            shape = (inputs.size(0) * inputs.size(1), inputs.size(2))
-            result = self.decode(inputs.reshape(shape), mask.reshape(shape), level=level - 1)
-            result = result.reshape(original_shape)
-            return result
+        if level == 0:
+            return self.levels[level].encode(inputs, mask)
 
-        return self.levels[level].decode(inputs, mask)
+        original_shape = inputs.size()
+        shape = (inputs.size(0) * inputs.size(1), inputs.size(2))
+        vectors = self.encode(inputs.reshape(shape), mask.reshape(shape), level=level - 1)
+
+        # TODO - Add EoS token at the end of each
+
+        # For now just replace vectors to be indices and treat normally
+        import numpy as np
+        vectors = vectors.detach().numpy()
+        unique_vectors = np.unique(vectors, axis=0)
+
+        self.levels[level].set_embedding(torch.tensor(unique_vectors))
+
+        inputs = np.array([np.argwhere((vec == unique_vectors).all(1))[0][0] for vec in vectors])
+        inputs = inputs.reshape((original_shape[0], original_shape[1]))
+        inputs += 4  # Make room for the pad, mask, etc tokens
+
+        inputs = torch.tensor(inputs)
+
+        if level == len(self.levels) - 1:
+            mask = mask.all(-1)
+            return self.levels[level].encode(inputs, mask)
+
+        return inputs
+
+    def decode(self, vectors, level=None):
+        if level is None:
+            level = len(vectors.size()) - 2
+
+        if level == 0:
+            # Don't reshape when doing word level eval
+            # TODO - Make this dynamic in the future and not so rigid
+            need_reshape = len(vectors.size()) > 2
+            if need_reshape:
+                original_shape = vectors.size()
+                shape = (vectors.size(0) * vectors.size(1), vectors.size(2))
+                vectors = vectors.reshape(shape)
+        decoded = self.levels[level].decode(vectors)
+        if level == 0:
+            if need_reshape:
+                decoded = decoded.reshape((original_shape[0], original_shape[1], decoded.size(1)))
+            return decoded
+
+        return self.decode(decoded, level=level - 1)

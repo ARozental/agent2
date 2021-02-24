@@ -11,10 +11,11 @@ class Decoder(nn.Module):
         self.transformer_decoder = nn.TransformerDecoder(decoder_layers, num_layers)
         self.embed_size = embed_size
 
-    def forward(self, tgt, memory, tgt_key_padding_mask):
+    def forward(self, tgt, memory, tgt_key_padding_mask=None):
         tgt = tgt.transpose(0, 1)
         memory = memory.transpose(0, 1)
-        tgt = self.embedding(tgt)  # * math.sqrt(self.embed_size)
+        if len(tgt.size()) == 2:
+            tgt = self.embedding(tgt)  # * math.sqrt(self.embed_size)
         memory = self.pos_encoder(memory)
 
         output = self.transformer_decoder(tgt=tgt, memory=memory, tgt_key_padding_mask=tgt_key_padding_mask)

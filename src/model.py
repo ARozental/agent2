@@ -118,7 +118,8 @@ class Model(nn.Module):
 
         return inputs
 
-    def decode(self, vectors, level=None):
+    # return_word_vectors is temporary now while debugging
+    def decode(self, vectors, level=None, return_word_vectors=False):
         if level is None:
             level = len(vectors.size()) - 2
 
@@ -134,6 +135,9 @@ class Model(nn.Module):
         if level == 0:
             if need_reshape:
                 decoded = decoded.reshape((original_shape[0], original_shape[1], decoded.size(1)))
+            return decoded
+
+        if level == 1 and return_word_vectors:
             return decoded
 
         return self.decode(decoded, level=level - 1)

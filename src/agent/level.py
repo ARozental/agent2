@@ -13,10 +13,12 @@ class Level(nn.Module):
         if decoder is None:
             decoder = {}
 
+        self.is_base = is_base
+        self.embed_size = embed_size
         if is_base:
             self.embedding = nn.Embedding(num_tokens, embed_size)
         else:
-            self.embedding = None
+            self.embedding = nn.Embedding(num_tokens, embed_size)  # TODO - Don't let this get backpropped
             self.eos = nn.Parameter(torch.rand(embed_size))
 
         self.encoder = Encoder(self.embedding, embed_size=embed_size, **encoder)
@@ -26,6 +28,19 @@ class Level(nn.Module):
         self.decompressor = Decompressor(embed_size, parent_embed, max_seq_length)
 
         self.coherence_checker = CoherenceChecker(embed_size)
+
+    def set_embedding(self, vectors):
+        # TODO - Check that none of these get backpropped (except for the eos)
+        weights = torch.cat([torch.stack([
+            torch.zeros(self.embed_size),
+            torch.zeros(self.embed_size),
+            self.eos,
+            torch.zeros(self.embed_size),
+        ]), vectors])
+
+        self.embedding = nn.Embedding.from_pretrained(weights)
+        self.encoder.embedding = nn.Embedding.from_pretrained(weights)
+        self.decoder.embedding = nn.Embedding.from_pretrained(weights)
 
     def mlm(self, src, mask):
         encoded = self.encoder(src, mask)

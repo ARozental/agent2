@@ -5,8 +5,10 @@ class SimpleDataset:
     def __init__(self, max_level=1):
         with open('../dummy_data1.txt') as f:
             self.text = f.readlines()
+
+        # TODO - Make this dynamic based on the number of levels
         if max_level == 2:
-            self.text = 'The\nThis is'
+            self.text = 'The is a wonderful test\nThis is a big test'
             self.text = [[[char for char in word] for word in sent.split(' ')] for sent in self.text.split('\n')]
             self.tokenizer = Tokenizer(max_lengths=[
                 max([len(word) for sent in self.text for word in sent]) + 1,  # Add an extra character for the EOS token

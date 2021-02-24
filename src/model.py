@@ -27,7 +27,7 @@ class Model(nn.Module):
                                mask_token_id=1,
                                mask_prob=0.5,
                                random_token_prob=0.1,
-                               num_tokens=81),
+                               num_tokens=num_tokens),
                 'coherence': CoherenceLoss(level),
                 'reconstruct': ReconstructionLoss(level),
             })
@@ -36,20 +36,34 @@ class Model(nn.Module):
         if level is None:
             level = len(inputs.size()) - 2
 
-        print('level', level)
         if level > 0:
-            print(inputs.reshape((4, 5)))
-            vectors, loss_m, loss_c, loss_r = self.fit(inputs.reshape((4, 5)), mask.reshape((4, 5)), level=level - 1)
-            print(vectors.size())
-            inputs = vectors.reshape((2, 2, 160))
-            # inputs[:, :] = vectors
-            # print(vectors)
-            # exit()
+            original_shape = inputs.size()
+            shape = (inputs.size(0) * inputs.size(1), inputs.size(2))
+            vectors, loss_m, loss_c, loss_r = self.fit(inputs.reshape(shape), mask.reshape(shape), level=level - 1)
+
+            # TODO - Add EoS token at the end of each
+
+            # For now just replace vectors to be indices and treat normally
+            import numpy as np
+            vectors = vectors.detach().numpy()
+            unique_vectors = np.unique(vectors, axis=0)
+
+            self.levels[level].set_embedding(torch.tensor(unique_vectors))
+
+            inputs = np.array([np.argwhere((vec == unique_vectors).all(1))[0][0] for vec in vectors])
+            inputs = inputs.reshape((original_shape[0], original_shape[1]))
+            inputs += 4  # Make room for the pad, mask, etc tokens
+
+            inputs = torch.tensor(inputs)
+            mask = mask.all(-1)
+
+            self.losses[level]['mlm'].num_tokens = len(unique_vectors) + 4
         else:
             loss_m = []
             loss_c = []
             loss_r = []
 
+        print('Level', level)
         mlm_loss = self.losses[level]['mlm'](inputs, mask)
         coherence_loss = self.losses[level]['coherence'](inputs, mask)
         reconstruct_loss = self.losses[level]['reconstruct'](inputs, mask)
@@ -62,10 +76,25 @@ class Model(nn.Module):
         loss_c.append(coherence_loss)
         loss_r.append(reconstruct_loss)
 
-        return self.levels[level].encode(inputs, mask), loss_m, loss_c, loss_r
+        self.levels[level].eval()
+        with torch.no_grad():
+            vectors = self.levels[level].encode(inputs, mask)
+        self.levels[level].train()
+
+        return vectors, loss_m, loss_c, loss_r
 
     def forward(self, src, mask):
         raise NotImplementedError
 
-    def decode(self, src, mask):
-        raise NotImplementedError
+    def decode(self, inputs, mask, level=None):
+        if level is None:
+            level = len(inputs.size()) - 2
+
+        if level > 0:
+            original_shape = inputs.size()
+            shape = (inputs.size(0) * inputs.size(1), inputs.size(2))
+            result = self.decode(inputs.reshape(shape), mask.reshape(shape), level=level - 1)
+            result = result.reshape(original_shape)
+            return result
+
+        return self.levels[level].decode(inputs, mask)

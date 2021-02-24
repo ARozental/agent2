@@ -33,7 +33,7 @@ for epoch in range(500):
         optimizer.step()
 
         with torch.no_grad():
-            preds = model.levels[0].decode(inputs, mask)
+            preds = model.decode(inputs, mask)
         preds = preds.cpu().detach().numpy()
         for pred, sent in zip(preds, sentences):
             print('Pred:', dataset.decode(pred), end='')

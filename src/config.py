@@ -16,20 +16,20 @@ MODEL_CONFIG = [
             'dropout': 0.01,
         },
     },
-    # {
-    #     # Sentence Level
-    #     'embed_size': 160,
-    #     'encoder': {
-    #         'num_hidden': 160,
-    #         'num_layers': 2,
-    #         'num_head': 2,
-    #         'dropout': 0.01,
-    #     },
-    #     'decoder': {
-    #         'num_hidden': 160,
-    #         'num_layers': 2,
-    #         'num_head': 2,
-    #         'dropout': 0.01,
-    #     },
-    # }
+    {
+        # Sentence Level
+        'embed_size': 160,
+        'encoder': {
+            'num_hidden': 160,
+            'num_layers': 2,
+            'num_head': 2,
+            'dropout': 0.01,
+        },
+        'decoder': {
+            'num_hidden': 160,
+            'num_layers': 2,
+            'num_head': 2,
+            'dropout': 0.01,
+        },
+    }
 ]

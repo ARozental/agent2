@@ -74,11 +74,46 @@ class MLMLoss(nn.Module):
         # token ids
         self.pad_token_id = pad_token_id
         self.mask_token_id = mask_token_id
-        self.mask_ignore_token_ids = set([*mask_ignore_token_ids, pad_token_id])
+        self.mask_ignore_token_ids = set([*mask_ignore_token_ids, pad_token_id])  # TODO - Add the EOS token to this
 
     def forward(self, inputs, model_mask):
-        mlm_mask, masked_input = make_masked_sequence(inputs, ~model_mask, mask_prob=0.5)
-        labels = inputs * mlm_mask
+        # mlm_mask, masked_input = make_masked_sequence(inputs, ~model_mask, mask_prob=0.5)
+        # labels = inputs * mlm_mask
+        # logits = self.model.mlm(masked_input, model_mask)
+        # mlm_loss = F.cross_entropy(
+        #     logits.transpose(1, 2),
+        #     labels,
+        #     ignore_index=self.pad_token_id
+        # )
+        #
+        # return mlm_loss
+
+        # TODO - I believe that can use the code below for better efficiency with the same results
+        no_mask = mask_with_tokens(inputs, self.mask_ignore_token_ids)
+        mask = get_mask_subset_with_prob(~no_mask, self.mask_prob)
+        # get mask indices
+        mask_indices = torch.nonzero(mask, as_tuple=True)
+
+        # mask input with mask tokens with probability of `replace_prob` (keep tokens the same with probability 1 - replace_prob)
+        masked_input = inputs.clone().detach()
+
+        # if random token probability > 0 for mlm
+        if self.random_token_prob > 0:
+            assert self.num_tokens is not None, 'num_tokens keyword must be supplied when instantiating MLM if using random token replacement'
+            random_token_prob = prob_mask_like(inputs, self.random_token_prob)
+            random_tokens = torch.randint(0, self.num_tokens, inputs.shape, device=inputs.device)
+            random_no_mask = mask_with_tokens(random_tokens, self.mask_ignore_token_ids)
+            random_token_prob &= ~random_no_mask
+            random_indices = torch.nonzero(random_token_prob, as_tuple=True)
+            masked_input[random_indices] = random_tokens[random_indices]
+
+        # [mask] input
+        replace_prob = prob_mask_like(inputs, self.replace_prob)
+        masked_input = masked_input.masked_fill(mask * replace_prob, self.mask_token_id)
+
+        # set inverse of mask to padding tokens for labels
+        labels = inputs.masked_fill(~mask, self.pad_token_id)
+
         logits = self.model.mlm(masked_input, model_mask)
         mlm_loss = F.cross_entropy(
             logits.transpose(1, 2),
@@ -87,41 +122,3 @@ class MLMLoss(nn.Module):
         )
 
         return mlm_loss
-
-        # TODO - I believe that can use the code below for better efficiency with the same results
-        # no_mask = mask_with_tokens(inputs, self.mask_ignore_token_ids)
-        # mask = get_mask_subset_with_prob(~no_mask, self.mask_prob)
-        # # get mask indices
-        # mask_indices = torch.nonzero(mask, as_tuple=True)
-        #
-        #
-        # # mask input with mask tokens with probability of `replace_prob` (keep tokens the same with probability 1 - replace_prob)
-        # masked_input = inputs.clone().detach()
-        # #print("masked_input", masked_input.shape)
-        #
-        # # if random token probability > 0 for mlm
-        # if self.random_token_prob > 0:
-        #     assert self.num_tokens is not None, 'num_tokens keyword must be supplied when instantiating MLM if using random token replacement'
-        #     random_token_prob = prob_mask_like(inputs, self.random_token_prob)
-        #     random_tokens = torch.randint(0, self.num_tokens, inputs.shape, device=inputs.device)
-        #     random_no_mask = mask_with_tokens(random_tokens, self.mask_ignore_token_ids)
-        #     random_token_prob &= ~random_no_mask
-        #     random_indices = torch.nonzero(random_token_prob, as_tuple=True)
-        #     masked_input[random_indices] = random_tokens[random_indices]
-        #
-        # # [mask] input
-        # replace_prob = prob_mask_like(inputs, self.replace_prob)
-        # masked_input = masked_input.masked_fill(mask * replace_prob, self.mask_token_id)
-        #
-        # # set inverse of mask to padding tokens for labels
-        # labels = inputs.masked_fill(~mask, self.pad_token_id)
-        #
-        # logits = self.model(masked_input.transpose(0, 1), model_mask)
-        # mlm_loss = F.cross_entropy(
-        #     logits.transpose(1, 0).transpose(1, 2),
-        #     labels,
-        #     ignore_index=self.pad_token_id
-        # )
-        # print('mlm_loss', mlm_loss)
-        #
-        # return mlm_loss

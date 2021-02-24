@@ -35,4 +35,11 @@ class CoherenceLoss(nn.Module):
         # The mask should handle the padding tokens (even if they were replaced)
         preds = self.model.coherence(replaced_inputs, mask)
 
+        # Ignore rows that are all padded
+        all_padded = (inputs != self.pad_token_id).sum(1)
+        ignore_padding = (all_padded > 0)
+        target_probs = target_probs[ignore_padding]
+        replace_each = replace_each[ignore_padding]
+        preds = preds[ignore_padding]
+
         return self.loss(preds * replace_each, target_probs)

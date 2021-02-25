@@ -43,29 +43,10 @@ class Level(nn.Module):
         self.encoder.embedding = nn.Embedding.from_pretrained(weights)
         self.decoder.embedding = nn.Embedding.from_pretrained(weights)
 
-    def mlm(self, src, mask):
-        encoded = self.encoder(src, mask)
-
-        encoded = encoded.transpose(0, 1)
-        output = self.encoder_transform(encoded)
-        emb_weight = torch.transpose(self.encoder.embedding.weight, 0, 1).unsqueeze(0)
-        output = torch.matmul(output, emb_weight)  # [batch, seq_length, num_tokens]
-
-        return output.transpose(1, 0)
-
-    def coherence(self, src, mask):
-        encoded = self.encoder(src, mask)
-        vector = self.compressor(encoded)
-        return self.coherence_checker(vector)
-
-    def forward(self, src, mask):
+    def reconstruct(self, src, mask):
         encoded = self.encoder(src, mask)
         vector = self.compressor(encoded)
         decompressed = self.decompressor(vector)
-        # Alon - This is the original which I believe is the correct way, but gives garbage out at eval time
-        # output = self.decoder(tgt=src, memory=decompressed, tgt_key_padding_mask=mask)
-
-        # Alon - This gives us correct words at the word level at eval time
         output = self.decoder(tgt=decompressed, memory=decompressed)
 
         return output

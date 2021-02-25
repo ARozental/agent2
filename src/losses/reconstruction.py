@@ -8,8 +8,9 @@ class ReconstructionLoss(nn.Module):
         self.model = model
         self.pad_token_id = 0
 
+    # TODO - Fix this and refactor some more
     def forward(self, inputs, mask):
-        logits = self.model(inputs, mask)
+        logits = self.model.reconstruct(inputs, mask)
 
         return F.cross_entropy(
             logits.transpose(1, 2),

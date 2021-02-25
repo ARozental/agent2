@@ -33,7 +33,9 @@ class CoherenceLoss(nn.Module):
         replaced_inputs = (inputs * ~token_replace) + (token_replace * random_tokens)
 
         # The mask should handle the padding tokens (even if they were replaced)
-        preds = self.model.coherence(replaced_inputs, mask)
+        encoded = self.model.encoder(replaced_inputs, mask)
+        vector = self.model.compressor(encoded)
+        preds = self.model.coherence_checker(vector)
 
         # Ignore rows that are all padded
         all_padded = (inputs != self.pad_token_id).sum(1)

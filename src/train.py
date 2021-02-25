@@ -15,7 +15,9 @@ model = Model(MODEL_CONFIG, num_tokens=NUM_TOKENS, max_seq_length=dataset.tokeni
 model.to(device)
 model.train()
 
-optimizer = torch.optim.Adagrad(model.parameters(), 0.01)
+# For now force the upper levels to not backprop on the embeddings
+parameters = [param for name, param in model.named_parameters() if name != 'levels.1.embedding.weight']
+optimizer = torch.optim.Adagrad(parameters, 0.01)
 
 for epoch in range(500):
     print('Epoch', epoch + 1)
@@ -34,21 +36,19 @@ for epoch in range(500):
 
         model.eval()
         print('Word Level')
-        with torch.no_grad():
-            for i, sent in enumerate(sentences):
-                word_vec = model.encode(inputs[i], mask[i], level=0)
-                pred = model.decode(word_vec, level=0)
-                print(dataset.decode(pred), end='')
-                if dataset.decode(pred) == dataset.decode(sent):
-                    print('   MATCHED!', end='')
-                print('')
+        for i, sent in enumerate(sentences):
+            word_vec = model.encode(inputs[i], mask[i], level=0)
+            pred = model.decode(word_vec, level=0)
+            print(dataset.decode(pred), end='')
+            if dataset.decode(pred) == dataset.decode(sent):
+                print('   MATCHED!', end='')
+            print('')
 
         print('Sentence Level')
-        with torch.no_grad():
-            sent_vec = model.encode(inputs, mask)
-            sent_diff = sent_vec[0] - sent_vec[1]
-            print('Sent Diff Sum', torch.sum(sent_diff).item(), 'Norm', torch.norm(sent_diff).item())
-            preds = model.decode(sent_vec, level=1)
+        sent_vec = model.encode(inputs, mask)
+        # sent_diff = sent_vec[0] - sent_vec[1]
+        # print('Sent Diff Sum', torch.sum(sent_diff).item(), 'Norm', torch.norm(sent_diff).item())
+        preds = model.decode(sent_vec, level=1)
         preds = preds.cpu().detach().numpy()
         for pred, sent in zip(preds, sentences):
             print(dataset.decode(pred), end='')
@@ -56,11 +56,11 @@ for epoch in range(500):
                 print('   MATCHED!', end='')
             print('')
 
-        # Word Vector distance
-        word_vectors = [model.encode(inputs[i], mask[i], level=0) for i in range(len(sentences))]
-        word_vecs_from_sentences = model.decode(sent_vec, level=1, return_word_vectors=True)
-        for word_vecs, word_from_sent in zip(word_vectors, word_vecs_from_sentences):
-            # print(word_vecs[:, :5])  # This shows the first 5 values of each word vector
-            print('Distances:', torch.norm(word_vecs - word_from_sent, dim=1).detach().numpy())
+        # # Word Vector distance
+        # word_vectors = [model.encode(inputs[i], mask[i], level=0) for i in range(len(sentences))]
+        # word_vecs_from_sentences = model.decode(sent_vec, level=1, return_word_vectors=True)
+        # for word_vecs, word_from_sent in zip(word_vectors, word_vecs_from_sentences):
+        #     # print(word_vecs[:, :5])  # This shows the first 5 values of each word vector
+        #     print('Distances:', torch.norm(word_vecs - word_from_sent, dim=1).detach().numpy())
 
     print('')

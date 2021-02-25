@@ -57,12 +57,13 @@ class Level(nn.Module):
 
     def decode(self, vectors):
         decompressed = self.decompressor(vectors)
-
-        # Alon - I believe something is wrong here, working on trying to identify
-        src = torch.zeros((decompressed.size(0), self.max_seq_length), dtype=torch.long)
         output = self.decoder(tgt=decompressed, memory=decompressed)
+        output = torch.argmax(output, dim=2)
 
-        if self.is_base:
-            return torch.argmax(output, dim=2)
+        if self.is_base:  # Let the tokenizer handle the convert from indices to characters
+            return output
+
+        # Convert to the corresponding embeddings
+        output = self.embedding(output)
 
         return output

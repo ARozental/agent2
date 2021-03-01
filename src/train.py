@@ -15,9 +15,7 @@ model = AgentModel(MODEL_CONFIG, num_tokens=dataset.num_tokens(), max_seq_length
 model.to(device)
 model.train()
 
-# For now force the upper levels to not backprop on the embeddings
-parameters = [param for name, param in model.named_parameters() if name != 'levels.1.embedding.weight']
-optimizer = torch.optim.Adagrad(parameters, 0.01)
+optimizer = torch.optim.Adagrad(model.parameters(), 0.01)
 
 for epoch in range(500):
     print('Epoch', epoch + 1)

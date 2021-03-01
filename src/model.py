@@ -1,5 +1,7 @@
 from src.losses import MLMLoss, CoherenceLoss, ReconstructionLoss
 from src.agent import AgentLevel
+from typing import Iterator
+from torch.nn import Parameter
 import torch.nn as nn
 import torch
 
@@ -15,10 +17,8 @@ class AgentModel(nn.Module):
                 parent_embed = config[i + 1]['embed_size']
             else:
                 parent_embed = level_config['embed_size'] * 2  # Figure out what to do for the last level
-            if i == 0:
-                level_config['is_base'] = True
-            level = AgentLevel(num_tokens=num_tokens, max_seq_length=max_seq_length[i], parent_embed=parent_embed,
-                               **level_config)
+            level = AgentLevel(level_num=i, num_tokens=num_tokens, max_seq_length=max_seq_length[i],
+                               parent_embed=parent_embed, **level_config)
 
             self.levels.append(level)
             self.losses.append({
@@ -31,6 +31,13 @@ class AgentModel(nn.Module):
                 'coherence': CoherenceLoss(level),
                 'reconstruct': ReconstructionLoss(level),
             })
+
+    def parameters(self, recurse: bool = True) -> Iterator[Parameter]:
+        for name, param in self.named_parameters(recurse=recurse):
+            if 'embedding' in name and not name.startswith('levels.0.'):  # Ignore embedding above base level
+                continue
+
+            yield param
 
     def fit(self, inputs, mask, level=None):
         if level is None:
@@ -119,7 +126,7 @@ class AgentModel(nn.Module):
         return inputs
 
     # return_word_vectors is temporary now while debugging
-    def decode(self, vectors, level=None, return_word_vectors=False):
+    def debug_decode(self, vectors, level=None, return_word_vectors=False):
         if level is None:
             level = len(vectors.size()) - 2
 

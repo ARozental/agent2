@@ -4,7 +4,7 @@ import torch
 
 
 class AgentLevel(nn.Module):
-    def __init__(self, num_tokens, max_seq_length, embed_size, parent_embed, is_base=False, encoder=None, decoder=None):
+    def __init__(self, level_num, num_tokens, max_seq_length, embed_size, parent_embed, encoder=None, decoder=None):
         super().__init__()
 
         if encoder is None:
@@ -13,13 +13,11 @@ class AgentLevel(nn.Module):
         if decoder is None:
             decoder = {}
 
-        self.is_base = is_base
+        self.level_num = level_num
         self.embed_size = embed_size
         self.max_seq_length = max_seq_length
-        if is_base:
-            self.embedding = nn.Embedding(num_tokens, embed_size)
-        else:
-            self.embedding = nn.Embedding(num_tokens, embed_size)  # TODO - Don't let this get backpropped
+        self.embedding = nn.Embedding(num_tokens, embed_size)
+        if self.level_num > 0:
             self.eos = nn.Parameter(torch.rand(embed_size))
 
         self.encoder = Encoder(self.embedding, embed_size=embed_size, **encoder)
@@ -31,6 +29,9 @@ class AgentLevel(nn.Module):
         self.coherence_checker = CoherenceChecker(embed_size)
 
     def set_embedding(self, vectors):
+        if self.level_num == 0:
+            raise NotImplementedError  # Should not be here
+
         # TODO - Check that none of these get backpropped (except for the eos)
         weights = torch.cat([torch.stack([
             torch.zeros(self.embed_size),
@@ -55,12 +56,12 @@ class AgentLevel(nn.Module):
         encoded = self.encoder(src, mask)
         return self.compressor(encoded)
 
-    def decode(self, vectors):
+    def debug_decode(self, vectors):
         decompressed = self.decompressor(vectors)
         output = self.decoder(tgt=decompressed, memory=decompressed)
         output = torch.argmax(output, dim=2)
 
-        if self.is_base:  # Let the tokenizer handle the convert from indices to characters
+        if self.level_num == 0:  # Let the tokenizer handle the convert from indices to characters
             return output
 
         # Convert to the corresponding embeddings

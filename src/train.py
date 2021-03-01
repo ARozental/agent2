@@ -1,5 +1,5 @@
 from src.config import MODEL_CONFIG
-from src.model import Model
+from src.model import AgentModel
 from src.simple_dataset import SimpleDataset
 import torch
 
@@ -11,7 +11,7 @@ NUM_LEVELS = len(MODEL_CONFIG)
 
 dataset = SimpleDataset(max_level=NUM_LEVELS)
 device = torch.device('cuda' if torch.cuda.is_available() and USE_CUDA else 'cpu')
-model = Model(MODEL_CONFIG, num_tokens=dataset.num_tokens(), max_seq_length=dataset.tokenizer.max_lengths)
+model = AgentModel(MODEL_CONFIG, num_tokens=dataset.num_tokens(), max_seq_length=dataset.tokenizer.max_lengths)
 model.to(device)
 model.train()
 

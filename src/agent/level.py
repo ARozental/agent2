@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch
 
 
-class Level(nn.Module):
+class AgentLevel(nn.Module):
     def __init__(self, num_tokens, max_seq_length, embed_size, parent_embed, is_base=False, encoder=None, decoder=None):
         super().__init__()
 

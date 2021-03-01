@@ -1,10 +1,10 @@
 from src.losses import MLMLoss, CoherenceLoss, ReconstructionLoss
-from src.agent import Level
+from src.agent import AgentLevel
 import torch.nn as nn
 import torch
 
 
-class Model(nn.Module):
+class AgentModel(nn.Module):
     def __init__(self, config, num_tokens, max_seq_length):
         super().__init__()
 
@@ -17,8 +17,8 @@ class Model(nn.Module):
                 parent_embed = level_config['embed_size'] * 2  # Figure out what to do for the last level
             if i == 0:
                 level_config['is_base'] = True
-            level = Level(num_tokens=num_tokens, max_seq_length=max_seq_length[i], parent_embed=parent_embed,
-                          **level_config)
+            level = AgentLevel(num_tokens=num_tokens, max_seq_length=max_seq_length[i], parent_embed=parent_embed,
+                               **level_config)
 
             self.levels.append(level)
             self.losses.append({

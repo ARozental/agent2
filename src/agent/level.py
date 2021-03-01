@@ -26,7 +26,7 @@ class AgentLevel(nn.Module):
         self.compressor = Compressor(embed_size, parent_embed)
         self.decompressor = Decompressor(embed_size, parent_embed, max_seq_length)
 
-        self.coherence_checker = CoherenceChecker(embed_size)
+        self.coherence_checker = CoherenceChecker(parent_embed)
 
     def set_embedding(self, vectors):
         if self.level_num == 0:

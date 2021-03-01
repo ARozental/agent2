@@ -44,14 +44,6 @@ class AgentLevel(nn.Module):
         self.encoder.embedding = nn.Embedding.from_pretrained(weights)
         self.decoder.embedding = nn.Embedding.from_pretrained(weights)
 
-    def reconstruct(self, src, mask):
-        encoded = self.encoder(src, mask)
-        vector = self.compressor(encoded)
-        decompressed = self.decompressor(vector)
-        output = self.decoder(tgt=decompressed, memory=decompressed)
-
-        return output
-
     def encode(self, src, mask):
         encoded = self.encoder(src, mask)
         return self.compressor(encoded)
@@ -59,6 +51,7 @@ class AgentLevel(nn.Module):
     def debug_decode(self, vectors):
         decompressed = self.decompressor(vectors)
         output = self.decoder(tgt=decompressed, memory=decompressed)
+        output = torch.matmul(output, self.embedding.weight.transpose(0, 1))
         output = torch.argmax(output, dim=2)
 
         if self.level_num == 0:  # Let the tokenizer handle the convert from indices to characters

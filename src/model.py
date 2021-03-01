@@ -138,7 +138,7 @@ class AgentModel(nn.Module):
                 original_shape = vectors.size()
                 shape = (vectors.size(0) * vectors.size(1), vectors.size(2))
                 vectors = vectors.reshape(shape)
-        decoded = self.levels[level].decode(vectors)
+        decoded = self.levels[level].debug_decode(vectors)
         if level == 0:
             if need_reshape:
                 decoded = decoded.reshape((original_shape[0], original_shape[1], decoded.size(1)))
@@ -147,4 +147,4 @@ class AgentModel(nn.Module):
         if level == 1 and return_word_vectors:
             return decoded
 
-        return self.decode(decoded, level=level - 1)
+        return self.debug_decode(decoded, level=level - 1)

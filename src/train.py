@@ -39,7 +39,7 @@ for epoch in range(500):
             mask = mask.reshape((mask.size(0), 1, mask.size(1)))
         for i, sent in enumerate(sentences):
             word_vec = model.encode(inputs[i], mask[i], level=0)
-            pred = model.decode(word_vec, level=0)
+            pred = model.debug_decode(word_vec, level=0)
             print(dataset.decode(pred), end='')
             if dataset.decode(pred) == dataset.decode(sent):
                 print('   MATCHED!', end='')
@@ -50,7 +50,7 @@ for epoch in range(500):
             sent_vec = model.encode(inputs, mask)
             # sent_diff = sent_vec[0] - sent_vec[1]
             # print('Sent Diff Sum', torch.sum(sent_diff).item(), 'Norm', torch.norm(sent_diff).item())
-            preds = model.decode(sent_vec, level=1)
+            preds = model.debug_decode(sent_vec, level=1)
             preds = preds.cpu().detach().numpy()
             for pred, sent in zip(preds, sentences):
                 print(dataset.decode(pred), end='')

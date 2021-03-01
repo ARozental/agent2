@@ -15,6 +15,10 @@ MODEL_CONFIG = [
             'num_head': 2,
             'dropout': 0.01,
         },
+        'mlm': {
+            'mask_prob': 0.5,
+            'random_token_prob': 0.1,
+        },
     },
     {
         # Sentence Level
@@ -31,5 +35,9 @@ MODEL_CONFIG = [
             'num_head': 2,
             'dropout': 0.01,
         },
-    }
+        'mlm': {
+            'mask_prob': 0.5,
+            'random_token_prob': 0.1,
+        },
+    },
 ]

@@ -3,9 +3,7 @@ from src.model import AgentModel
 from src.simple_dataset import SimpleDataset
 import torch
 
-# Uncomment this to be word level only
-# MODEL_CONFIG = MODEL_CONFIG[:1]
-
+# MODEL_CONFIG = MODEL_CONFIG[:1]  # Uncomment this to be word level only
 USE_CUDA = False
 NUM_LEVELS = len(MODEL_CONFIG)
 

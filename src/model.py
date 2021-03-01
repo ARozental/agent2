@@ -17,17 +17,13 @@ class AgentModel(nn.Module):
                 parent_embed = config[i + 1]['embed_size']
             else:
                 parent_embed = level_config['embed_size'] * 2  # Figure out what to do for the last level
+            mlm_config = level_config.pop('mlm', {})
             level = AgentLevel(level_num=i, num_tokens=num_tokens, max_seq_length=max_seq_length[i],
                                parent_embed=parent_embed, **level_config)
 
             self.levels.append(level)
             self.losses.append({
-                'mlm': MLMLoss(level,
-                               pad_token_id=0,
-                               mask_token_id=1,
-                               mask_prob=0.5,
-                               random_token_prob=0.1,
-                               num_tokens=num_tokens),
+                'mlm': MLMLoss(level, pad_token_id=0, mask_token_id=1, **mlm_config, num_tokens=num_tokens),
                 'coherence': CoherenceLoss(level),
                 'reconstruct': ReconstructionLoss(level),
             })

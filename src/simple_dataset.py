@@ -34,6 +34,9 @@ class SimpleDataset:
     def decode(self, tokens):
         return self.tokenizer.decode(tokens)
 
+    def num_tokens(self):
+        return len(self.tokenizer.tokenizer)
+
 
 if __name__ == '__main__':
     dataset = SimpleDataset()

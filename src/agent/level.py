@@ -52,7 +52,19 @@ class AgentLevel(nn.Module):
 
         return output
 
-    def encode(self, src, mask):
+    def encode(self, src, mask, use_dropout=True):
+        if not use_dropout and self.encoder.training:
+            self.encoder.eval()
+            self.compressor.eval()
+
+            with torch.no_grad():
+                encoded = self.encoder(src, mask)
+                output = self.compressor(encoded)
+            self.encoder.train()
+            self.compressor.train()
+
+            return output
+
         encoded = self.encoder(src, mask)
         return self.compressor(encoded)
 

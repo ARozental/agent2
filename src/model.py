@@ -79,10 +79,7 @@ class AgentModel(nn.Module):
         loss_c.append(coherence_loss)
         loss_r.append(reconstruct_loss)
 
-        self.levels[level].eval()
-        with torch.no_grad():
-            vectors = self.levels[level].encode(inputs, mask)
-        self.levels[level].train()
+        vectors = self.levels[level].encode(inputs, mask, use_dropout=False)
 
         return vectors, loss_m, loss_c, loss_r
 

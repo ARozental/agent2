@@ -2,6 +2,7 @@ from src.losses import MLMLoss, CoherenceLoss, ReconstructionLoss
 from src.agent import AgentLevel
 from typing import Iterator
 from torch.nn import Parameter
+import numpy as np
 import torch.nn as nn
 import torch
 
@@ -35,6 +36,19 @@ class AgentModel(nn.Module):
 
             yield param
 
+    def convert_vectors_to_indices(self, vectors, level):
+        vectors = vectors.detach().numpy()
+        unique_vectors = np.unique(vectors, axis=0)
+
+        self.levels[level].set_embedding(torch.tensor(unique_vectors))
+
+        inputs = np.array([np.argwhere((vec == unique_vectors).all(1))[0][0] for vec in vectors])
+        inputs += 4  # Make room for the pad, mask, etc tokens
+
+        self.losses[level]['mlm'].num_tokens = len(unique_vectors) + 4
+
+        return inputs
+
     def fit(self, inputs, mask, level=None):
         if level is None:
             level = len(inputs.size()) - 2
@@ -44,23 +58,10 @@ class AgentModel(nn.Module):
             shape = (inputs.size(0) * inputs.size(1), inputs.size(2))
             vectors, loss_m, loss_c, loss_r = self.fit(inputs.reshape(shape), mask.reshape(shape), level=level - 1)
 
-            # TODO - Add EoS token at the end of each
-
-            # For now just replace vectors to be indices and treat normally
-            import numpy as np
-            vectors = vectors.detach().numpy()
-            unique_vectors = np.unique(vectors, axis=0)
-
-            self.levels[level].set_embedding(torch.tensor(unique_vectors))
-
-            inputs = np.array([np.argwhere((vec == unique_vectors).all(1))[0][0] for vec in vectors])
+            inputs = self.convert_vectors_to_indices(vectors, level)
             inputs = inputs.reshape((original_shape[0], original_shape[1]))
-            inputs += 4  # Make room for the pad, mask, etc tokens
-
             inputs = torch.tensor(inputs)
             mask = mask.all(-1)
-
-            self.losses[level]['mlm'].num_tokens = len(unique_vectors) + 4
         else:
             loss_m = []
             loss_c = []
@@ -97,20 +98,11 @@ class AgentModel(nn.Module):
         shape = (inputs.size(0) * inputs.size(1), inputs.size(2))
         vectors = self.encode(inputs.reshape(shape), mask.reshape(shape), level=level - 1)
 
-        # TODO - Add EoS token at the end of each
-
-        # For now just replace vectors to be indices and treat normally
-        import numpy as np
-        vectors = vectors.detach().numpy()
-        unique_vectors = np.unique(vectors, axis=0)
-
-        self.levels[level].set_embedding(torch.tensor(unique_vectors))
-
-        inputs = np.array([np.argwhere((vec == unique_vectors).all(1))[0][0] for vec in vectors])
+        inputs = self.convert_vectors_to_indices(vectors, level)
         inputs = inputs.reshape((original_shape[0], original_shape[1]))
-        inputs += 4  # Make room for the pad, mask, etc tokens
-
         inputs = torch.tensor(inputs)
+
+        # TODO - Add EoS token at the end of each
 
         if level == len(self.levels) - 1:
             mask = mask.all(-1)

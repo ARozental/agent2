@@ -80,7 +80,7 @@ class AgentModel(nn.Module):
         loss_c.append(coherence_loss)
         loss_r.append(reconstruct_loss)
 
-        vectors = self.levels[level].encode(inputs, mask, use_dropout=False)
+        vectors = self.levels[level].encode(inputs, mask)
 
         return vectors, loss_m, loss_c, loss_r
 

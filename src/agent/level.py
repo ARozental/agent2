@@ -4,7 +4,8 @@ import torch
 
 
 class AgentLevel(nn.Module):
-    def __init__(self, level_num, num_tokens, max_seq_length, embed_size, parent_embed, encoder=None, decoder=None):
+    def __init__(self, level_num, num_tokens, max_seq_length, embed_size, parent_embed,
+                 encoder=None, decoder=None, compressor=None, decompressor=None):
         super().__init__()
 
         if encoder is None:
@@ -12,6 +13,12 @@ class AgentLevel(nn.Module):
 
         if decoder is None:
             decoder = {}
+
+        if compressor is None:
+            compressor = {}
+
+        if decompressor is None:
+            decompressor = {}
 
         self.level_num = level_num
         self.embed_size = embed_size

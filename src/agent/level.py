@@ -30,8 +30,8 @@ class AgentLevel(nn.Module):
         self.encoder = Encoder(self.embedding, embed_size=embed_size, **encoder)
         self.encoder_transform = nn.Linear(embed_size, embed_size)  # For the MLM Loss only
         self.decoder = Decoder(self.embedding, embed_size=embed_size, **decoder)
-        self.compressor = Compressor(embed_size, parent_embed)
-        self.decompressor = Decompressor(embed_size, parent_embed, max_seq_length)
+        self.compressor = Compressor(embed_size, parent_embed, **compressor)
+        self.decompressor = Decompressor(embed_size, parent_embed, max_seq_length, **decompressor)
 
         self.coherence_checker = CoherenceChecker(parent_embed)
 

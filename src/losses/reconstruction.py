@@ -14,10 +14,10 @@ class ReconstructionLoss(nn.Module):
         decompressed = self.model.decompressor(vector)
         output = self.model.decoder(tgt=decompressed, memory=decompressed)
         emb_weight = torch.transpose(self.model.encoder.embedding.weight, 0, 1).unsqueeze(0)
-        output = torch.matmul(output, emb_weight)
+        logits = torch.matmul(output, emb_weight)
 
         return F.cross_entropy(
-            output.transpose(1, 2),
+            logits.transpose(1, 2),
             inputs,
             ignore_index=self.pad_token_id
         )

@@ -12,6 +12,7 @@ class AgentModel(nn.Module):
         super().__init__()
 
         self.levels = nn.ModuleList()
+        self.max_seq_length = max_seq_length
         self.losses = []
         for i, level_config in enumerate(config):
             if i < len(config) - 1:
@@ -49,23 +50,42 @@ class AgentModel(nn.Module):
 
         return inputs
 
-    def fit(self, inputs, mask, level=None):
+    def create_inputs_mask(self, inputs, level):
+        # Add EoS Token
+        # TODO - Reference the EoS token straight from the tokenizer so that it will be dynamic
+        inputs = [seq + [2] for seq in inputs]
+
+        mask = [[0] * len(seq) + [1] * (self.max_seq_length[level] - len(seq)) for seq in inputs]
+        inputs = [seq + [0] * (self.max_seq_length[level] - len(seq)) for seq in inputs]
+        inputs = torch.tensor(inputs)
+        mask = torch.tensor(mask)
+
+        return inputs, mask
+
+    def fit(self, inputs, level=None):
         if level is None:
-            level = len(inputs.size()) - 2
+            current = inputs[0]
+            level = -1
+            while isinstance(current, list):
+                current = current[0]
+                level += 1
 
         if level > 0:
-            original_shape = inputs.size()
-            shape = (inputs.size(0) * inputs.size(1), inputs.size(2))
-            vectors, loss_m, loss_c, loss_r = self.fit(inputs.reshape(shape), mask.reshape(shape), level=level - 1)
+            lengths = [len(seq) for seq in inputs]
+            inputs = [item for seq in inputs for item in seq]
+            vectors, loss_m, loss_c, loss_r = self.fit(inputs, level=level - 1)
 
             inputs = self.convert_vectors_to_indices(vectors, level)
-            inputs = inputs.reshape((original_shape[0], original_shape[1]))
-            inputs = torch.tensor(inputs)
-            mask = mask.all(-1)
+            inputs = np.split(inputs, lengths)
+
+            # TODO - Identify why this happens (there is an empty sequence in there for some reason)
+            inputs = [seq.tolist() for seq in inputs if len(seq) > 0]
         else:
             loss_m = []
             loss_c = []
             loss_r = []
+
+        inputs, mask = self.create_inputs_mask(inputs, level)
 
         print('Level', level)
         mlm_loss = self.losses[level]['mlm'](inputs, mask)
@@ -87,28 +107,27 @@ class AgentModel(nn.Module):
     def forward(self, src, mask):
         raise NotImplementedError
 
-    def encode(self, inputs, mask, level=None):
+    def encode(self, inputs, level=None):
         if level is None:
-            level = len(inputs.size()) - 2
+            current = inputs[0]
+            level = -1
+            while isinstance(current, list):
+                current = current[0]
+                level += 1
 
-        if level == 0:
-            return self.levels[level].encode(inputs, mask)
+        if level > 0:
+            lengths = [len(seq) for seq in inputs]
+            inputs = [item for seq in inputs for item in seq]
+            vectors = self.encode(inputs, level=level - 1)
 
-        original_shape = inputs.size()
-        shape = (inputs.size(0) * inputs.size(1), inputs.size(2))
-        vectors = self.encode(inputs.reshape(shape), mask.reshape(shape), level=level - 1)
+            inputs = self.convert_vectors_to_indices(vectors, level)
+            inputs = np.split(inputs, lengths)
 
-        inputs = self.convert_vectors_to_indices(vectors, level)
-        inputs = inputs.reshape((original_shape[0], original_shape[1]))
-        inputs = torch.tensor(inputs)
+            # TODO - Identify why this happens (there is an empty sequence in there for some reason)
+            inputs = [seq.tolist() for seq in inputs if len(seq) > 0]
 
-        # TODO - Add EoS token at the end of each
-
-        if level == len(self.levels) - 1:
-            mask = mask.all(-1)
-            return self.levels[level].encode(inputs, mask)
-
-        return inputs
+        inputs, mask = self.create_inputs_mask(inputs, level)
+        return self.levels[level].encode(inputs, mask)
 
     # return_word_vectors is temporary now while debugging
     def debug_decode(self, vectors, level=None, return_word_vectors=False):

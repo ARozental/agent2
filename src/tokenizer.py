@@ -51,19 +51,11 @@ class Tokenizer:
                 level += 1
 
         if level == 0:  # Word level
-            tokens = [self.tokenizer[char] for char in seq] + [self.SPECIAL_INDICES['[EOS]']]
-            mask = [0 for _ in range(len(tokens))]
+            tokens = [self.tokenizer[char] for char in seq]
         else:  # All other levels
-            results = [self.tokenize(item, level=level - 1) for item in seq]
-            tokens = [r[0] for r in results]
-            mask = [r[1] for r in results]
+            tokens = [self.tokenize(item, level=level - 1) for item in seq]
 
-        if len(tokens) < self.max_lengths[level]:
-            empty_token, empty_mask = self.build_empty(level)
-            tokens = tokens + [empty_token] * (self.max_lengths[level] - len(tokens))
-            mask = mask + [empty_mask] * (self.max_lengths[level] - len(mask))
-
-        return tokens, mask
+        return tokens
 
     def decode(self, seq, level=None):
         if not isinstance(seq, list):

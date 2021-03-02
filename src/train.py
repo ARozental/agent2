@@ -18,39 +18,32 @@ optimizer = torch.optim.Adagrad(model.parameters(), 0.01)
 for epoch in range(500):
     print('Epoch', epoch + 1)
 
-    for sentences, mask in dataset.iterator():
+    for batch in dataset.iterator():
         model.train()
-        # for sent in sentences:
-        #     print('Original:', dataset.decode(sent))
-        inputs = torch.tensor(sentences).to(device)
-        mask = torch.BoolTensor(mask).to(device)
         optimizer.zero_grad()
 
-        _, mlm_loss, coherence_loss, reconstruct_loss = model.fit(inputs, mask)
+        _, mlm_loss, coherence_loss, reconstruct_loss = model.fit(batch)
         (sum(mlm_loss) + sum(coherence_loss) + sum(reconstruct_loss)).backward()
         optimizer.step()
 
         model.eval()
         print('Word Level')
-        if NUM_LEVELS == 1:
-            inputs = inputs.reshape((inputs.size(0), 1, inputs.size(1)))
-            mask = mask.reshape((mask.size(0), 1, mask.size(1)))
-        for i, sent in enumerate(sentences):
-            word_vec = model.encode(inputs[i], mask[i], level=0)
-            pred = model.debug_decode(word_vec, level=0)
+        examples = dataset.debug_examples(level=0)
+        word_vecs = model.encode(examples)
+        preds = model.debug_decode(word_vecs, level=0)
+        for pred, word in zip(preds, examples):
             print(dataset.decode(pred), end='')
-            if dataset.decode(pred) == dataset.decode(sent):
+            if dataset.decode(pred) == dataset.decode(word):
                 print('   MATCHED!', end='')
             print('')
 
         if NUM_LEVELS > 1:
             print('Sentence Level')
-            sent_vec = model.encode(inputs, mask)
-            # sent_diff = sent_vec[0] - sent_vec[1]
-            # print('Sent Diff Sum', torch.sum(sent_diff).item(), 'Norm', torch.norm(sent_diff).item())
+            examples = dataset.debug_examples(level=1)
+            sent_vec = model.encode(examples)
             preds = model.debug_decode(sent_vec, level=1)
             preds = preds.cpu().detach().numpy()
-            for pred, sent in zip(preds, sentences):
+            for pred, sent in zip(preds, examples):
                 print(dataset.decode(pred), end='')
                 if dataset.decode(pred) == dataset.decode(sent):
                     print('   MATCHED!', end='')

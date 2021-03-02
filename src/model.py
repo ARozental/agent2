@@ -1,5 +1,6 @@
 from src.losses import MLMLoss, CoherenceLoss, ReconstructionLoss
 from src.agent import AgentLevel
+from src.utils import find_level
 from typing import Iterator
 from torch.nn import Parameter
 import numpy as np
@@ -64,11 +65,7 @@ class AgentModel(nn.Module):
 
     def fit(self, inputs, level=None):
         if level is None:
-            current = inputs[0]
-            level = -1
-            while isinstance(current, list):
-                current = current[0]
-                level += 1
+            level = find_level(inputs)
 
         if level > 0:
             lengths = [len(seq) for seq in inputs]
@@ -109,11 +106,7 @@ class AgentModel(nn.Module):
 
     def encode(self, inputs, level=None):
         if level is None:
-            current = inputs[0]
-            level = -1
-            while isinstance(current, list):
-                current = current[0]
-                level += 1
+            level = find_level(inputs)
 
         if level > 0:
             lengths = [len(seq) for seq in inputs]
@@ -132,6 +125,8 @@ class AgentModel(nn.Module):
     # return_word_vectors is temporary now while debugging
     def debug_decode(self, vectors, level=None, return_word_vectors=False):
         if level is None:
+            # TODO - Check if can use this
+            # level = find_level(vectors)
             level = len(vectors.size()) - 2
 
         if level == 0:

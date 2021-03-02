@@ -1,3 +1,6 @@
+from src.utils import find_level
+
+
 class Tokenizer:
     SPECIAL_TOKENS = {
         '[PAD]': '[PAD]',
@@ -42,13 +45,8 @@ class Tokenizer:
         return tokens, mask
 
     def tokenize(self, seq, level=None):
-        # Find the number of levels automatically
         if level is None:
-            current = seq
-            level = 0
-            while isinstance(current[0], list):
-                current = current[0]
-                level += 1
+            level = find_level(seq)
 
         if level == 0:  # Word level
             tokens = [self.tokenizer[char] for char in seq]
@@ -62,11 +60,7 @@ class Tokenizer:
             seq = seq.tolist()
 
         if level is None:
-            current = seq
-            level = 0
-            while isinstance(current[0], list):
-                current = current[0]
-                level += 1
+            level = find_level(seq)
 
         if level == 0:
             try:
@@ -78,4 +72,4 @@ class Tokenizer:
 
             return ''.join([self.reverse_tokenizer[token] for token in seq])
 
-        return ' '.join([self.decode(word, level=level-1) for word in seq])
+        return ' '.join([self.decode(word, level=level - 1) for word in seq])

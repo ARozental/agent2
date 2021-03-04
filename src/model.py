@@ -65,7 +65,7 @@ class AgentModel(nn.Module):
 
     def fit(self, inputs, level=None):
         if level is None:
-            level = find_level(inputs)
+            level = find_level(inputs[0])  # Taking [0] because it's a batch
 
         if level > 0:
             lengths = [len(seq) for seq in inputs]
@@ -106,7 +106,7 @@ class AgentModel(nn.Module):
 
     def encode(self, inputs, level=None):
         if level is None:
-            level = find_level(inputs)
+            level = find_level(inputs[0])  # Taking [0] because it's a batch
 
         if level > 0:
             lengths = [len(seq) for seq in inputs]

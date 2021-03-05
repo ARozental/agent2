@@ -6,7 +6,7 @@ import nltk
 
 class Config(): #move to file, join with the big config class
   def __init__(self):
-    self.sequence_lengths = [2,10,9] #[letters_in_word, max_words_in_sentence, max_sentences_in_paragraph]
+    self.sequence_lengths = [5,99,9] #[letters_in_word, max_words_in_sentence, max_sentences_in_paragraph]
     self.pad_token_id = -1
     self.eos_token_id = -2
     self.join_token_id = -3
@@ -67,7 +67,6 @@ class Node():
         self.type = "leaf"
       else:
         if self.level >= 2 and self.type!="batch root":
-          print("here")
           self.join_struct_children()
         self.children = [expand_struct1(Node(struct=x, parent=self, level=self.level - 1, config=self.config, type="inner")) for x in self.struct]
       # self.struct = None
@@ -77,8 +76,18 @@ class Node():
 
 
 class BatchTree():
-  def __init__(self):
-    self.level_nodes = {}
+  def __init__(self,batch_root,config=config):
+    self.config = config
+    self.level_nodes = {i: [] for i in range(config.agent_level+1)} #{0: [sorted nodes for words], 1: [sorted nodes for sentences]}
+    self.batch_root = batch_root
+
+  def __batch_up_nodes1(self,node):
+    self.level_nodes[node.level].append(node)
+    if node.children != None:
+      [self.__batch_up_nodes1(c) for c in node.children]
+
+  def batch_up_nodes(self):
+    [self.__batch_up_nodes1(c) for c in self.batch_root.children]
 
 class TreeTokenizer:
   def __init__(self,char_file = "../chars.txt",config=config):
@@ -109,24 +118,28 @@ class TreeTokenizer:
 
   def batch_texts_to_trees(self,texts,config=config):
     #input: ["I like big butts. I can not lie.","You other brothers can't deny"]
-    batch_tree = BatchTree()
     structs = [self.text_to_tree_struct(text) for text in texts]
     batch_root = Node(struct=structs,type="batch root", id=0, level=config.agent_level+1)
     batch_root.expand_struct()
-    return batch_root
+    batch_tree = BatchTree(batch_root)
+    batch_tree.batch_up_nodes()
+    return batch_tree
 
 
 tt = TreeTokenizer()
 # x = tt.tokenize_word("sheeבt")
 # x = tt.text_to_tree_struct("I like big   butts. I can not lie.")
-# x = tt.batch_texts_to_trees(["I like big butts. I can not lie.","some other song"] )
+#x = tt.batch_texts_to_trees(["I like big butts. I can not lie.","some other song"] )
+#x = tt.batch_texts_to_trees(["I am big. you are too.","I am big. you are too."] )
+#print([[k,len(v)] for (k,v) in x.level_nodes.items()])
 #print(x.struct)
 # print(x.children[0].children[0].children[0].tokens)
 # print(x.bebug_get_tree("tokens"))
 node = Node(struct=tt.text_to_tree_struct("I like big butts. I can not lie."),id=0,level=2,type="debug root") #level 0 is word node
 node.expand_struct()
-#print(node.children[-1].children[-1].tokens) #see that tokens are correct :)
-print("struct",node.struct)
-print("word ids",node.bebug_get_tree(attr="id"))
+# #print(node.children[-1].children[-1].tokens) #see that tokens are correct :)
+# print("struct",node.struct)
+# print("word ids",node.bebug_get_tree(attr="id"))
 print("tokens",node.bebug_get_tree(attr="tokens"))
-#print(node.bebug_get_tree())
+# #print(node.bebug_get_tree())
+# print({i:3 for i in range(5)})

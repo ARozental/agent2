@@ -46,11 +46,11 @@ class LineGenerator(object):
     self.nltk_ss_tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
   def get_next_line(self):
     #todo: read several files, make file_object=current_file, rotate
-    file_object = open("dummy_data3.txt","r")
+    file_object = open("dummy_data3.txt","r", encoding='utf-8')
     while True:
       data = file_object.readline()
       if not data:
-        file_object = open("dummy_data3.txt", "r")
+        file_object = open("dummy_data3.txt", "r", encoding='utf-8')
         data = file_object.readline()
       out = doc_line_to_lists(data,self.sp,self.nltk_ss_tokenizer)
       ragged_out =tf.ragged.constant(out)
@@ -92,14 +92,14 @@ from collections import defaultdict
 import glob
 
 def create_tokenizer(char_file):  # "../chars.txt"
-  x = open(char_file, "r").readlines()
+  x = open(char_file, "r", encoding='utf-8').readlines()
   tokenizer = defaultdict(int, dict(zip([l.strip() for l in x], range(1, 7777))))
   def tokenize(word):
     return [tokenizer[l] for l in word]
   return tokenize
 
 def create_reverse_tokenizer(char_file):  # "../chars.txt"
-  x = open(char_file, "r").readlines()
+  x = open(char_file, "r", encoding='utf-8').readlines()
   reverse_tokenizer = dict(zip(range(1, 500), [l.strip() for l in x]))
   reverse_tokenizer[0] = ''
 
@@ -139,7 +139,7 @@ def remove_empty(a):
 
 def do_book(location,config):
   tokenize_fn = create_tokenizer("chars.txt")
-  lines = open(location, "r").readlines()
+  lines = open(location, "r", encoding='utf-8').readlines()
   #book_title = lines[10].strip()
   text = "".join(lines)
   chapters = re.split('(?i)chapter ',text)

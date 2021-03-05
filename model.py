@@ -93,8 +93,8 @@ def create_dvts(agent,token_tree_batch):
     decompresssed_matrix = agent.decompressors[current_lvl](vector)
     compressor_loss = calc_autoencoder_regularization_loss(matrix,decompresssed_matrix[0:len(matrix)],agent) #sad, either find a good way to measure distance between matrixes or don't use it
 
-    #todo: move training to top
-    training = True
+
+    training = True #Hardcoded in train mode for now
 
     reconstructed_matrix = agent.decoders[current_lvl](decompresssed_matrix,decompresssed_matrix, training,look_ahead_mask, padding_mask)
     reconstruction_loss = calc_reconstruction_loss(agent, current_lvl, matrix, reconstructed_matrix)

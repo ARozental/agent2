@@ -24,7 +24,6 @@ Pre Processing:
 
 Transformer Model:
 have a basic transformer with a fixed EoS token (for both encode and decode)
-learn how to actually use it to stop (closest vec / first close vec / have the last embedding matrix and choose first stop / other option)
 use SwiGLU activation function: https://arxiv.org/pdf/2102.11972.pdf
 have a universal transformer => a lot later, as it is ~6X slower than the regular one for the same number of params
 
@@ -40,7 +39,7 @@ create the DVT with batches of controlable (set from config) memory footprint:
 
 
 AgentModel:
-write actual decode function (after fixed EoS); decide how to locate the EoS token
+write actual decode function (after fixed EoS); decide how to locate the EoS token (closest vec / first close vec / have the last embedding matrix and choose first stop / other option)
 write the generator
 write the discriminator
 write (and design?) the PNDB

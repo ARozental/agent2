@@ -1,7 +1,6 @@
 [PAD]
 [MASK]
 [EOS]
-[SEP]
 !
 %
 *

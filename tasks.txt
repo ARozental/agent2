@@ -1,22 +1,54 @@
-return reconstruction vanishing loss
-make tapes faster
-print original and reconstructed text every n-th example
-save model object
-read from saved model
-run on plumbus with big embedding
+
+Pre Processing:
+    have the dataset-generator accept the Agent level as a parameter and flatten the input accodringly:
+        meaning that if we have a batch with 2 paragraphs that have 3 sentences each it'll turn in to a batch of 6 sentences if Agent level is 1 (and not 2).
+        For reference Agent 0 creates up to word vectors, Agent 1 creates up to sentence vectors, etc...
+        Also we should do it after we decide between option 1 and 2
+    padding:
+        all words are of max_word_length, padded with a pad token
+        sentences (and above) are joined togather greedily:
+            if we have 6 sentences of length [3,6,4,7,5,4] and max_words_in_sentence is 10 we make it be 4 "sentences" like this [3+6,4,7,5+4]
+        when sentences are joined a <join> token is added between the words of the first and the second
+        input after padding for level 1 Agent with 2 sentences: ["I am me","you are you"] looks like:
+            [[3,<pad>,<pad>,<pad>],[4,5,<pad>,<pad>],[5,6,<pad>,<pad>],<level1_join_token>,[7,8,9,<pad>],[10,11,12,<pad>],[7,8,9,<pad>]]
+            the 2 sentences became 1 training example because they are short
+
+    create a DvtNode class with: pre_order_id, parent, children level, DvtTree, vector, realized? and anything else needed
+    create a DvtTree class with: root, level_nodes: {level (int): [all nodes in this level sorted by pre_order_id]}
+    all nodes in the batch have unique ids, all nodes in a tree have sequential ids.
+    for each example create a python object of the tree and all its nodes:
+        leaves and <join> tokens are realized when their token is embedded.
+    write a function to realize the tree efficiently
 
 
-write generator
-write memory
-write descriminator
-mask segments and not tokens??
-write ragged transformer
+
+Transformer Model:
+have a basic transformer with a fixed EoS token (for both encode and decode)
+use SwiGLU activation function: https://arxiv.org/pdf/2102.11972.pdf
+have a universal transformer => a lot later, as it is ~6X slower than the regular one for the same number of params
+
+Main Loop:
+create the DVT with batches of controlable (set from config) memory footprint:
+    create a DVT node object
+    add the preorder id
+    for the first Agent level, put all "word" token sequences in a stack.
+    consume it in batches that fit in memory to create all word vectors
+    join all the word vectors
 
 
-add positional when ragged - currently we stop being ragged for it
-make sure all calls to encoders and decoders are with the same type (ragged, not dense)
-cut at max length-1 in make book dataset
-have a version of book-dataset that only takes chapter2 because doing a full book takes inf time, 80 minutes for 20% of a book on 1 cpu
-have vectors to tokens function => cut length for each level if token is closest to EoS
 
-remove shift, only use batch
+
+AgentModel:
+write actual decode function (after fixed EoS); decide how to locate the EoS token
+write the generator
+write the discriminator
+write (and design?) the PNDB
+write lossless compression+decompression
+write style GAN => Harry Potter and the Starship Enterprise
+
+
+Unit Tests:
+***to add here***
+
+Stuff to Refactor:
+***to add here***

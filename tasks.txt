@@ -24,6 +24,7 @@ Pre Processing:
 
 Transformer Model:
 have a basic transformer with a fixed EoS token (for both encode and decode)
+learn how to actually use it to stop (closest vec / first close vec / have the last embedding matrix and choose first stop / other option)
 use SwiGLU activation function: https://arxiv.org/pdf/2102.11972.pdf
 have a universal transformer => a lot later, as it is ~6X slower than the regular one for the same number of params
 

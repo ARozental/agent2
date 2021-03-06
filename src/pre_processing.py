@@ -91,7 +91,7 @@ class Node():
         if self.config.join_texts == True and self.level >= 2 and self.type!="batch root":
           self.join_struct_short_children()
         self.children = [expand_struct1(Node(struct=x, parent=self, level=self.level - 1, config=self.config, type="inner")) for x in self.struct]
-      # self.struct = None
+      # self.struct = None #todo: delete struct later, this line is only commented for debugging and it take up space
       return self
 
     return expand_struct1(self)
@@ -188,9 +188,11 @@ print("here")
 print(tree.distinct_word_embedding_tokens)
 print([n.distinct_lookup_id for n in tree.level_nodes[0]])
 
+# with open('../chars.txt', encoding='utf-8') as f:
+#   chars = [char.strip() for char in f.readlines()]
+# print(chars)
 
-
-# print(x.children[0].children[0].children[0].tokens)
+  # print(x.children[0].children[0].children[0].tokens)
 # print(x.bebug_get_tree("tokens"))
 #node = Node(struct=tt.text_to_tree_struct("I like big butts. I can not lie."),id=0,level=2,type="debug root") #level 0 is word node
 #node.expand_struct()

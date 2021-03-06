@@ -6,10 +6,11 @@ import nltk
 
 class Config(): #move to file, join with the big config class
   def __init__(self):
-    self.sequence_lengths = [5,99,9] #[letters_in_word, max_words_in_sentence, max_sentences_in_paragraph]
+    self.sequence_lengths = [7,2,1] #[letters_in_word, max_words_in_sentence, max_sentences_in_paragraph]
     self.pad_token_id = -1
     self.eos_token_id = -2
     self.join_token_id = -3
+    self.join_texts = False
     self.agent_level = 2 #most complex vector agent can create 2=paragraph
 
 config=Config()
@@ -29,6 +30,12 @@ class Node():
     self.realized = realized
     self.type = type #leaf, inner, root, join_token, eos_token
     self.tree_id = tree_id #not sure if we'll need it
+    self.distinct_lookup_id = None
+
+  def get_padded_word_tokens(self):
+    if self.level != 0:
+      return
+    return (self.tokens + [config.eos_token_id] + [config.pad_token_id] * config.sequence_lengths[0])[0:config.sequence_lengths[0]]
 
   def bebug_get_tree(self,attr="id"):
     if self.children == None:
@@ -36,10 +43,10 @@ class Node():
     else:
       return [x.bebug_get_tree(attr) for x in self.children]
 
-  def join_struct_children(self):
-    # for level > 1 => a paragraph(2) can join its sentences
+  def join_struct_short_children(self):
+    # for level >= 2 => a paragraph(2) can join its sentences
     new_struct = [self.struct[0]]
-    max_length = self.config.sequence_lengths[self.level-1]
+    max_length = self.config.sequence_lengths[self.level-1] #for each child
     for sub in self.struct[1:]:
       if len(new_struct[-1]) + 1 + len(sub) < max_length:
         new_struct[-1].append(config.join_token_id)
@@ -47,7 +54,21 @@ class Node():
       else:
         new_struct.append(sub)
     self.struct = new_struct
-    return new_struct
+    return
+
+  def split_struct_long_children(self):
+    # for all levels can split a long text into 2 shorter ones, the first of which will be of max length with no place for eos token
+    new_struct = []
+    max_length = self.config.sequence_lengths[self.level-1] #for each child
+    for sub in self.struct:
+      if isinstance(sub, int) or len(sub) <= max_length:
+        new_struct.append(sub) #no change
+      else:
+        subs = [sub[i:i + max_length] for i in range(0, len(sub), max_length)]
+        new_struct.extend(subs)
+    self.struct = new_struct
+    return
+
 
 
   def expand_struct(self):  # move set ids to after we are done with joins
@@ -62,12 +83,13 @@ class Node():
         self.type = "join_token"
         self.tokens = self.config.join_token_id
       elif self.level==0: #word
-        self.tokens = (self.struct + [config.eos_token_id] + [config.pad_token_id] * config.sequence_lengths[0])[
-                      0:config.sequence_lengths[0]]
+        self.tokens = self.struct
         self.type = "leaf"
       else:
-        if self.level >= 2 and self.type!="batch root":
-          self.join_struct_children()
+        if self.level >= 1:
+          self.split_struct_long_children()
+        if self.config.join_texts == True and self.level >= 2 and self.type!="batch root":
+          self.join_struct_short_children()
         self.children = [expand_struct1(Node(struct=x, parent=self, level=self.level - 1, config=self.config, type="inner")) for x in self.struct]
       # self.struct = None
       return self
@@ -80,14 +102,28 @@ class BatchTree():
     self.config = config
     self.level_nodes = {i: [] for i in range(config.agent_level+1)} #{0: [sorted nodes for words], 1: [sorted nodes for sentences]}
     self.batch_root = batch_root
+    self.distinct_word_embedding_tokens = None #the i-th element has word tokens
 
   def __batch_up_nodes1(self,node):
     self.level_nodes[node.level].append(node)
     if node.children != None:
       [self.__batch_up_nodes1(c) for c in node.children]
 
-  def batch_up_nodes(self):
+  def batch_up_nodes(self): #fills the self.level_nodes hash, called from tokinizer.batch_texts_to_trees(texts)
     [self.__batch_up_nodes1(c) for c in self.batch_root.children]
+
+  def make_distinct_words(self):
+    # the i-th element of distinct_word_embedding_tokens gets word tokens with full padding
+    # each node in level_nodes[0] (word), gets distinct_lookup_id set to the relevant i from distinct_word_embedding_tokens
+    # in the forward pass we will only embed self.distinct_word_embedding_tokens and fill the DVT word vector with lookup to this matrix
+    mapping = {str(n.tokens): [i, n.get_padded_word_tokens()] for i, n in
+               zip(reversed(range(len(tree.level_nodes[0]))), tree.level_nodes[0])}
+    for n in self.level_nodes[0]:
+      n.distinct_lookup_id = mapping[str(n.tokens)][0]
+    id_and_pads = list(mapping.values())
+    id_and_pads.sort() #by id (first element) is the default
+    self.distinct_word_embedding_tokens = [x[1] for x in id_and_pads]
+    return
 
 class TreeTokenizer:
   def __init__(self,char_file = "../chars.txt",config=config):
@@ -129,17 +165,38 @@ class TreeTokenizer:
 tt = TreeTokenizer()
 # x = tt.tokenize_word("sheeבt")
 # x = tt.text_to_tree_struct("I like big   butts. I can not lie.")
-#x = tt.batch_texts_to_trees(["I like big butts. I can not lie.","some other song"] )
+tree = tt.batch_texts_to_trees(["I like big butts. I can not lie.","some other song"] )
 #x = tt.batch_texts_to_trees(["I am big. you are too.","I am big. you are too."] )
 #print([[k,len(v)] for (k,v) in x.level_nodes.items()])
-#print(x.struct)
+#print(x.batch_root.struct)
+
+#print(x.batch_root.bebug_get_tree(attr="tokens"))
+#print(set([x.tokens for x in tree.level_nodes[0]]))
+# print({str(x.tokens) : 7 for x in tree.level_nodes[0]})
+# print({str(n.tokens) : [i,n.tokens] for i,n in enumerate(tree.level_nodes[0])})
+# mapping = {str(n.tokens) : [i,n.get_padded_word_tokens()] for i,n in zip(reversed(range(len(tree.level_nodes[0]))),tree.level_nodes[0])} #reversed so that if a word exists twice the lower id will take
+# for n in tree.level_nodes[0]:
+#   n.distinct_lookup_id = mapping[str(n.tokens)][0]
+#
+# print([n.distinct_lookup_id for n in tree.level_nodes[0]])
+# ss = list(mapping.values())
+# ss.sort()
+# print(ss)
+
+tree.make_distinct_words()
+print("here")
+print(tree.distinct_word_embedding_tokens)
+print([n.distinct_lookup_id for n in tree.level_nodes[0]])
+
+
+
 # print(x.children[0].children[0].children[0].tokens)
 # print(x.bebug_get_tree("tokens"))
-node = Node(struct=tt.text_to_tree_struct("I like big butts. I can not lie."),id=0,level=2,type="debug root") #level 0 is word node
-node.expand_struct()
+#node = Node(struct=tt.text_to_tree_struct("I like big butts. I can not lie."),id=0,level=2,type="debug root") #level 0 is word node
+#node.expand_struct()
 # #print(node.children[-1].children[-1].tokens) #see that tokens are correct :)
 # print("struct",node.struct)
 # print("word ids",node.bebug_get_tree(attr="id"))
-print("tokens",node.bebug_get_tree(attr="tokens"))
+#print("tokens",node.bebug_get_tree(attr="tokens"))
 # #print(node.bebug_get_tree())
 # print({i:3 for i in range(5)})

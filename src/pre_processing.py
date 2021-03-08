@@ -31,6 +31,9 @@ class Node():
     self.type = type #leaf, inner, root, join_token, eos_token
     self.tree_id = tree_id #not sure if we'll need it
     self.distinct_lookup_id = None
+    self.mlm_loss = None
+    self.coherence_loss = None
+    self.reconstruction_loss = None
 
   def get_padded_word_tokens(self):
     if self.level != 0:
@@ -152,7 +155,7 @@ class TreeTokenizer:
     else:
       return self.tokenize_word(text)
 
-  def batch_texts_to_trees(self,texts,config=config):
+  def batch_texts_to_trees(self,texts,config=config): #todo: use level here to make ensure texts are in the right depth
     #input: ["I like big butts. I can not lie.","You other brothers can't deny"]
     structs = [self.text_to_tree_struct(text) for text in texts]
     batch_root = Node(struct=structs,type="batch root", id=0, level=config.agent_level+1)

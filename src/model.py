@@ -7,6 +7,7 @@ import numpy as np
 import torch.nn as nn
 import torch
 from src.config import Config
+from src.losses.mlm import calc_mlm_loss
 
 
 class AgentModel(nn.Module):
@@ -24,17 +25,23 @@ class AgentModel(nn.Module):
 
     def set_word_vectors(self,batch_tree):
       node_batch = batch_tree.level_nodes[0]
-      local_char_embedding_matrix = torch.LongTensor(batch_tree.distinct_word_embedding_tokens)
-      mask = local_char_embedding_matrix==1 #True => position to mask
-      local_char_embedding_matrix = self.char_embedding_matrix(local_char_embedding_matrix)
+      local_char_embedding_tokens = torch.LongTensor(batch_tree.distinct_word_embedding_tokens)
+      mask = local_char_embedding_tokens==1 #True => position to mask
+      local_char_embedding_matrix = self.char_embedding_matrix(local_char_embedding_tokens)
       word_embedding_matrix = self.agent_levels[0].compressor(self.agent_levels[0].encoder(local_char_embedding_matrix, mask)) #[distinct_words_in_batch,word_vector_size]
       lookup_ids = torch.LongTensor([x.distinct_lookup_id for x in node_batch])
       all_word_vectors = torch.index_select(word_embedding_matrix, 0, lookup_ids)  #[words_in_batch,word_vector_size]
-
-      #all_char_matrices = torch.index_select(local_char_embedding_matrix, 0, lookup_ids)  #[words_in_batch,max_chars_in_word,char_vector_size]
-      #todo: calc losses here
-
       [n.set_vector(v) for n,v in zip(node_batch,all_word_vectors)]
+
+      #todo: calc losses here
+      labels = torch.tensor([x.get_padded_word_tokens() for x in node_batch])
+      batch_mask = torch.tensor([([False]*len(n.tokens)+[True]*Config.sequence_lengths[0])[0:Config.sequence_lengths[0]] for n in node_batch])
+      all_char_matrices = torch.index_select(local_char_embedding_matrix, 0, lookup_ids)  #[words_in_batch,max_chars_in_word,char_vector_size]
+      mlm = calc_mlm_loss(self.agent_levels[0],all_char_matrices,batch_mask,self.char_embedding_matrix.weight,labels)
+      # labels [batch,seq_length,1] 1=>id in embedding matrix
+
+
+
       return
 
     def set_text_vectors(self,batch_tree):

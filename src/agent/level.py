@@ -10,7 +10,7 @@ class AgentLevel(nn.Module):
 
         self.level = level
         self.encoder = Encoder(level)
-        self.encoder_transform = nn.Linear(Config.vector_sizes[level], Config.vector_sizes[level])  #
+        self.encoder_transform = nn.Linear(Config.vector_sizes[level], Config.vector_sizes[level],bias=False)  #
         self.decoder = Decoder(level)
         self.compressor = Compressor(level)
         self.decompressor = Decompressor(level)

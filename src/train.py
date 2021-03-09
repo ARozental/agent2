@@ -17,7 +17,6 @@ optimizer = torch.optim.Adagrad(model.parameters(), 0.01)
 
 for epoch in range(500):
     print('Epoch', epoch + 1)
-    print(torch.__version__)
 
     for batch in dataset.iterator():
         model.train()

@@ -2,16 +2,17 @@
 import re
 from collections import defaultdict
 import nltk
+from src.config import Config
 
 
-class Config(): #move to file, join with the big config class
-  def __init__(self):
-    self.sequence_lengths = [7,2,1] #[letters_in_word, max_words_in_sentence, max_sentences_in_paragraph]
-    self.pad_token_id = -1
-    self.eos_token_id = -2
-    self.join_token_id = -3
-    self.join_texts = False
-    self.agent_level = 2 #most complex vector agent can create 2=paragraph
+# class Config(): #move to file, join with the big config class
+#   def __init__(self):
+#     self.sequence_lengths = [7,2,1] #[letters_in_word, max_words_in_sentence, max_sentences_in_paragraph]
+#     self.pad_token_id = -1
+#     self.eos_token_id = -2
+#     self.join_token_id = -3
+#     self.join_texts = False
+#     self.agent_level = 2 #most complex vector agent can create 2=paragraph
 
 config=Config()
 
@@ -39,6 +40,8 @@ class Node():
     if self.level != 0:
       return
     return (self.tokens + [config.eos_token_id] + [config.pad_token_id] * config.sequence_lengths[0])[0:config.sequence_lengths[0]]
+  def set_vector(self,v):
+    self.vector = v
 
   def bebug_get_tree(self,attr="id"):
     if self.children == None:
@@ -120,7 +123,7 @@ class BatchTree():
     # each node in level_nodes[0] (word), gets distinct_lookup_id set to the relevant i from distinct_word_embedding_tokens
     # in the forward pass we will only embed self.distinct_word_embedding_tokens and fill the DVT word vector with lookup to this matrix
     mapping = {str(n.tokens): [i, n.get_padded_word_tokens()] for i, n in
-               zip(reversed(range(len(tree.level_nodes[0]))), tree.level_nodes[0])}
+               zip(reversed(range(len(self.level_nodes[0]))), self.level_nodes[0])}
     for n in self.level_nodes[0]:
       n.distinct_lookup_id = mapping[str(n.tokens)][0]
     id_and_pads = list(mapping.values())
@@ -129,7 +132,7 @@ class BatchTree():
     return
 
 class TreeTokenizer:
-  def __init__(self,char_file = "../chars.txt",config=config):
+  def __init__(self,char_file = "../chars.txt"):
     self.letter_tokenizer = defaultdict(int, dict(zip([l.strip() for l in open(char_file, "r", encoding='utf-8').readlines()], range(1, 7777))))
     self.sentence_spliter = nltk.data.load('tokenizers/punkt/english.pickle')
     self.split_functions = [self.paragraph_to_sentences, self.sentence_to_words]
@@ -138,6 +141,10 @@ class TreeTokenizer:
   def tokenize_word(self,word):
     #"sheeבt" => [68, 57, 54, 54, 0, 69]
     return [self.letter_tokenizer[l] for l in word]
+
+  def detokenize(self,struct):
+    #vec/struct to text todo: make it
+    return "bla bla bla"
 
   def sentence_to_words(self,sentence):
     #"I like big butts." => ['I', 'like', 'big', 'butts.']
@@ -162,6 +169,7 @@ class TreeTokenizer:
     batch_root.expand_struct()
     batch_tree = BatchTree(batch_root)
     batch_tree.batch_up_nodes()
+    batch_tree.make_distinct_words()
     return batch_tree
 
 
@@ -186,10 +194,10 @@ tree = tt.batch_texts_to_trees(["I like big butts. I can not lie.","some other s
 # ss.sort()
 # print(ss)
 
-tree.make_distinct_words()
-print("here")
-print(tree.distinct_word_embedding_tokens)
-print([n.distinct_lookup_id for n in tree.level_nodes[0]])
+# tree.make_distinct_words()
+# print("here")
+# print(tree.distinct_word_embedding_tokens)
+# print([n.distinct_lookup_id for n in tree.level_nodes[0]])
 
 # with open('../chars.txt', encoding='utf-8') as f:
 #   chars = [char.strip() for char in f.readlines()]

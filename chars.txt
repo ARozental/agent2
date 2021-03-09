@@ -1,7 +1,7 @@
-[PAD]
-[MASK]
-[EOS]
-[SEP]
+<UNK>
+<PAD>
+<EoS>
+<JOIN>
 !
 %
 *

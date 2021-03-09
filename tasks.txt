@@ -22,7 +22,7 @@ Pre Processing:
 
     write a function to realize the tree efficiently => done for words, needs testing
 
-    change special tokens to be 1,2,3 for pad,eos,join instead of -1,-2,-3; 0 is saved for <unk>; mask and sep tokens shouldn't be there
+    change special tokens to be 1,2,3 for pad,eos,join instead of -1,-2,-3; 0 is saved for <unk>; mask and sep tokens shouldn't be there =>
 
 
 Transformer Model:
@@ -52,6 +52,7 @@ write style GAN => Harry Potter and the Starship Enterprise
 
 
 Unit Tests:
+tensor board
 ***to add here***
 
 Stuff to Refactor:

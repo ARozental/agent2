@@ -16,7 +16,7 @@ model = AgentModel(TreeTokenizer())
 model.to(device)
 model.train()
 for batch_tree in dataset.iterator():
-    model.set_text_vectors(batch_tree)
+    model.stuff_for_losses(batch_tree)
     break
 
 

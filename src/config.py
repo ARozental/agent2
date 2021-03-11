@@ -1,5 +1,5 @@
 class Config():
-    sequence_lengths = [5,6,7,3,4] #[10,12,6,20,20]
+    sequence_lengths = [8,8,6,3,4] #[10,12,6,20,20]
     vector_sizes = [8,10,12,14,16,18] #[4,6,8,10] #letters,words,sentences,paragraphs,chapters,book
     num_heads = [2,2,2,2,2,2]#[2,3,4,5] #for transformers
     fnn_sizes = [8,10,12,14,16,18] #[2,3,4,5] #for fnn in transformers

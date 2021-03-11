@@ -55,7 +55,8 @@ class Node():
     max_length = self.config.sequence_lengths[self.level-1] #for each child
     for sub in self.struct[1:]:
       if len(new_struct[-1]) + 1 + len(sub) < max_length:
-        new_struct[-1].append(config.join_token_id)
+        #new_struct[-1].append(config.join_token_id)
+        new_struct[-1].append(-1) #-1+3=2 #this is the most helpful comment ever; thanks for nothing past me!
         new_struct[-1].extend(sub)
       else:
         new_struct.append(sub)
@@ -110,6 +111,10 @@ class BatchTree():
     self.batch_root = batch_root
     self.distinct_word_embedding_tokens = None #the i-th element has word tokens
 
+    #generalizes word embedding tokens
+    self.distinct_embedding_tokens = {i: [] for i in range(config.agent_level)} #{0: [sorted nodes for words], 1: [sorted nodes for sentences]}
+
+
   def __batch_up_nodes1(self,node):
     self.level_nodes[node.level].append(node)
     if node.children != None:
@@ -130,6 +135,21 @@ class BatchTree():
     id_and_pads.sort() #by id (first element) is the default
     self.distinct_word_embedding_tokens = [x[1] for x in id_and_pads]
     return
+
+  def make_distinct_texts(self,lvl):
+    #generalizes make_distinct_words
+    # the i-th element of distinct_word_embedding_tokens gets word tokens with full padding
+    # each node in level_nodes[0] (word), gets distinct_lookup_id set to the relevant i from distinct_word_embedding_tokens
+    # in the forward pass we will only embed self.distinct_word_embedding_tokens and fill the DVT word vector with lookup to this matrix
+    mapping = {str(n.tokens): [i, n.get_padded_word_tokens()] for i, n in
+               zip(reversed(range(len(self.level_nodes[lvl]))), self.level_nodes[lvl])}
+    for n in self.level_nodes[lvl]:
+      n.distinct_lookup_id = mapping[str(n.tokens)][0]
+    id_and_pads = list(mapping.values())
+    id_and_pads.sort() #by id (first element) is the default
+    self.distinct_word_embedding_tokens = [x[lvl] for x in id_and_pads]
+    return
+
 
 class TreeTokenizer:
   def __init__(self,char_file = "../chars.txt"):
@@ -170,6 +190,9 @@ class TreeTokenizer:
     batch_tree = BatchTree(batch_root)
     batch_tree.batch_up_nodes()
     batch_tree.make_distinct_words()
+
+    # for i in range(self.max_depth):
+    #   batch_tree.make_distinct_texts(i)
     return batch_tree
 
 

@@ -20,34 +20,55 @@ class AgentModel(nn.Module):
 
             self.agent_levels.append(agent_level)
 
-        self.char_embedding_matrix = nn.Embedding(len(tree_tokenizer.letter_tokenizer.keys()), Config.vector_sizes[0])
+        self.char_embedding_layer = nn.Embedding(len(tree_tokenizer.letter_tokenizer.keys()), Config.vector_sizes[0])
 
 
     def set_word_vectors(self,batch_tree):
       node_batch = batch_tree.level_nodes[0]
       local_char_embedding_tokens = torch.LongTensor(batch_tree.distinct_word_embedding_tokens)
-      mask = local_char_embedding_tokens==1 #True => position to mask
-      local_char_embedding_matrix = self.char_embedding_matrix(local_char_embedding_tokens)
+      mask = local_char_embedding_tokens==Config.pad_token_id #True => position to mask
+      local_char_embedding_matrix = self.char_embedding_layer(local_char_embedding_tokens)
       word_embedding_matrix = self.agent_levels[0].compressor(self.agent_levels[0].encoder(local_char_embedding_matrix, mask)) #[distinct_words_in_batch,word_vector_size]
-      lookup_ids = torch.LongTensor([x.distinct_lookup_id for x in node_batch])
+
+      if Config.join_texts:
+        special_vectors = torch.stack([self.agent_levels[1].pad_vector,self.agent_levels[1].eos_vector,self.agent_levels[1].join_vector]) #{0: pad, 1:eos, 2:join}
+        word_embedding_matrix = torch.cat([special_vectors, word_embedding_matrix], 0)
+        lookup_ids = torch.LongTensor([x.distinct_lookup_id for x in node_batch]) + 3
+      else:
+        special_vectors = torch.stack([self.agent_levels[1].pad_vector,self.agent_levels[1].eos_vector]) #{0: pad, 1:eos}
+        word_embedding_matrix = torch.cat([special_vectors, word_embedding_matrix], 0)
+        lookup_ids = torch.LongTensor([x.distinct_lookup_id for x in node_batch]) + 2
+
       all_word_vectors = torch.index_select(word_embedding_matrix, 0, lookup_ids)  #[words_in_batch,word_vector_size]
       [n.set_vector(v) for n,v in zip(node_batch,all_word_vectors)]
+      return word_embedding_matrix
 
-      #todo: calc losses here
-      labels = torch.tensor([x.get_padded_word_tokens() for x in node_batch])
-      batch_mask = torch.tensor([([False]*len(n.tokens)+[True]*Config.sequence_lengths[0])[0:Config.sequence_lengths[0]] for n in node_batch])
-      all_char_matrices = torch.index_select(local_char_embedding_matrix, 0, lookup_ids)  #[words_in_batch,max_chars_in_word,char_vector_size]
-      mlm = calc_mlm_loss(self.agent_levels[0],all_char_matrices,batch_mask,self.char_embedding_matrix.weight,labels)
-      # labels [batch,seq_length,1] 1=>id in embedding matrix
-
-
-
-      return
+      # #todo: calc losses here
+      # labels = torch.tensor([x.get_padded_word_tokens() for x in node_batch])
+      # batch_mask = torch.tensor([([False]*len(n.tokens)+[True]*Config.sequence_lengths[0])[0:Config.sequence_lengths[0]] for n in node_batch])
+      # all_char_matrices = torch.index_select(local_char_embedding_matrix, 0, lookup_ids)  #[words_in_batch,max_chars_in_word,char_vector_size] #todo: error here the lookup id is for words??
+      # mlm = calc_mlm_loss(self.agent_levels[0],all_char_matrices,batch_mask,self.char_embedding_layer.weight,labels)
+      # # labels [batch,seq_length,1] 1=>id in embedding matrix
+      # return word_embedding_matrix
 
     def set_text_vectors(self,batch_tree):
-      self.set_word_vectors(batch_tree)
+      word_embedding_matrix = self.set_word_vectors(batch_tree)
       for i in range(1,Config.agent_level+1):
         self.agent_levels[i].realize_vectors(batch_tree.level_nodes[i])
+        return word_embedding_matrix
+
+
+    def stuff_for_losses(self,batch_tree):
+      word_embedding_matrix = self.set_text_vectors(batch_tree)
+      res0 = self.agent_levels[0].get_children(batch_tree.level_nodes[0], self.char_embedding_layer.weight)
+      res1 = self.agent_levels[1].get_children(batch_tree.level_nodes[1], word_embedding_matrix)
+      #res2 = self.agent_levels[2].get_children(batch_tree.level_nodes[2], word_embedding_matrix)
+      level, matrices, mask, embedding_matrix, labels = res1
+      print("level",level)
+      print("matrices",matrices.shape)
+      print("mask",mask.shape)
+      print("embedding_matrix",embedding_matrix.shape)
+      print("labels",labels.shape)
 
 
 

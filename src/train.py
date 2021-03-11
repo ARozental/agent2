@@ -18,9 +18,6 @@ optimizer = torch.optim.Adagrad(model.parameters(), 0.01)
 for epoch in range(500):
     print('Epoch', epoch + 1)
 
-    if epoch == 0 or epoch == 100:
-        print(model.levels[0].embedding.weight[:5])
-
     for batch in dataset.iterator():
         model.train()
         optimizer.zero_grad()

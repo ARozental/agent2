@@ -46,7 +46,6 @@ class AgentLevel(nn.Module):
             torch.zeros(self.embed_size),
             torch.zeros(self.embed_size),
             self.eos,
-            torch.zeros(self.embed_size),
         ]), vectors])
 
         self.embedding = nn.Embedding.from_pretrained(weights, freeze=True)

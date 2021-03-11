@@ -45,9 +45,9 @@ class AgentModel(nn.Module):
         self.levels[level].set_embedding(torch.tensor(unique_vectors))
 
         inputs = np.array([np.argwhere((vec == unique_vectors).all(1))[0][0] for vec in vectors])
-        inputs += 4  # Make room for the pad, mask, etc tokens
+        inputs += 3  # Make room for the pad, mask, eos tokens # TODO - Make 3 be num special tokens
 
-        self.losses[level]['mlm'].num_tokens = len(unique_vectors) + 4
+        self.losses[level]['mlm'].num_tokens = len(unique_vectors) + 3  # TODO - Make 3 be num special tokens
 
         return inputs
 

@@ -61,7 +61,9 @@ class MLMLoss(nn.Module):
 
         new_mask = torch.zeros((batch, seq_len + 1), device=device)
         new_mask.scatter_(-1, sampled_indices, 1)
-        return new_mask[:, 1:].bool()
+        new_mask = new_mask[:, 1:].bool()
+        new_mask = new_mask.masked_fill(~mask, False)  # Just in case set the padded tokens to False
+        return new_mask
 
     def make_masked_input(self, inputs):
         no_mask = self.mask_with_tokens(inputs, self.mask_ignore_token_ids)
@@ -75,11 +77,13 @@ class MLMLoss(nn.Module):
             # num_tokens keyword must be supplied when instantiating MLM if using random token replacement
             assert self.num_tokens is not None
             random_token_prob = self.prob_mask_like(inputs, self.random_token_prob)
-            random_tokens = torch.randint(0, self.num_tokens, inputs.shape, device=inputs.device)
+            # TODO - Change 3 to be number of special tokens
+            random_tokens = torch.randint(3, self.num_tokens, inputs.shape, device=inputs.device)
             random_no_mask = self.mask_with_tokens(random_tokens, self.mask_ignore_token_ids)
             random_token_prob &= ~random_no_mask
             random_indices = torch.nonzero(random_token_prob, as_tuple=True)
             masked_input[random_indices] = random_tokens[random_indices]
+            masked_input = masked_input.masked_fill(no_mask, 0)  # Don't let the padded tokens get replaced
 
         # [mask] input
         replace_prob = self.prob_mask_like(inputs, self.replace_prob)

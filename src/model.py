@@ -33,7 +33,7 @@ class AgentModel(nn.Module):
 
     def parameters(self, recurse: bool = True) -> Iterator[Parameter]:
         for name, param in self.named_parameters(recurse=recurse):
-            if 'embedding' in name and not name.startswith('levels.0.'):  # Ignore embedding above base level
+            if '.embedding.' in name:  # Ignore regular embedding
                 continue
 
             yield param

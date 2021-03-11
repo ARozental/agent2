@@ -97,7 +97,7 @@ class MLMLoss(nn.Module):
         encoded = self.model.encoder(masked_input, model_mask)
         encoded = encoded.transpose(0, 1)
         output = self.model.encoder_transform(encoded)
-        emb_weight = torch.transpose(self.model.encoder.embedding.weight, 0, 1).unsqueeze(0)
+        emb_weight = torch.transpose(self.model.embedding.weight, 0, 1).unsqueeze(0)
         logits = torch.matmul(output, emb_weight)  # [batch, seq_length, num_tokens]
         logits = logits.transpose(1, 0)
 

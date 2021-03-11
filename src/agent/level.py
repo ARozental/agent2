@@ -23,23 +23,25 @@ class AgentLevel(nn.Module):
         self.level_num = level_num
         self.embed_size = embed_size
         self.max_seq_length = max_seq_length
-        self.embedding = nn.Embedding(num_tokens, embed_size)
-        if self.level_num > 0:
-            self.eos = nn.Parameter(torch.rand(embed_size))
 
-        self.encoder = Encoder(self.embedding, embed_size=embed_size, **encoder)
+        self.eos = nn.Parameter(torch.rand(embed_size))
+        self.embedding = None  # Will be set later by the levels
+        if self.level_num == 0:
+            self.embedding_matrix = nn.Parameter(torch.rand((num_tokens, embed_size)))
+            self.set_embedding(self.embedding_matrix)
+
+        self.encoder = Encoder(self.do_embedding, embed_size=embed_size, **encoder)
         self.encoder_transform = nn.Linear(embed_size, embed_size)  # For the MLM Loss only
-        self.decoder = Decoder(self.embedding, embed_size=embed_size, **decoder)
+        self.decoder = Decoder(self.do_embedding, embed_size=embed_size, **decoder)
         self.compressor = Compressor(embed_size, parent_embed, **compressor)
         self.decompressor = Decompressor(embed_size, parent_embed, max_seq_length, **decompressor)
 
         self.coherence_checker = CoherenceChecker(parent_embed)
 
-    def set_embedding(self, vectors):
-        if self.level_num == 0:
-            raise NotImplementedError  # Should not be here
+    def do_embedding(self, x):
+        return self.embedding(x)
 
-        # TODO - Check that none of these get backpropped (except for the eos)
+    def set_embedding(self, vectors):
         weights = torch.cat([torch.stack([
             torch.zeros(self.embed_size),
             torch.zeros(self.embed_size),
@@ -47,9 +49,7 @@ class AgentLevel(nn.Module):
             torch.zeros(self.embed_size),
         ]), vectors])
 
-        self.embedding = nn.Embedding.from_pretrained(weights)
-        self.encoder.embedding = nn.Embedding.from_pretrained(weights)
-        self.decoder.embedding = nn.Embedding.from_pretrained(weights)
+        self.embedding = nn.Embedding.from_pretrained(weights, freeze=True)
 
     def encode(self, src, mask):
         encoded = self.encoder(src, mask)

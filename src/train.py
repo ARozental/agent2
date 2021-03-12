@@ -1,15 +1,13 @@
-from src.config import MODEL_CONFIG
+from src.config import Config
 from src.model import AgentModel
 from src.datasets import SimpleDataset
 import torch
 
-# MODEL_CONFIG = MODEL_CONFIG[:1]  # Uncomment this to be word level only
 USE_CUDA = False
-NUM_LEVELS = len(MODEL_CONFIG)
 
-dataset = SimpleDataset(max_level=NUM_LEVELS)
+dataset = SimpleDataset(max_level=Config.NUM_LEVELS)
 device = torch.device('cuda' if torch.cuda.is_available() and USE_CUDA else 'cpu')
-model = AgentModel(MODEL_CONFIG, num_tokens=dataset.num_tokens())
+model = AgentModel(Config.LEVELS_CONFIG, num_tokens=dataset.num_tokens())
 model.to(device)
 model.train()
 
@@ -37,7 +35,7 @@ for epoch in range(500):
                 print('   MATCHED!', end='')
             print('')
 
-        if NUM_LEVELS > 1:
+        if Config.NUM_LEVELS > 1:
             print('Sentence Level')
             examples = dataset.debug_examples(level=1)
             sent_vec = model.encode(examples)

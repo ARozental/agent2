@@ -31,7 +31,7 @@ class AgentLevel(nn.Module):
             self.embedding_matrix = nn.Parameter(torch.rand((num_tokens, embed_size)))
             self.set_embedding(self.embedding_matrix)
 
-        self.encoder = Encoder(self.do_embedding, embed_size=embed_size, **encoder)
+        self.encoder = Encoder(self.do_embedding, self.eos, embed_size=embed_size, **encoder)
         self.encoder_transform = nn.Linear(embed_size, embed_size)  # For the MLM Loss only
         self.decoder = Decoder(self.do_embedding, embed_size=embed_size, **decoder)
         self.compressor = Compressor(embed_size, parent_embed, **compressor)

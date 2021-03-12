@@ -25,6 +25,7 @@ class AgentLevel(nn.Module):
         self.max_seq_length = max_seq_length
 
         self.eos = nn.Parameter(torch.rand(embed_size))
+        self.mask = nn.Parameter(torch.rand(embed_size))
         self.embedding = None  # Will be set later by the levels
         if self.level_num == 0:
             self.embedding_matrix = nn.Parameter(torch.rand((num_tokens, embed_size)))
@@ -44,7 +45,7 @@ class AgentLevel(nn.Module):
     def set_embedding(self, vectors):
         weights = torch.cat([torch.stack([
             torch.zeros(self.embed_size),
-            torch.zeros(self.embed_size),
+            self.mask,
             self.eos,
         ]), vectors])
 

@@ -2,7 +2,7 @@ from . import Compressor, Decompressor, Encoder, Decoder, CoherenceChecker
 import torch.nn as nn
 import torch
 from src.config import Config
-
+from collections import defaultdict
 
 class AgentLevel(nn.Module):
     def __init__(self, level):
@@ -14,7 +14,7 @@ class AgentLevel(nn.Module):
         self.decoder = Decoder(level)
         self.compressor = Compressor(level)
         self.decompressor = Decompressor(level)
-        self.coherence_checker = CoherenceChecker(Config.vector_sizes[level])
+        self.coherence_checker = CoherenceChecker(Config.vector_sizes[level+1])
         self.pad_vector = torch.rand(Config.vector_sizes[level], requires_grad=True) #doesn't really requires_grad, it is here for debug
         self.eos_vector = torch.rand(Config.vector_sizes[level], requires_grad=True) #todo: initialize right, not uniform
         self.join_vector = torch.rand(Config.vector_sizes[level], requires_grad=True)
@@ -37,7 +37,7 @@ class AgentLevel(nn.Module):
         mask = torch.tensor(masks)
 
         lookup_ids = [list(map(lambda x: x.distinct_lookup_id+2+int(Config.join_texts),n.children)) for n in node_batch] #+3 for pad, eos and join, also need to change the matrix here and also handle Join-Tokens; todo: +2 if join is not in config
-        lookup_ids = torch.LongTensor([(x+[1]+([0]*Config.sequence_lengths[1]))[0:Config.sequence_lengths[1]] for x in lookup_ids]) #0 for pad, 1 for eos, because that was the concate order with the word embedding matrix
+        lookup_ids = torch.LongTensor([(x+[0]+([1]*Config.sequence_lengths[1]))[0:Config.sequence_lengths[1]] for x in lookup_ids]) #0 for pad, 1 for eos, because that was the concate order with the word embedding matrix
         lookup_ids = torch.LongTensor(lookup_ids).view(-1)
         matrices = torch.index_select(embedding_matrix, 0, lookup_ids).view(len(node_batch),Config.sequence_lengths[1],Config.vector_sizes[1])
         labels = lookup_ids.view(len(node_batch),Config.sequence_lengths[1])
@@ -47,31 +47,30 @@ class AgentLevel(nn.Module):
       else:
         matrices = []
         masks = []
-
-        # flat all sentence nodes with pre_order_ids
-        # zip(pre_id,range) to DefaultDict(int)
-        # make an embedding matrix of all sentence vectors.
-        # make labels by taking all ids; padding with 0; looking up in dict
-
-        # todo somewhere: remove the pad vector from the matrix and labels-=1; we don't want any chance to select it
-
+        all_children = []
+        all_ids = []
 
         for n in node_batch:
-          mask = ([False for c in n.children]+[False]+([True]*Config.sequence_lengths[self.level]))[0:Config.sequence_lengths[self.level]]
+          children = n.children
+          mask = ([False for c in children]+[False]+([True]*Config.sequence_lengths[self.level]))[0:Config.sequence_lengths[self.level]]
+          ids = ([c.id for c in children]+[0]+([1]*Config.sequence_lengths[self.level]))[0:Config.sequence_lengths[self.level]]
+          all_children.extend(children)
           masks.append(mask)
-          matrix = ([c.vector for c in n.children]+[self.eos_vector]+([self.pad_vector]*Config.sequence_lengths[self.level]))[0:Config.sequence_lengths[self.level]]
+          all_ids.append(ids)
+          matrix = ([c.vector for c in children]+[self.eos_vector]+([self.pad_vector]*Config.sequence_lengths[self.level]))[0:Config.sequence_lengths[self.level]]
           matrix  = torch.stack(matrix)
           matrices.append(matrix)
         mask = torch.tensor(masks)
-        matrices = torch.stack(matrices) #[sentences in node_batch, max words in sentence, word vec size]
+        matrices = torch.stack(matrices) #[sentences in node_batch, max words in sentence, word vec size] #after padding
+        all_children_ids = [c.id for c in all_children]
 
-        embedding = matrices.view(matrices.shape[0]*matrices.shape[1],matrices.shape[2]) #
-        print(mask)
-        print(matrices.shape)
-        print(embedding.shape)
-        #labels.shape should be [batch,seq_length] with id of the right place in the embedding matrix
+        id_to_place = dict(zip(all_children_ids,range(1,matrices.shape[0]*matrices.shape[1]+1))) # 0 is saved for EoS,
+        def id_to_place2(i):
+          return i if i<=1 else id_to_place[i]
+        embedding = [c.vector for c in all_children]
+        labels = torch.tensor([[id_to_place2(i) for i in x] for x in all_ids])
+        embedding = torch.stack([self.eos_vector] + embedding)
 
-        labels = torch.range(0,embedding.shape[0]).view(matrices.shape[0],matrices.shape[1])
         return self.level,matrices,mask,embedding,labels
 
 

@@ -1,5 +1,5 @@
 class Config():
-    sequence_lengths = [8,8,6,3,4] #[10,12,6,20,20]
+    sequence_lengths = [7,9,6,3,4] #[10,12,6,20,20]
     vector_sizes = [8,10,12,14,16,18] #[4,6,8,10] #letters,words,sentences,paragraphs,chapters,book
     num_heads = [2,2,2,2,2,2]#[2,3,4,5] #for transformers
     fnn_sizes = [8,10,12,14,16,18] #[2,3,4,5] #for fnn in transformers
@@ -11,9 +11,9 @@ class Config():
     drop_rate = 0.15
     batch_size = batch_size
 
-    pad_token_id = 1
-    eos_token_id = 2
-    join_token_id = 3
+    pad_token_id = 1 #hard coded; will break logic if changed!!!
+    eos_token_id = 2 #hard coded; will break logic if changed!!!
+    join_token_id = 3 #hard coded; will break logic if changed!!!
     join_texts = False
     agent_level = 2 #most complex vector agent can create 2=paragraph
 

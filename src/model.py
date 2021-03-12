@@ -1,4 +1,4 @@
-from src.losses import MLMLoss, CoherenceLoss, ReconstructionLoss
+#from src.losses import MLMLoss, CoherenceLoss, ReconstructionLoss
 from src.agent import AgentLevel
 from src.utils import find_level
 from typing import Iterator
@@ -8,6 +8,8 @@ import torch.nn as nn
 import torch
 from src.config import Config
 from src.losses.mlm import calc_mlm_loss
+from src.losses.coherence import calc_coherence_loss
+from src.losses.reconstruction import calc_reconstruction_loss
 
 
 class AgentModel(nn.Module):
@@ -15,9 +17,8 @@ class AgentModel(nn.Module):
         super().__init__()
         self.tree_tokenizer = tree_tokenizer
         self.agent_levels = nn.ModuleList()
-        for i in range(Config.agent_level + 1):
+        for i in range(Config.agent_level + 2):
             agent_level = AgentLevel(i)
-
             self.agent_levels.append(agent_level)
 
         self.char_embedding_layer = nn.Embedding(len(tree_tokenizer.letter_tokenizer.keys()), Config.vector_sizes[0])
@@ -31,11 +32,11 @@ class AgentModel(nn.Module):
       word_embedding_matrix = self.agent_levels[0].compressor(self.agent_levels[0].encoder(local_char_embedding_matrix, mask)) #[distinct_words_in_batch,word_vector_size]
 
       if Config.join_texts:
-        special_vectors = torch.stack([self.agent_levels[1].pad_vector,self.agent_levels[1].eos_vector,self.agent_levels[1].join_vector]) #{0: pad, 1:eos, 2:join}
+        special_vectors = torch.stack([self.agent_levels[1].eos_vector,self.agent_levels[1].pad_vector,self.agent_levels[1].join_vector]) #{0: eos, 1:pad, 2:join}
         word_embedding_matrix = torch.cat([special_vectors, word_embedding_matrix], 0)
         lookup_ids = torch.LongTensor([x.distinct_lookup_id for x in node_batch]) + 3
       else:
-        special_vectors = torch.stack([self.agent_levels[1].pad_vector,self.agent_levels[1].eos_vector]) #{0: pad, 1:eos}
+        special_vectors = torch.stack([self.agent_levels[1].eos_vector,self.agent_levels[1].pad_vector]) #{0: eos, 1:pad}
         word_embedding_matrix = torch.cat([special_vectors, word_embedding_matrix], 0)
         lookup_ids = torch.LongTensor([x.distinct_lookup_id for x in node_batch]) + 2
 
@@ -43,34 +44,31 @@ class AgentModel(nn.Module):
       [n.set_vector(v) for n,v in zip(node_batch,all_word_vectors)]
       return word_embedding_matrix
 
-      # #todo: calc losses here
-      # labels = torch.tensor([x.get_padded_word_tokens() for x in node_batch])
-      # batch_mask = torch.tensor([([False]*len(n.tokens)+[True]*Config.sequence_lengths[0])[0:Config.sequence_lengths[0]] for n in node_batch])
-      # all_char_matrices = torch.index_select(local_char_embedding_matrix, 0, lookup_ids)  #[words_in_batch,max_chars_in_word,char_vector_size] #todo: error here the lookup id is for words??
-      # mlm = calc_mlm_loss(self.agent_levels[0],all_char_matrices,batch_mask,self.char_embedding_layer.weight,labels)
-      # # labels [batch,seq_length,1] 1=>id in embedding matrix
-      # return word_embedding_matrix
-
     def set_text_vectors(self,batch_tree):
       word_embedding_matrix = self.set_word_vectors(batch_tree)
       for i in range(1,Config.agent_level+1):
         self.agent_levels[i].realize_vectors(batch_tree.level_nodes[i])
-        return word_embedding_matrix
+      return word_embedding_matrix
 
 
-    def stuff_for_losses(self,batch_tree):
+    def stuff_for_losses(self,batch_tree): #this is our forward
       word_embedding_matrix = self.set_text_vectors(batch_tree)
-      res0 = self.agent_levels[0].get_children(batch_tree.level_nodes[0], self.char_embedding_layer.weight)
-      res1 = self.agent_levels[1].get_children(batch_tree.level_nodes[1], word_embedding_matrix)
-      #res2 = self.agent_levels[2].get_children(batch_tree.level_nodes[2], word_embedding_matrix)
-      level, matrices, mask, embedding_matrix, labels = res1
-      print("level",level)
-      print("matrices",matrices.shape)
-      print("mask",mask.shape)
-      print("embedding_matrix",embedding_matrix.shape)
-      print("labels",labels.shape)
+      embedding_matrices = {0: self.char_embedding_layer.weight, 1:word_embedding_matrix}
+      for i in range(Config.agent_level + 1):
+        print("i",i)
 
+        node_batch = batch_tree.level_nodes[i] #currently all the nodes in the level
+        level, matrices, mask, embedding_matrix, labels = self.agent_levels[i].get_children(node_batch,embedding_matrices[i%2]) #we only care about 0 and 1
+        mlm_loss = calc_mlm_loss(self.agent_levels[i], matrices, mask, embedding_matrix, labels)
+        coherence_loss = calc_coherence_loss(self.agent_levels[i], matrices, mask, embedding_matrix)
+        vectors = torch.stack([n.vector for n in node_batch])
+        reconstruction_loss = calc_reconstruction_loss(self.agent_levels[i], vectors, mask, embedding_matrix, labels)
 
+        [setattr(n, 'mlm_loss', l) for n, l in zip(node_batch, mlm_loss.tolist())]
+        [setattr(n, 'coherence_loss', l) for n, l in zip(node_batch, coherence_loss.tolist())]
+        [setattr(n, 'reconstruction_loss', l) for n, l in zip(node_batch, reconstruction_loss.tolist())]
+
+      return batch_tree #todo: make loss object
 
       #print("there")
 

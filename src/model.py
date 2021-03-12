@@ -51,24 +51,26 @@ class AgentModel(nn.Module):
       return word_embedding_matrix
 
 
-    def stuff_for_losses(self,batch_tree): #this is our forward
+    def forward(self,batch_tree):
       word_embedding_matrix = self.set_text_vectors(batch_tree)
       embedding_matrices = {0: self.char_embedding_layer.weight, 1:word_embedding_matrix}
+      total_loss = 0
+      loss_object = {}
       for i in range(Config.agent_level + 1):
-        print("i",i)
-
         node_batch = batch_tree.level_nodes[i] #currently all the nodes in the level
         level, matrices, mask, embedding_matrix, labels = self.agent_levels[i].get_children(node_batch,embedding_matrices[i%2]) #we only care about 0 and 1
         mlm_loss = calc_mlm_loss(self.agent_levels[i], matrices, mask, embedding_matrix, labels)
         coherence_loss = calc_coherence_loss(self.agent_levels[i], matrices, mask, embedding_matrix)
         vectors = torch.stack([n.vector for n in node_batch])
         reconstruction_loss = calc_reconstruction_loss(self.agent_levels[i], vectors, mask, embedding_matrix, labels)
+        total_loss += (mlm_loss.mean()+coherence_loss.mean()+reconstruction_loss.mean()).sum()
+        loss_object[i] = {'m':mlm_loss.mean().item(),"c":coherence_loss.mean().item(),"r":reconstruction_loss.mean().item()}
 
         [setattr(n, 'mlm_loss', l) for n, l in zip(node_batch, mlm_loss.tolist())]
         [setattr(n, 'coherence_loss', l) for n, l in zip(node_batch, coherence_loss.tolist())]
         [setattr(n, 'reconstruction_loss', l) for n, l in zip(node_batch, reconstruction_loss.tolist())]
 
-      return batch_tree #todo: make loss object
+      return loss_object,total_loss #todo: make loss object
 
       #print("there")
 

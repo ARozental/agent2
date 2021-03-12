@@ -14,24 +14,28 @@ dataset = TreeDataset()
 device = torch.device('cuda' if torch.cuda.is_available() and USE_CUDA else 'cpu')
 model = AgentModel(TreeTokenizer())
 model.to(device)
-model.train()
+# model.train()
+model.eval()
 for batch_tree in dataset.iterator():
-    model.stuff_for_losses(batch_tree)
+    model.forward(batch_tree)
     break
 
 
-# optimizer = torch.optim.Adagrad(model.parameters(), 0.01)
-#
-# for epoch in range(500):
-#     print('Epoch', epoch + 1)
-#
-#     for batch in dataset.iterator():
-#         model.train()
-#         optimizer.zero_grad()
-#
-#         _, mlm_loss, coherence_loss, reconstruct_loss = model.fit(batch)
-#         (sum(mlm_loss) + sum(coherence_loss) + sum(reconstruct_loss)).backward()
-#         optimizer.step()
+optimizer = torch.optim.Adam(model.parameters(), 0.001)
+
+for epoch in range(2001):
+    #print('Epoch', epoch + 1)
+
+    for batch in dataset.iterator():
+        model.train()
+        optimizer.zero_grad()
+
+        loss_object,total_loss = model.forward(batch)
+        print(epoch, total_loss.item())
+        if epoch%100==0:
+            print(loss_object)
+        total_loss.backward()
+        optimizer.step()
 #
 #         model.eval()
 #         print('Word Level')

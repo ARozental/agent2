@@ -7,21 +7,15 @@ class SimpleDataset:
             self.text = f.readlines()
 
         self.max_level = max_level
+        self.tokenizer = Tokenizer()
 
         # TODO - Make this dynamic based on the number of levels
         if max_level == 2:
             self.text = 'We went to the store\nThis is a wonderful test'
             self.text = [[[char for char in word] for word in sent.split(' ')] for sent in self.text.split('\n')]
-            self.tokenizer = Tokenizer(max_lengths=[
-                max([len(word) for sent in self.text for word in sent]) + 1,  # Add an extra character for the EOS token
-                max([len(sent) for sent in self.text]) + 1,  # Add an extra character for the EOS token
-            ])
         else:
             self.text = 'something\nencyclopedia'
             self.text = [[char for char in word] for word in self.text.split('\n')]
-            self.tokenizer = Tokenizer(max_lengths=[
-                max([len(word) for word in self.text]) + 1,  # Add an extra character for the EOS token
-            ])
 
     def iterator(self):
         yield [self.tokenizer.tokenize(item) for item in self.text]

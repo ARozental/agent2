@@ -14,7 +14,7 @@ class Tokenizer:
         '[EOS]': -1,
     }
 
-    def __init__(self, max_lengths):
+    def __init__(self):
         with open('../chars.txt', encoding='utf-8') as f:
             chars = [char.strip() for char in f.readlines()]
 
@@ -29,18 +29,6 @@ class Tokenizer:
             else:
                 self.tokenizer[char] = i
                 self.reverse_tokenizer[i] = char
-
-        self.max_lengths = max_lengths
-
-    def build_empty(self, level):
-        if level == 0:
-            return self.SPECIAL_INDICES['[PAD]'], 1
-
-        tokens, mask = self.build_empty(level - 1)
-        tokens = [tokens] * self.max_lengths[level - 1]
-        mask = [mask] * self.max_lengths[level - 1]
-
-        return tokens, mask
 
     def tokenize(self, seq, level=None):
         if level is None:

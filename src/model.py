@@ -9,11 +9,10 @@ import torch
 
 
 class AgentModel(nn.Module):
-    def __init__(self, config, num_tokens, max_seq_length):
+    def __init__(self, config, num_tokens):
         super().__init__()
 
         self.levels = nn.ModuleList()
-        self.max_seq_length = max_seq_length
         self.losses = []
         for i, level_config in enumerate(config):
             if i < len(config) - 1:
@@ -21,8 +20,7 @@ class AgentModel(nn.Module):
             else:
                 parent_embed = level_config['embed_size'] * 2  # Figure out what to do for the last level
             mlm_config = level_config.pop('mlm', {})
-            level = AgentLevel(level_num=i, num_tokens=num_tokens, max_seq_length=max_seq_length[i],
-                               parent_embed=parent_embed, **level_config)
+            level = AgentLevel(level_num=i, num_tokens=num_tokens, parent_embed=parent_embed, **level_config)
 
             self.levels.append(level)
             self.losses.append({
@@ -56,8 +54,8 @@ class AgentModel(nn.Module):
         # TODO - Reference the EoS token straight from the tokenizer so that it will be dynamic
         inputs = [seq + [2] for seq in inputs]
 
-        mask = [[0] * len(seq) + [1] * (self.max_seq_length[level] - len(seq)) for seq in inputs]
-        inputs = [seq + [0] * (self.max_seq_length[level] - len(seq)) for seq in inputs]
+        mask = [[0] * len(seq) + [1] * (self.levels[level].max_seq_length - len(seq)) for seq in inputs]
+        inputs = [seq + [0] * (self.levels[level].max_seq_length - len(seq)) for seq in inputs]
         inputs = torch.tensor(inputs)
         mask = torch.tensor(mask)
 

@@ -3,6 +3,7 @@ MODEL_CONFIG = [
     {
         # Word Level
         'embed_size': 80,
+        'max_seq_length': 10,
         'encoder': {
             'num_hidden': 80,
             'num_layers': 2,
@@ -23,6 +24,7 @@ MODEL_CONFIG = [
     {
         # Sentence Level
         'embed_size': 160,
+        'max_seq_length': 6,
         'encoder': {
             'num_hidden': 160,
             'num_layers': 2,

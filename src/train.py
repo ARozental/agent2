@@ -9,7 +9,7 @@ NUM_LEVELS = len(MODEL_CONFIG)
 
 dataset = SimpleDataset(max_level=NUM_LEVELS)
 device = torch.device('cuda' if torch.cuda.is_available() and USE_CUDA else 'cpu')
-model = AgentModel(MODEL_CONFIG, num_tokens=dataset.num_tokens(), max_seq_length=dataset.tokenizer.max_lengths)
+model = AgentModel(MODEL_CONFIG, num_tokens=dataset.num_tokens())
 model.to(device)
 model.train()
 

@@ -2,16 +2,17 @@
 import re
 from collections import defaultdict
 import nltk
+from src.config import Config
 
 
-class Config(): #move to file, join with the big config class
-  def __init__(self):
-    self.sequence_lengths = [7,2,1] #[letters_in_word, max_words_in_sentence, max_sentences_in_paragraph]
-    self.pad_token_id = -1
-    self.eos_token_id = -2
-    self.join_token_id = -3
-    self.join_texts = False
-    self.agent_level = 2 #most complex vector agent can create 2=paragraph
+# class Config(): #move to file, join with the big config class
+#   def __init__(self):
+#     self.sequence_lengths = [7,2,1] #[letters_in_word, max_words_in_sentence, max_sentences_in_paragraph]
+#     self.pad_token_id = -1
+#     self.eos_token_id = -2
+#     self.join_token_id = -3
+#     self.join_texts = False
+#     self.agent_level = 2 #most complex vector agent can create 2=paragraph
 
 config=Config()
 
@@ -31,11 +32,16 @@ class Node():
     self.type = type #leaf, inner, root, join_token, eos_token
     self.tree_id = tree_id #not sure if we'll need it
     self.distinct_lookup_id = None
+    self.mlm_loss = None
+    self.coherence_loss = None
+    self.reconstruction_loss = None
 
   def get_padded_word_tokens(self):
     if self.level != 0:
       return
     return (self.tokens + [config.eos_token_id] + [config.pad_token_id] * config.sequence_lengths[0])[0:config.sequence_lengths[0]]
+  def set_vector(self,v):
+    self.vector = v
 
   def bebug_get_tree(self,attr="id"):
     if self.children == None:
@@ -49,7 +55,8 @@ class Node():
     max_length = self.config.sequence_lengths[self.level-1] #for each child
     for sub in self.struct[1:]:
       if len(new_struct[-1]) + 1 + len(sub) < max_length:
-        new_struct[-1].append(config.join_token_id)
+        #new_struct[-1].append(config.join_token_id)
+        new_struct[-1].append(-1) #-1+3=2 #this is the most helpful comment ever; thanks for nothing past me!
         new_struct[-1].extend(sub)
       else:
         new_struct.append(sub)
@@ -104,6 +111,10 @@ class BatchTree():
     self.batch_root = batch_root
     self.distinct_word_embedding_tokens = None #the i-th element has word tokens
 
+    #generalizes word embedding tokens
+    self.distinct_embedding_tokens = {i: [] for i in range(config.agent_level)} #{0: [sorted nodes for words], 1: [sorted nodes for sentences]}
+
+
   def __batch_up_nodes1(self,node):
     self.level_nodes[node.level].append(node)
     if node.children != None:
@@ -117,7 +128,7 @@ class BatchTree():
     # each node in level_nodes[0] (word), gets distinct_lookup_id set to the relevant i from distinct_word_embedding_tokens
     # in the forward pass we will only embed self.distinct_word_embedding_tokens and fill the DVT word vector with lookup to this matrix
     mapping = {str(n.tokens): [i, n.get_padded_word_tokens()] for i, n in
-               zip(reversed(range(len(tree.level_nodes[0]))), tree.level_nodes[0])}
+               zip(reversed(range(len(self.level_nodes[0]))), self.level_nodes[0])}
     for n in self.level_nodes[0]:
       n.distinct_lookup_id = mapping[str(n.tokens)][0]
     id_and_pads = list(mapping.values())
@@ -125,8 +136,23 @@ class BatchTree():
     self.distinct_word_embedding_tokens = [x[1] for x in id_and_pads]
     return
 
+  def make_distinct_texts(self,lvl):
+    #generalizes make_distinct_words
+    # the i-th element of distinct_word_embedding_tokens gets word tokens with full padding
+    # each node in level_nodes[0] (word), gets distinct_lookup_id set to the relevant i from distinct_word_embedding_tokens
+    # in the forward pass we will only embed self.distinct_word_embedding_tokens and fill the DVT word vector with lookup to this matrix
+    mapping = {str(n.tokens): [i, n.get_padded_word_tokens()] for i, n in
+               zip(reversed(range(len(self.level_nodes[lvl]))), self.level_nodes[lvl])}
+    for n in self.level_nodes[lvl]:
+      n.distinct_lookup_id = mapping[str(n.tokens)][0]
+    id_and_pads = list(mapping.values())
+    id_and_pads.sort() #by id (first element) is the default
+    self.distinct_word_embedding_tokens = [x[lvl] for x in id_and_pads]
+    return
+
+
 class TreeTokenizer:
-  def __init__(self,char_file = "../chars.txt",config=config):
+  def __init__(self,char_file = "../chars.txt"):
     self.letter_tokenizer = defaultdict(int, dict(zip([l.strip() for l in open(char_file, "r", encoding='utf-8').readlines()], range(1, 7777))))
     self.sentence_spliter = nltk.data.load('tokenizers/punkt/english.pickle')
     self.split_functions = [self.paragraph_to_sentences, self.sentence_to_words]
@@ -135,6 +161,10 @@ class TreeTokenizer:
   def tokenize_word(self,word):
     #"sheeבt" => [68, 57, 54, 54, 0, 69]
     return [self.letter_tokenizer[l] for l in word]
+
+  def detokenize(self,struct):
+    #vec/struct to text todo: make it
+    return "bla bla bla"
 
   def sentence_to_words(self,sentence):
     #"I like big butts." => ['I', 'like', 'big', 'butts.']
@@ -152,13 +182,17 @@ class TreeTokenizer:
     else:
       return self.tokenize_word(text)
 
-  def batch_texts_to_trees(self,texts,config=config):
+  def batch_texts_to_trees(self,texts,config=config): #todo: use level here to make ensure texts are in the right depth
     #input: ["I like big butts. I can not lie.","You other brothers can't deny"]
     structs = [self.text_to_tree_struct(text) for text in texts]
     batch_root = Node(struct=structs,type="batch root", id=0, level=config.agent_level+1)
     batch_root.expand_struct()
     batch_tree = BatchTree(batch_root)
     batch_tree.batch_up_nodes()
+    batch_tree.make_distinct_words()
+
+    # for i in range(self.max_depth):
+    #   batch_tree.make_distinct_texts(i)
     return batch_tree
 
 
@@ -183,10 +217,10 @@ tree = tt.batch_texts_to_trees(["I like big butts. I can not lie.","some other s
 # ss.sort()
 # print(ss)
 
-tree.make_distinct_words()
-print("here")
-print(tree.distinct_word_embedding_tokens)
-print([n.distinct_lookup_id for n in tree.level_nodes[0]])
+# tree.make_distinct_words()
+# print("here")
+# print(tree.distinct_word_embedding_tokens)
+# print([n.distinct_lookup_id for n in tree.level_nodes[0]])
 
 # with open('../chars.txt', encoding='utf-8') as f:
 #   chars = [char.strip() for char in f.readlines()]

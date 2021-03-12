@@ -1,6 +1,6 @@
 from src.config import MODEL_CONFIG
 from src.model import AgentModel
-from src.simple_dataset import SimpleDataset
+from src.datasets import SimpleDataset
 import torch
 
 # MODEL_CONFIG = MODEL_CONFIG[:1]  # Uncomment this to be word level only

@@ -39,7 +39,13 @@ Main Loop:
     join all the word vectors
 
 
-TEST THAT THE MODEL STILL RUNS WITH THE NEW ARCHITECTURE
+CURRENT TASKS:
+TEST THAT THE MODEL STILL RUNS WITH THE NEW ARCHITECTURE => done? except bug and join token
+merge (have debug decode)
+have the text decoding working
+have compressor+decompressor know when to stop
+having transformer encode NS with the
+
 
 
 AgentModel:

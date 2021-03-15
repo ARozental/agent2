@@ -145,8 +145,8 @@ class BatchTree:
 class TreeTokenizer:
     def __init__(self, char_file="../chars.txt"):
         self.letter_tokenizer = defaultdict(int, dict(
-            zip([l.strip() for l in open(char_file, "r", encoding='utf-8').readlines()], range(1, 7777))))
-        self.reverse_tokenizer = {value-1: key for key, value in self.letter_tokenizer.items()}
+            zip([l.strip() for l in open(char_file, "r", encoding='utf-8').readlines()], range(7777))))
+        self.reverse_tokenizer = {value: key for key, value in self.letter_tokenizer.items()}
         self.sentence_spliter = nltk.data.load('tokenizers/punkt/english.pickle')
         self.split_functions = [self.paragraph_to_sentences, self.sentence_to_words]
         self.max_depth = len(self.split_functions)
@@ -156,11 +156,15 @@ class TreeTokenizer:
         return [self.letter_tokenizer[l] for l in word]
 
     def detokenize(self, struct):
+        #struct=> [3,4,5,67,8]
         # vec/struct to text todo: make it
-
-        # TEMP
-        return [self.reverse_tokenizer[item] for item in struct]
-        return "bla bla bla"
+        res = ""
+        for c in struct:
+            if c==Config.eos_token_id:
+                return res
+            else:
+                res+=self.reverse_tokenizer[c]
+        return res
 
     def sentence_to_words(self, sentence):
         # "I like big butts." => ['I', 'like', 'big', 'butts.']

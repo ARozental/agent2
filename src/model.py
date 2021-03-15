@@ -80,22 +80,13 @@ class AgentModel(nn.Module):
 
     def debug_decode(self, batch_tree):
         node_batch = batch_tree.level_nodes[0]
-        local_char_embedding_tokens = torch.LongTensor(batch_tree.distinct_word_embedding_tokens)
-        mask = local_char_embedding_tokens == Config.pad_token_id  # True => position to mask
-
-        mask = mask[0].unsqueeze(0)
-        vector = node_batch[0].vector.unsqueeze(0)
-        output = self.agent_levels[0].decompressor(vector)
+        tokens = [n.get_padded_word_tokens() for n in node_batch]
+        mask = torch.tensor(tokens) == Config.pad_token_id  # True => position to mask
+        vectors = torch.stack([n.vector for n in node_batch])
+        output = self.agent_levels[0].decompressor(vectors)
         output = self.agent_levels[0].decoder(output, mask)
-
-        # word_embedding_matrix = self.set_text_vectors(batch_tree)
-        # embedding_matrices = {0: self.char_embedding_layer.weight, 1: word_embedding_matrix}
-        # level, matrices, mask, embedding_matrix, labels = self.agent_levels[0].get_children(node_batch,
-        #                                                                                     embedding_matrices[
-        #                                                                                         0 % 2])
 
         output = torch.matmul(output, self.char_embedding_layer.weight.transpose(0, 1))
         output = torch.argmax(output, dim=2)
 
-        # output = self.char_embedding_layer(output)
         return output

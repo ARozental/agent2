@@ -25,7 +25,7 @@ class AgentModel(nn.Module):
         local_char_embedding_matrix = self.char_embedding_layer(local_char_embedding_tokens)
         word_embedding_matrix = self.agent_levels[0].compressor(
             self.agent_levels[0].encoder(local_char_embedding_matrix,
-                                         mask))  # [distinct_words_in_batch,word_vector_size]
+                                         mask),mask)  # [distinct_words_in_batch,word_vector_size]
 
         if Config.join_texts:
             special_vectors = torch.stack([

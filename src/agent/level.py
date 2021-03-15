@@ -129,5 +129,5 @@ class AgentLevel(nn.Module):
         matrices = torch.stack(matrices)  # [sentences in node_batch, max words in sentence, word vec size]
 
         mask = torch.tensor(masks)
-        vectors = self.compressor(self.encoder(matrices, mask))
+        vectors = self.compressor(self.encoder(matrices, mask), mask)
         [n.set_vector(v) for n, v in zip(node_batch, vectors)]

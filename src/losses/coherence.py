@@ -16,7 +16,7 @@ def calc_coherence_loss(agent_level,matrices,mask,embeddings):
     random_vec_replacments = torch.index_select(embeddings, 0,random_indexes).view(batch, seq_length, vec_size) #todo: make sure the pad token is not here, also no join for levels 0 and 1
 
     pre_encoder = (1-changed_examples).unsqueeze(-1) * matrices + changed_examples.unsqueeze(-1) * random_vec_replacments
-    vectors_for_coherence = agent_level.compressor(agent_level.encoder(pre_encoder, mask))
+    vectors_for_coherence = agent_level.compressor(agent_level.encoder(pre_encoder, mask), mask)
     res = agent_level.coherence_checker(vectors_for_coherence).squeeze(-1)
     coherence_losses = (res-labels)**2
 

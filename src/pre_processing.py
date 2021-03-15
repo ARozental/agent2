@@ -146,7 +146,7 @@ class TreeTokenizer:
     def __init__(self, char_file="../chars.txt"):
         self.letter_tokenizer = defaultdict(int, dict(
             zip([l.strip() for l in open(char_file, "r", encoding='utf-8').readlines()], range(1, 7777))))
-        self.reverse_tokenizer = {value-1: key for key, value in self.letter_tokenizer.items()}
+        self.reverse_tokenizer = {value: key for key, value in self.letter_tokenizer.items()}
         self.sentence_spliter = nltk.data.load('tokenizers/punkt/english.pickle')
         self.split_functions = [self.paragraph_to_sentences, self.sentence_to_words]
         self.max_depth = len(self.split_functions)
@@ -159,7 +159,7 @@ class TreeTokenizer:
         # vec/struct to text todo: make it
 
         # TEMP
-        return [self.reverse_tokenizer[item] for item in struct]
+        return ''.join([self.reverse_tokenizer[item] for item in struct])
         return "bla bla bla"
 
     def sentence_to_words(self, sentence):

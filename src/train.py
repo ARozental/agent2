@@ -25,13 +25,16 @@ for epoch in range(2001):
         optimizer.zero_grad()
 
         loss_object, total_loss = model.forward(batch)
-        print(epoch, total_loss.item())
+        # print(epoch, total_loss.item())
         total_loss.backward()
         optimizer.step()
 
-        words = model.debug_decode(batch).detach().numpy()
+        word_node = batch.level_nodes[0][1]  # The second number is which word to take
+        words = model.debug_decode(word_node).detach().numpy()
+        word = dataset.tree_tokenizer.detokenize(word_node.tokens)
         pred = dataset.tree_tokenizer.detokenize(words[0])
-        print(pred)
+        print('Epoch', epoch, 'Reconstruct Loss', word_node.reconstruction_loss)
+        print('Expected:', word, 'Pred:', pred)
 
         if epoch % 100 == 0:
             print(loss_object)

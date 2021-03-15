@@ -29,6 +29,10 @@ for epoch in range(2001):
         total_loss.backward()
         optimizer.step()
 
+        words = model.debug_decode(batch).detach().numpy()
+        pred = dataset.tree_tokenizer.detokenize(words[0])
+        print(pred)
+
         if epoch % 100 == 0:
             print(loss_object)
             # model.eval()

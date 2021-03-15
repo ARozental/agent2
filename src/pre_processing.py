@@ -4,6 +4,7 @@ from collections import defaultdict
 import nltk
 import re
 
+NODE_COUNTER = 0
 
 class Node:
     def __init__(self, id=None, parent=None, children=None, level=2, struct=None,
@@ -145,6 +146,7 @@ class TreeTokenizer:
     def __init__(self, char_file="../chars.txt"):
         self.letter_tokenizer = defaultdict(int, dict(
             zip([l.strip() for l in open(char_file, "r", encoding='utf-8').readlines()], range(1, 7777))))
+        self.reverse_tokenizer = {value-1: key for key, value in self.letter_tokenizer.items()}
         self.sentence_spliter = nltk.data.load('tokenizers/punkt/english.pickle')
         self.split_functions = [self.paragraph_to_sentences, self.sentence_to_words]
         self.max_depth = len(self.split_functions)
@@ -155,6 +157,9 @@ class TreeTokenizer:
 
     def detokenize(self, struct):
         # vec/struct to text todo: make it
+
+        # TEMP
+        return [self.reverse_tokenizer[item] for item in struct]
         return "bla bla bla"
 
     def sentence_to_words(self, sentence):
@@ -176,7 +181,6 @@ class TreeTokenizer:
     def batch_texts_to_trees(self, texts):  # todo: use level here to make ensure texts are in the right depth
         # input: ["I like big butts. I can not lie.","You other brothers can't deny"]
         structs = [self.text_to_tree_struct(text) for text in texts]
-        print(structs)
         batch_root = Node(struct=structs, type="batch root", id=0, level=Config.agent_level + 1)
         batch_root.expand_struct()
         batch_tree = BatchTree(batch_root)

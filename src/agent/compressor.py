@@ -11,9 +11,8 @@ class Compressor(nn.Module):
 
     def forward(self, x,mask):
         lengths = (1 - mask.long()).sum(-1)
-        places = (lengths - 1).tolist()
-        r_out = self.recurrent(x)[0].tolist() #todo: do it with gather?? no going out of GPU
-        out = torch.tensor([r_out[i][places[i]] for i in range(x.shape[0])])
-
+        places = (lengths - 1)
+        r_out = self.recurrent(x)[0]
+        out = torch.stack([r_out[i][places[i]] for i in range(x.shape[0])])
 
         return out #with consuming padding: self.recurrent(x)[0][:, -1, :]

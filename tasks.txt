@@ -31,12 +31,7 @@ use SwiGLU activation function: https://arxiv.org/pdf/2102.11972.pdf
 have a universal transformer => a lot later, as it is ~6X slower than the regular one for the same number of params
 
 Main Loop:
-    change the ReconstructionLoss and CoherenceLoss functions to get a batch of vectors (not the lower level ones) as an input, only MLM will get a batch of children matrices
     create batches of controllable (set from config) memory footprint from all Tree nodes for each level:
-    realize  => Done
-    for the first Agent level, put all "word" token sequences in a stack.
-    consume it in batches that fit in memory to create all word vectors
-    join all the word vectors
 
 
 CURRENT TASKS:

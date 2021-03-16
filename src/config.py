@@ -14,7 +14,7 @@ class Config:
     pad_token_id = 1  # hard coded; will break logic if changed!!!
     eos_token_id = 2  # hard coded; will break logic if changed!!!
     join_token_id = 3  # hard coded; will break logic if changed!!!
-    join_texts = False
+    join_texts = True
     agent_level = 2  # most complex vector agent can create 2=paragraph
 
 # MODEL_CONFIG = [

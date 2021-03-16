@@ -3,7 +3,7 @@ import torch.nn.functional as F
 from src.config import Config
 
 
-def calc_mlm_loss(agent_level, matrices, mask, embeddings, labels):
+def calc_mlm_loss(agent_level, matrices, mask, eos_positions, embeddings, labels):
     # matrices,mask,labels => [batch,seq_length,vec_size], embeddings => [seq_length,vec_size]
     batch, seq_length, vec_size = matrices.shape
     keep_positions = (torch.rand(batch, seq_length, 1) + 1 - 0.5).floor()  # 1 => keep original 0, calc mlm,Config.mlm_rate
@@ -20,7 +20,7 @@ def calc_mlm_loss(agent_level, matrices, mask, embeddings, labels):
     random_vec_replacments = torch.index_select(embeddings, 0, random_indexes).view(batch, seq_length, vec_size)
 
     pre_encoder = keep_positions * matrices + mask_positions * mask_vec_replacments + random_replace_positions * random_vec_replacments + replace_with_original_positions * matrices
-    post_encoder = agent_level.encoder(pre_encoder, mask)
+    post_encoder = agent_level.encoder(pre_encoder, mask, eos_positions)
     transformed = agent_level.encoder_transform(post_encoder)
     logits = torch.matmul(transformed, torch.transpose(embeddings, 0, 1))  # [batch,max_length,embedding_size)
 

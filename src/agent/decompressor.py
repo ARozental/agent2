@@ -26,3 +26,7 @@ class Decompressor(nn.Module):
         seq = torch.cat(seq,0).transpose(0, 1) #[batch,max_length,top_text_vec_size]
         seq = self.out_projection(self.dropout(seq))
         return seq #[batch,max_length,vec_size]
+
+    def decompress_without_mask(self,x):
+
+        return 7

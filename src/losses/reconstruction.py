@@ -4,7 +4,7 @@ import torch
 from src.config import Config
 
 
-def calc_reconstruction_loss(agent_level, vectors, mask, embeddings, labels):
+def calc_reconstruction_loss(agent_level, vectors, mask,eos_positions, embeddings, labels):
     """
 
     Parameters
@@ -24,7 +24,7 @@ def calc_reconstruction_loss(agent_level, vectors, mask, embeddings, labels):
     batch, seq_length = mask.shape
     decompressed = agent_level.decompressor(vectors)
     # print("d",decompressed.shape,mask.shape)
-    post_decoder = agent_level.decoder(decompressed, mask)  # [batch, seq_length, vec_size]
+    post_decoder = agent_level.decoder(decompressed, mask,eos_positions)  # [batch, seq_length, vec_size]
 
     logits = torch.matmul(post_decoder, torch.transpose(embeddings, 0, 1))  # [batch, max_length, embedding_size)
     reconstruction_losses = F.cross_entropy(

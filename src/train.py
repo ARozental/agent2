@@ -17,7 +17,7 @@ for batch_tree in dataset.iterator():
 
 optimizer = torch.optim.Adam(model.parameters(), 0.001)
 
-for epoch in range(2001):
+for epoch in range(4001):
     # print('Epoch', epoch + 1)
 
     for batch in dataset.iterator():
@@ -25,19 +25,17 @@ for epoch in range(2001):
         optimizer.zero_grad()
 
         loss_object, total_loss = model.forward(batch)
-        # print(epoch, total_loss.item())
+        #print(epoch, total_loss.item())
         total_loss.backward()
         optimizer.step()
 
-        word_node = batch.level_nodes[0][1]  # The second number is which word to take
-        words = model.debug_decode(word_node).detach().numpy()
-        word = dataset.tree_tokenizer.detokenize(word_node.tokens)
-        pred = dataset.tree_tokenizer.detokenize(words[0])
-        print('Epoch', epoch, 'Reconstruct Loss', word_node.reconstruction_loss)
-        print('Expected:', word, 'Pred:', pred)
+        words = model.debug_decode(batch).detach().numpy()
+        #pred = dataset.tree_tokenizer.detokenize(words[0])
+        pred = [dataset.tree_tokenizer.detokenize(w) for w in words ]
+        print(pred)
 
         if epoch % 100 == 0:
-            print(loss_object)
+            print(epoch,loss_object)
             # model.eval()
             # print('Word Level')
             # print(batch)

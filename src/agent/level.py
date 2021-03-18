@@ -15,6 +15,9 @@ class AgentLevel(nn.Module):
         self.compressor = Compressor(level)
         self.decompressor = Decompressor(level)
         self.coherence_checker = CoherenceChecker(Config.vector_sizes[level + 1])
+        self.eos_classifier =  nn.Linear(Config.vector_sizes[level], 1, bias=True)
+        self.eos_classifier1 =  nn.Linear(1, 1, bias=True)
+        self.token_bias = None #only set for level 0
 
         # doesn't really requires_grad, it is here for debug
         self.pad_vector = torch.rand(Config.vector_sizes[level], requires_grad=True)
@@ -57,7 +60,6 @@ class AgentLevel(nn.Module):
             lookup_ids = [list(map(lambda x: x.distinct_lookup_id + 2 + int(Config.join_texts), n.children)) for n in
                           node_batch]
 
-            # 0 for pad, 1 for eos, because that was the concate order with the word embedding matrix
             lookup_ids = torch.LongTensor(
                 [(x + [0] + ([1] * Config.sequence_lengths[1]))[0:Config.sequence_lengths[1]] for x in
                  lookup_ids])
@@ -143,3 +145,54 @@ class AgentLevel(nn.Module):
         eos_positions = torch.tensor(eos_positions)
         vectors = self.compressor(self.encoder(matrices, mask,eos_positions), mask)
         [n.set_vector(v) for n, v in zip(node_batch, vectors)]
+
+
+    def vec_to_children_vecs(self,node,embedding_matrix):
+        #0th-element is the eos token; X is a vector
+        x = node.vector
+        seq = self.decompressor.forward(x.unsqueeze(0)).squeeze()
+        length = Config.sequence_lengths[self.level]
+        mask = [False]
+        eos_positions = [0]
+
+        if self.level ==0:
+            output = torch.matmul(seq, torch.transpose(embedding_matrix, 0, 1))
+            output = torch.argmax(output, dim=1).tolist() #selected vector_id for each position, first 0 is eos
+
+            for i in range(1,len(output)):
+                mask.append(False)
+                if output[i]==0:
+                  eos_positions.append(1)
+                  break
+                else:
+                  eos_positions.append(0)
+            mask = (mask + ([True]*length))[0:length]
+            eos_positions = (eos_positions + ([0]*length))[0:length]
+        else:
+            logits = self.eos_classifier(seq).squeeze(-1)
+            if max(nn.Softmax()(logits)) > 0.2: #0.5 here is broken I probably need better logic than dense
+              num_tokens = torch.argmax(logits)
+            else:
+              num_tokens = len(logits)
+            for i in range(1,int(num_tokens)):
+              mask.append(False)
+              eos_positions.append(0)
+            mask.append(False)
+            eos_positions.append(1)
+            mask = (mask + ([True] * length))[0:length]
+            eos_positions = (eos_positions + ([0] * length))[0:length]
+
+        mask = torch.tensor(mask).unsqueeze(0)
+        eos_positions = torch.tensor(eos_positions).unsqueeze(0)
+
+        seq = seq.unsqueeze(0)
+        post_decoder = self.decoder(seq, mask, eos_positions).squeeze(0)
+        num_tokens = int((1-mask.int()).sum()-1)
+        children_vecs = []
+        for i in range(0,num_tokens):
+          children_vecs.append(post_decoder[i])
+
+        #print(len(children_vecs))
+
+        return children_vecs
+

@@ -8,13 +8,17 @@ class Encoder(nn.Module):
                  ):
         super().__init__()
         self.pos_encoder = PositionalEncoding(Config.vector_sizes[level], Config.drop_rate)
-        encoder_layers = EncoderLayer(Config.vector_sizes[level], Config.num_heads[level],Config.vector_sizes[level], Config.drop_rate,activation="relu") # change to swiglu
+        encoder_layers = EncoderLayer(Config.vector_sizes[level], Config.num_heads[level],Config.vector_sizes[level], Config.drop_rate,activation="gelu") # change to swiglu
         self.transformer_encoder = TransformerEncoder(encoder_layers, Config.num_transformer_layers[level])
         self.embed_size = Config.vector_sizes[level]
 
     def forward(self, src, mask,eos_positions):
         src = src.transpose(0, 1)
         eos_positions = eos_positions.transpose(0, 1).unsqueeze(-1)
-        src = self.pos_encoder(src) # * math.sqrt(Config.vector_sizes[level])
+
+        eos_value = eos_positions*src
+        src = src+self.pos_encoder(src) # * math.sqrt(Config.vector_sizes[level])
+        src = eos_positions*eos_value+(1-eos_positions)*src
+
 
         return self.transformer_encoder(src, src_key_padding_mask=mask,eos_positions=eos_positions).transpose(0, 1)

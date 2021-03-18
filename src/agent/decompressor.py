@@ -27,6 +27,19 @@ class Decompressor(nn.Module):
         seq = self.out_projection(self.dropout(seq))
         return seq #[batch,max_length,vec_size]
 
-    def decompress_without_mask(self,x):
-
-        return 7
+    #closest vec / first close vec / have the last embedding matrix and choose first stop / other option
+        ####not really children vecs as there is no decoder here!!!
+    # def vec_to_children_vecs_old(self,x,embedding_matrix):
+    #     #0th-element is the eos token; X is a vector
+    #
+    #     seq = self.forward(x.unsqueeze(0)).squeeze()
+    #     output = torch.matmul(seq, torch.transpose(embedding_matrix, 0, 1))
+    #     output = torch.argmax(output, dim=1).tolist() #selected vector_id for each position, first 0 is eos
+    #     children_vecs = [seq[0]]
+    #
+    #     for i in range(1,len(output)):
+    #         if output[i]==0:
+    #             break
+    #         children_vecs.append(seq[i])
+    #
+    #     return children_vecs

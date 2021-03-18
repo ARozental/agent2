@@ -24,6 +24,9 @@ def calc_mlm_loss(agent_level, matrices, mask, eos_positions, embeddings, labels
     transformed = agent_level.encoder_transform(post_encoder)
     logits = torch.matmul(transformed, torch.transpose(embeddings, 0, 1))  # [batch,max_length,embedding_size)
 
+    if agent_level.level==0:
+        logits = logits+agent_level.token_bias
+
     mlm_losses = F.cross_entropy(
         logits.transpose(1, 2),
         labels,

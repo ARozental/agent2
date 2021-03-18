@@ -23,6 +23,7 @@ class Node:
         self.mlm_loss = None
         self.coherence_loss = None
         self.reconstruction_loss = None
+        self.reconstruction_diff_loss = None
 
     def get_padded_word_tokens(self):
         if self.level != 0:
@@ -150,6 +151,7 @@ class TreeTokenizer:
         self.sentence_spliter = nltk.data.load('tokenizers/punkt/english.pickle')
         self.split_functions = [self.paragraph_to_sentences, self.sentence_to_words]
         self.max_depth = len(self.split_functions)
+        self.seperators = ['',' ','<s>','<p>','<c>']
 
     def tokenize_word(self, word):
         # "sheeבt" => [68, 57, 54, 54, 0, 69]
@@ -165,6 +167,13 @@ class TreeTokenizer:
             else:
                 res+=self.reverse_tokenizer[c]
         return res
+
+    def deep_detokenize(self, struct,level):
+        if level==0: #isinstance(struct[0], int):
+            return self.detokenize(struct)
+        else:
+            return self.seperators[level].join([self.deep_detokenize(s,level-1) for s in struct])
+            #return " ".join([self.deep_detokenize(s) for s in struct])
 
     def sentence_to_words(self, sentence):
         # "I like big butts." => ['I', 'like', 'big', 'butts.']

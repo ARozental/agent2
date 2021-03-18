@@ -26,7 +26,6 @@ Pre Processing:
 
 
 Transformer Model:
-have a basic transformer with a fixed EoS token (for both encode and decode)
 use SwiGLU activation function: https://arxiv.org/pdf/2102.11972.pdf
 have a universal transformer => a lot later, as it is ~6X slower than the regular one for the same number of params
 
@@ -35,13 +34,13 @@ Main Loop:
 
 
 CURRENT TASKS:
-TEST THAT THE MODEL STILL RUNS WITH THE NEW ARCHITECTURE => done? except bug and join token
-merge (have debug decode)
 have the text decoding working
-have compressor+decompressor know when to stop
-having transformer encode NS with the
+have compressor+decompressor know when to stop => do we even need to freeze EoS?? It is currently not enough, bug?? pos_encoding?? maybe lstm vector outputs are just all similar compared to post encoder versions
 
-
+#BUG??? => decompress+decode doesn't make the same vectors as we have in the DVT even when reconstruction loss => 0; alternatives:
+1. size matters => set vec lengths to 1?
+2. simple bug => yes => eos loss goes to 0 but output is [2,2] sentences for each text (should be [2,1]), it did get to [2,1] at some point and forgot about it.
+3. data is too small => zero loss for distinguishing between 'like' and 'butts' is not sufficient to recover 'like' => more data???
 
 AgentModel:
 write actual decode function (after fixed EoS); decide how to locate the EoS token (closest vec / first close vec / have the last embedding matrix and choose first stop / other option)

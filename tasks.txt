@@ -1,59 +1,36 @@
-
-Pre Processing:
-    have the dataset-generator accept the Agent level as a parameter and flatten the input accodringly: => done, needs tests
-        meaning that if we have a batch with 2 paragraphs that have 3 sentences each it'll turn in to a batch of 6 sentences if Agent level is 1 (and not 2).
-        For reference Agent 0 creates up to word vectors, Agent 1 creates up to sentence vectors, etc...
-        Also we should do it after we decide between option 1 and 2
-    padding: => done, needs tests
-        all words are of max_word_length, padded with a pad token
-        sentences (and above) are joined togather greedily:
-            if we have 6 sentences of length [3,6,4,7,5,4] and max_words_in_sentence is 10 we make it be 4 "sentences" like this [3+6,4,7,5+4]
-        when sentences are joined a <join> token is added between the words of the first and the second
-        input after padding for level 1 Agent with 2 sentences: ["I am me","you are you"] looks like:
-            [[3,<pad>,<pad>,<pad>],[4,5,<pad>,<pad>],[5,6,<pad>,<pad>],<level1_join_token>,[7,8,9,<pad>],[10,11,12,<pad>],[7,8,9,<pad>]]
-            the 2 sentences became 1 training example because they are short
-
-    create a DvtNode class with: pre_order_id, parent, children level, DvtTree, vector, realized? and anything else needed => done, needs tests
-    create a DvtTree class with: root, level_nodes: {level (int): [all nodes in this level sorted by pre_order_id]} => done, needs tests
-    all nodes in the batch have unique ids, all nodes in a tree have sequential ids. => done, needs tests
-    for each example create a python object of the tree and all its nodes:
-        leaves and <join> tokens are realized when their token is embedded.
-
-
-    write a function to realize the tree efficiently => done for words, needs testing
-
-    change special tokens to be 1,2,3 for pad,eos,join instead of -1,-2,-3; 0 is saved for <unk>; mask and sep tokens shouldn't be there =>
-
+Datasets:
+1. load data set from file: ["I like big butts. I can not lie.", "some other song"]
+2. set max level option when loading the dataset - example:
+    2 => ["I like big butts. I can not lie.", "some other song"]
+    1 => ["I like big butts.", "I can not lie.", "some other song"]
+    0 => ["I", "like", "big", "butts.", "I", "can", "not", "lie.", "some", "other", song"]
+3. make a medium dataset from ../datasets/no_titles
+4. find out who to get a real dataset (all of Kindle with style and star rating)
 
 Transformer Model:
-use SwiGLU activation function: https://arxiv.org/pdf/2102.11972.pdf
-have a universal transformer => a lot later, as it is ~6X slower than the regular one for the same number of params
+1. use SwiGLU activation function: https://arxiv.org/pdf/2102.11972.pdf
+2. have a universal transformer => a lot later, as it is ~6X slower than the regular one for the same number of params
 
-Main Loop:
-    create batches of controllable (set from config) memory footprint from all Tree nodes for each level:
+Training / refactoring:
+1. create batches of controllable (set from config) memory footprint from all Tree nodes for each level:
+2. find a set of sane hyper parameters
+3. make code faster, avoid everyplace that exits the GPU
 
 
 CURRENT TASKS:
-have the text decoding working
-have compressor+decompressor know when to stop => do we even need to freeze EoS?? It is currently not enough, bug?? pos_encoding?? maybe lstm vector outputs are just all similar compared to post encoder versions
-
-#BUG??? => decompress+decode doesn't make the same vectors as we have in the DVT even when reconstruction loss => 0; alternatives:
-1. size matters => set vec lengths to 1?
-2. simple bug => yes => eos loss goes to 0 but output is [2,2] sentences for each text (should be [2,1]), it did get to [2,1] at some point and forgot about it.
-3. data is too small => zero loss for distinguishing between 'like' and 'butts' is not sufficient to recover 'like' => more data???
+Datasets 1,2
+Transformer 1
+Tests 1
+AgentModel 1,2
 
 AgentModel:
-write actual decode function (after fixed EoS); decide how to locate the EoS token (closest vec / first close vec / have the last embedding matrix and choose first stop / other option)
-write the generator
-write the discriminator
-write (and design?) the PNDB
-write lossless compression+decompression
-write style GAN => Harry Potter and the Starship Enterprise
+1. refactor actual decode function
+2. write the generator
+3. write the discriminator
+4. write (and design?) the PNDB
+5. write lossless compression+decompression => after medium dataset
+6. write style GAN => Harry Potter and the Starship Enterprise
 
 
-Unit Tests:
-tensor board
-***to add here***
-
-Stuff to Refactor:
-***to add here***
+Tests:
+1. tensor board

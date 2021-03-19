@@ -172,7 +172,7 @@ class TreeTokenizer:
         if level==0: #isinstance(struct[0], int):
             return self.detokenize(struct)
         else:
-            return self.seperators[level].join([self.deep_detokenize(s,level-1) for s in struct])
+            return self.seperators[level-1].join([self.deep_detokenize(s,level-1) for s in struct])
             #return " ".join([self.deep_detokenize(s) for s in struct])
 
     def sentence_to_words(self, sentence):

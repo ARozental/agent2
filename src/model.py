@@ -114,9 +114,11 @@ class AgentModel(nn.Module):
             nodes = batch_tree.batch_root.children
             #print(len(nodes)) #2
             res = [self.full_decode(node, embedding_matrices) for node in nodes]
-            #res2 = [self.tree_tokenizer.deep_detokenize(r,3) for r in res]
-            res2 = [len(r) for r in res] #should be [2,1]
-            print("res2",res2)
+            text = [self.tree_tokenizer.deep_detokenize(r,3) for r in res]
+            sizes1 = [len(r) for r in res] #should be [2,1]
+            sizes2 = [[len(c.children) for c in r.children] for r in nodes] #should be [2,1]
+            print("text",text)
+            print("sizes",sizes1,sizes2)
             #print("paragraph vector dist:",(nodes[0].vector - nodes[1].vector).norm().item()) #doesn't go to 0 :)
 
         return loss_object, total_loss  # todo: make loss object

@@ -7,8 +7,8 @@ At least it is better than nothing.
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import tensorflow_datasets as tfds
-import tensorflow as tf
+# import tensorflow_datasets as tfds
+# import tensorflow as tf
 
 import time
 import numpy as np

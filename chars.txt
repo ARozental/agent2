@@ -1,4 +1,7 @@
-saved-for-missing-char-token
+[PAD]
+[MASK]
+[EOS]
+[SEP]
 !
 %
 *

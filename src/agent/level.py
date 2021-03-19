@@ -15,9 +15,10 @@ class AgentLevel(nn.Module):
         self.compressor = Compressor(level)
         self.decompressor = Decompressor(level)
         self.coherence_checker = CoherenceChecker(Config.vector_sizes[level + 1])
-        #self.eos_classifier =  nn.Linear(Config.vector_sizes[level], 1, bias=True)
-        self.eos_classifier1 =  nn.Linear(1, 1, bias=True)
-        self.eos_classifier1.weight.data.fill_(1.01) #silly things can happen if this single weight is negative...
+        self.classifier1w = torch.rand(1, requires_grad=True)
+        self.classifier1b = torch.rand(1, requires_grad=True)
+
+
         self.token_bias = None #only set for level 0
 
         # doesn't really requires_grad, it is here for debug
@@ -30,6 +31,10 @@ class AgentLevel(nn.Module):
         self.mask_vector = torch.rand(Config.vector_sizes[level], requires_grad=True)
 
     # these functions change the modes
+
+    def eos_classifier1(self,x):
+      # needed to make sure w1 can never be negative
+      return (x.sign() * ((x*self.classifier1w).abs())) + self.classifier1b
 
 
     def get_children(self, node_batch, embedding_matrix=None):

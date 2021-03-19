@@ -40,7 +40,7 @@ def calc_reconstruction_loss(agent_level, matrices, vectors, mask,eos_positions,
     dot = (decompressed / decompressed.norm(dim=2, keepdim=True) * eos_vector / eos_vector.norm()).sum(dim=-1,
                                                                                                        keepdim=True)
     dot = torch.max(dot, torch.zeros(dot.shape))  # no need for vectors to learn to become anti eos
-    eos_losses = bce_loss(agent_level.eos_classifier1(dot).squeeze(-1), eos_positions).mean(-1)
+    eos_losses = 20*bce_loss(agent_level.eos_classifier1(dot).squeeze(-1), eos_positions).mean(-1)
     reconstruction_diff = (((matrices - post_decoder) * real_positions).norm(dim=[1, 2])) / ((matrices * real_positions).norm(dim=[1,2]))  # works :) with *10?, maybe we won't need the *10 when there is a real dataset, verify the norm doesn't go crazy because of this line later
     if agent_level.level==0:
         logits = logits+agent_level.token_bias

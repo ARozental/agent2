@@ -15,8 +15,9 @@ class AgentLevel(nn.Module):
         self.compressor = Compressor(level)
         self.decompressor = Decompressor(level)
         self.coherence_checker = CoherenceChecker(Config.vector_sizes[level + 1])
-        self.eos_classifier =  nn.Linear(Config.vector_sizes[level], 1, bias=True)
+        #self.eos_classifier =  nn.Linear(Config.vector_sizes[level], 1, bias=True)
         self.eos_classifier1 =  nn.Linear(1, 1, bias=True)
+        self.eos_classifier1.weight.data.fill_(1.01) #silly things can happen if this single weight is negative...
         self.token_bias = None #only set for level 0
 
         # doesn't really requires_grad, it is here for debug
@@ -29,6 +30,8 @@ class AgentLevel(nn.Module):
         self.mask_vector = torch.rand(Config.vector_sizes[level], requires_grad=True)
 
     # these functions change the modes
+
+
     def get_children(self, node_batch, embedding_matrix=None):
         if self.level == 0:  # words => get token vectors
             lookup_ids = torch.LongTensor([x.get_padded_word_tokens() for x in node_batch])
@@ -150,7 +153,7 @@ class AgentLevel(nn.Module):
     def vec_to_children_vecs(self,node,embedding_matrix):
         #0th-element is the eos token; X is a vector
         x = node.vector
-        seq = self.decompressor.forward(x.unsqueeze(0)).squeeze()
+        seq = self.decompressor(x.unsqueeze(0)).squeeze()
         length = Config.sequence_lengths[self.level]
         mask = [False]
         eos_positions = [0]
@@ -169,7 +172,19 @@ class AgentLevel(nn.Module):
             mask = (mask + ([True]*length))[0:length]
             eos_positions = (eos_positions + ([0]*length))[0:length]
         else:
-            logits = self.eos_classifier(seq).squeeze(-1)
+            decompressed = seq.unsqueeze(0)
+            eos_vector = self.eos_vector.unsqueeze(0).unsqueeze(0)
+            dot = (decompressed / decompressed.norm(dim=2, keepdim=True) * eos_vector / eos_vector.norm()).sum(dim=-1,keepdim=True)
+            logits = self.eos_classifier1(dot).squeeze(-1).squeeze(0)
+            #logits = self.eos_classifier(seq).squeeze(-1) the
+            if self.level == 2: #positions 1 and 2 are candidates for both paragraphs all other positions go to -1 => something wrong with the batch??
+              print("=====")
+              print("id",node.id)
+              print("vector",node.vector) #come out similar 0.1 average diff per entry
+              print("decompressed",decompressed) #come out nearly identical 0.01 average diff per entry
+              print("dot",dot)
+              print("logits",logits)
+
             if max(nn.Softmax()(logits)) > 0.2: #0.5 here is broken I probably need better logic than dense
               num_tokens = torch.argmax(logits)
             else:

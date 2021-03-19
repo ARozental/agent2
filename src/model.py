@@ -71,7 +71,7 @@ class AgentModel(nn.Module):
             mlm_loss = calc_mlm_loss(self.agent_levels[i], matrices, mask, eos_positions, embedding_matrix, labels)
             coherence_loss = calc_coherence_loss(self.agent_levels[i], matrices, mask, eos_positions, embedding_matrix)
             vectors = torch.stack([n.vector for n in node_batch])
-            reconstruction_diff_loss,eos_loss,reconstruction_loss = calc_reconstruction_loss(self.agent_levels[i], matrices, vectors, mask,eos_positions, embedding_matrix,labels)
+            reconstruction_diff_loss,eos_loss,reconstruction_loss = calc_reconstruction_loss(self.agent_levels[i], matrices, vectors, mask,eos_positions, embedding_matrix,labels,epoch=epoch)
             total_loss += (mlm_loss.mean() + coherence_loss.mean() + reconstruction_loss.mean() + eos_loss.mean() + reconstruction_diff_loss.mean()).sum()
             loss_object[i] = {'m': mlm_loss.mean().item(), "c": coherence_loss.mean().item(),
                               "r": reconstruction_loss.mean().item(),"e": eos_loss.mean().item(),
@@ -117,6 +117,7 @@ class AgentModel(nn.Module):
             #res2 = [self.tree_tokenizer.deep_detokenize(r,3) for r in res]
             res2 = [len(r) for r in res] #should be [2,1]
             print("res2",res2)
+            #print("paragraph vector dist:",(nodes[0].vector - nodes[1].vector).norm().item()) #doesn't go to 0 :)
 
         return loss_object, total_loss  # todo: make loss object
 

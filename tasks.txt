@@ -13,7 +13,8 @@ Transformer Model:
 
 Training / refactoring:
 1. create batches of controllable (set from config) memory footprint from all Tree nodes for each level:
-2. find a set of sane hyper parameters
+2. have a loss object multiplier and (maybe) an apply loss function like in the TF code => after medium dataset
+3. find a set of sane hyper parameters
 3. make code faster, avoid everyplace that exits the GPU
 
 

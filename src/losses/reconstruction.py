@@ -5,7 +5,9 @@ from src.config import Config
 
 
 
-bce_loss = nn.BCEWithLogitsLoss(reduction='none') #it makes all non EoS positions go and be the opposite of EoS
+bce_loss = nn.BCEWithLogitsLoss(reduction='none') #it makes all non EoS positions go and be the opposite of EoS => fixed by: dot = torch.max(dot, torch.zeros(dot.shape))
+mce_loss = nn.CrossEntropyLoss(reduction='none')
+
 def calc_reconstruction_loss(agent_level, matrices, vectors, mask,eos_positions, embeddings, labels,epoch=7):
     """
 
@@ -29,6 +31,9 @@ def calc_reconstruction_loss(agent_level, matrices, vectors, mask,eos_positions,
 
     #real_positions = (1-mask.float()-eos_positions).unsqueeze(-1)
     real_positions = (1-mask.float()).unsqueeze(-1)
+
+    eos_labels = torch.argmax(eos_positions,dim=1)
+
     eos_vector = agent_level.eos_vector.unsqueeze(0).unsqueeze(0)
 
     decompressed = agent_level.decompressor(vectors)
@@ -40,11 +45,13 @@ def calc_reconstruction_loss(agent_level, matrices, vectors, mask,eos_positions,
     dot = (decompressed / decompressed.norm(dim=2, keepdim=True) * eos_vector / eos_vector.norm()).sum(dim=-1,
                                                                                                        keepdim=True)
     dot = torch.max(dot, torch.zeros(dot.shape))  # no need for vectors to learn to become anti eos
-    eos_losses = bce_loss(agent_level.eos_classifier1(dot).squeeze(-1), eos_positions).mean(-1)
+    eos_losses1 = bce_loss(agent_level.eos_classifier1(dot).squeeze(-1), eos_positions).mean(-1) #needed because of texts with full size and no EoS
+    eos_losses2 = mce_loss(agent_level.eos_classifier1(dot).squeeze(-1), eos_labels)
+    eos_losses = eos_losses1 + eos_losses2
     reconstruction_diff = (((matrices - post_decoder) * real_positions).norm(dim=[1, 2])) / ((matrices * real_positions).norm(dim=[1,2]))  # works :) with *10?, maybe we won't need the *10 when there is a real dataset, verify the norm doesn't go crazy because of this line later
     if agent_level.level==0:
-        eos_losses = 20 * eos_losses
-        logits = logits+agent_level.token_bias
+        eos_losses = 10 * eos_losses #todo: move this * 20 to hyper parameters for loss object, level 0 needs E and R but little M and no D
+        logits = logits+agent_level.token_bias #slows learning because common chars get a big bias from the start... it should probably still be here
 
     reconstruction_losses = F.cross_entropy(
         logits.transpose(1, 2),

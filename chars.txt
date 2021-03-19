@@ -1,7 +1,7 @@
-[PAD]
-[MASK]
-[EOS]
-[SEP]
+<UNK>
+<PAD>
+<EoS>
+<JOIN>
 !
 %
 *
@@ -72,10 +72,10 @@ v
 w
 x
 y
-z
 —
 ‘
 ’
 “
 ”
 …
+z

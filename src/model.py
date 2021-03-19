@@ -1,149 +1,160 @@
-from src.losses import MLMLoss, CoherenceLoss, ReconstructionLoss
 from src.agent import AgentLevel
-from src.utils import find_level
-from typing import Iterator
-from torch.nn import Parameter
-import numpy as np
 import torch.nn as nn
 import torch
+from src.config import Config
+from src.losses.mlm import calc_mlm_loss
+from src.losses.coherence import calc_coherence_loss
+from src.losses.reconstruction import calc_reconstruction_loss
+from src.pre_processing import Node
 
 
 class AgentModel(nn.Module):
-    def __init__(self, config, num_tokens, max_seq_length):
+    def __init__(self, tree_tokenizer):
         super().__init__()
+        self.tree_tokenizer = tree_tokenizer
+        self.agent_levels = nn.ModuleList()
+        for i in range(Config.agent_level + 2):
+            agent_level = AgentLevel(i)
+            if i==0:
+                agent_level.token_bias = torch.rand(len(tree_tokenizer.letter_tokenizer.keys()), requires_grad=True)
+            self.agent_levels.append(agent_level)
 
-        self.levels = nn.ModuleList()
-        self.max_seq_length = max_seq_length
-        self.losses = []
-        for i, level_config in enumerate(config):
-            if i < len(config) - 1:
-                parent_embed = config[i + 1]['embed_size']
-            else:
-                parent_embed = level_config['embed_size'] * 2  # Figure out what to do for the last level
-            mlm_config = level_config.pop('mlm', {})
-            level = AgentLevel(level_num=i, num_tokens=num_tokens, max_seq_length=max_seq_length[i],
-                               parent_embed=parent_embed, **level_config)
+        self.char_embedding_layer = nn.Embedding(len(tree_tokenizer.letter_tokenizer.keys()), Config.vector_sizes[0])
 
-            self.levels.append(level)
-            self.losses.append({
-                'mlm': MLMLoss(level, pad_token_id=0, mask_token_id=1, **mlm_config, num_tokens=num_tokens),
-                'coherence': CoherenceLoss(level),
-                'reconstruct': ReconstructionLoss(level),
-            })
+    def set_word_vectors(self, batch_tree):
+        node_batch = batch_tree.level_nodes[0]
+        local_char_embedding_tokens = torch.LongTensor(batch_tree.distinct_word_embedding_tokens)
+        mask = local_char_embedding_tokens == Config.pad_token_id  # True => position to mask
+        eos_positions = local_char_embedding_tokens == Config.eos_token_id  # True => position to mask
+        local_char_embedding_matrix = self.char_embedding_layer(local_char_embedding_tokens)
 
-    def parameters(self, recurse: bool = True) -> Iterator[Parameter]:
-        for name, param in self.named_parameters(recurse=recurse):
-            if 'embedding' in name and not name.startswith('levels.0.'):  # Ignore embedding above base level
-                continue
+        #first encoder call
+        word_embedding_matrix = self.agent_levels[0].compressor(
+            self.agent_levels[0].encoder(local_char_embedding_matrix,mask, eos_positions.float()),mask)  # [distinct_words_in_batch,word_vector_size]
 
-            yield param
-
-    def convert_vectors_to_indices(self, vectors, level):
-        vectors = vectors.detach().numpy()
-        unique_vectors = np.unique(vectors, axis=0)
-
-        self.levels[level].set_embedding(torch.tensor(unique_vectors))
-
-        inputs = np.array([np.argwhere((vec == unique_vectors).all(1))[0][0] for vec in vectors])
-        inputs += 4  # Make room for the pad, mask, etc tokens
-
-        self.losses[level]['mlm'].num_tokens = len(unique_vectors) + 4
-
-        return inputs
-
-    def create_inputs_mask(self, inputs, level):
-        # Add EoS Token
-        # TODO - Reference the EoS token straight from the tokenizer so that it will be dynamic
-        inputs = [seq + [2] for seq in inputs]
-
-        mask = [[0] * len(seq) + [1] * (self.max_seq_length[level] - len(seq)) for seq in inputs]
-        inputs = [seq + [0] * (self.max_seq_length[level] - len(seq)) for seq in inputs]
-        inputs = torch.tensor(inputs)
-        mask = torch.tensor(mask)
-
-        return inputs, mask
-
-    def fit(self, inputs, level=None):
-        if level is None:
-            level = find_level(inputs[0])  # Taking [0] because it's a batch
-
-        if level > 0:
-            lengths = [len(seq) for seq in inputs]
-            inputs = [item for seq in inputs for item in seq]
-            vectors, loss_m, loss_c, loss_r = self.fit(inputs, level=level - 1)
-
-            inputs = self.convert_vectors_to_indices(vectors, level)
-            inputs = np.split(inputs, lengths)
-
-            # TODO - Identify why this happens (there is an empty sequence in there for some reason)
-            inputs = [seq.tolist() for seq in inputs if len(seq) > 0]
+        if Config.join_texts:
+            special_vectors = torch.stack([
+                self.agent_levels[1].eos_vector,
+                self.agent_levels[1].pad_vector,
+                self.agent_levels[1].join_vector,
+            ])  # {0: eos, 1:pad, 2:join}
+            word_embedding_matrix = torch.cat([special_vectors, word_embedding_matrix], 0)
+            lookup_ids = torch.LongTensor([x.distinct_lookup_id for x in node_batch]) + 3
         else:
-            loss_m = []
-            loss_c = []
-            loss_r = []
+            special_vectors = torch.stack([
+                self.agent_levels[1].eos_vector,
+                self.agent_levels[1].pad_vector,
+            ])  # {0: eos, 1:pad}
+            word_embedding_matrix = torch.cat([special_vectors, word_embedding_matrix], 0)
+            lookup_ids = torch.LongTensor([x.distinct_lookup_id for x in node_batch]) + 2
 
-        inputs, mask = self.create_inputs_mask(inputs, level)
+        all_word_vectors = torch.index_select(word_embedding_matrix, 0, lookup_ids)  # [words_in_batch,word_vector_size]
+        [n.set_vector(v) for n, v in zip(node_batch, all_word_vectors)]
+        return word_embedding_matrix
 
-        print('Level', level)
-        mlm_loss = self.losses[level]['mlm'](inputs, mask)
-        coherence_loss = self.losses[level]['coherence'](inputs, mask)
-        reconstruct_loss = self.losses[level]['reconstruct'](inputs, mask)
+    def set_text_vectors(self, batch_tree):
+        word_embedding_matrix = self.set_word_vectors(batch_tree)
+        for i in range(1, Config.agent_level + 1):
+            self.agent_levels[i].realize_vectors(batch_tree.level_nodes[i])
+        return word_embedding_matrix
 
-        print('mlm_loss', mlm_loss.item())
-        print('coherence_loss', coherence_loss.item())
-        print('reconstruct_loss', reconstruct_loss.item())
+    def forward(self, batch_tree, epoch=0):
+        word_embedding_matrix = self.set_text_vectors(batch_tree)
+        embedding_matrices = {0: self.char_embedding_layer.weight, 1: word_embedding_matrix}
+        total_loss = 0
+        loss_object = {}
+        for i in range(Config.agent_level + 1):
+            node_batch = batch_tree.level_nodes[i]  # currently all the nodes in the level
+            level, matrices, mask, eos_positions, embedding_matrix, labels = self.agent_levels[i].get_children(node_batch,
+                                                                                                embedding_matrices[
+                                                                                                    i % 2])  # we only care about 0 and 1
+            mlm_loss = calc_mlm_loss(self.agent_levels[i], matrices, mask, eos_positions, embedding_matrix, labels)
+            coherence_loss = calc_coherence_loss(self.agent_levels[i], matrices, mask, eos_positions, embedding_matrix)
+            vectors = torch.stack([n.vector for n in node_batch])
+            reconstruction_diff_loss,eos_loss,reconstruction_loss = calc_reconstruction_loss(self.agent_levels[i], matrices, vectors, mask,eos_positions, embedding_matrix,labels,epoch=epoch)
+            total_loss += (mlm_loss.mean() + coherence_loss.mean() + reconstruction_loss.mean() + eos_loss.mean() + reconstruction_diff_loss.mean()).sum()
+            loss_object[i] = {'m': mlm_loss.mean().item(), "c": coherence_loss.mean().item(),
+                              "r": reconstruction_loss.mean().item(),"e": eos_loss.mean().item(),
+                              "d": reconstruction_diff_loss.mean().item()
+                              }
 
-        loss_m.append(mlm_loss)
-        loss_c.append(coherence_loss)
-        loss_r.append(reconstruct_loss)
+            [setattr(n, 'mlm_loss', l) for n, l in zip(node_batch, mlm_loss.tolist())]
+            [setattr(n, 'coherence_loss', l) for n, l in zip(node_batch, coherence_loss.tolist())]
+            [setattr(n, 'reconstruction_loss', l) for n, l in zip(node_batch, reconstruction_loss.tolist())]
+            [setattr(n, 'eos_loss', l) for n, l in zip(node_batch, eos_loss.tolist())]
+            [setattr(n, 'reconstruction_diff_loss', l) for n, l in zip(node_batch, reconstruction_diff_loss.tolist())]
 
-        vectors = self.levels[level].encode(inputs, mask)
+            embedding_matrices[i] = embedding_matrix
 
-        return vectors, loss_m, loss_c, loss_r
+        #for full decode test
+        if epoch % 100 == 0:
+            # node = batch_tree.batch_root.children[0].children[0] #node.id==3
+            # recovered_words = self.agent_levels[1].vec_to_children_vecs(node,embedding_matrices[1])
+            # dvt_words = [n.vector for n in node.children]
+            # diffs = []
+            # recovered_w = []
+            # dvt_w = []
+            # for d in range(min(len(recovered_words),len(dvt_words))):
+            #     diffs.append(dvt_words[d]-recovered_words[d])
+            #     recovered_w.append(recovered_words[d])
+            #     dvt_w.append(dvt_words[d])
+            #
+            # diff = torch.stack(diffs).abs()
+            # recovered_words = torch.stack(recovered_w)
+            # dvt_words = torch.stack(dvt_w)
+            # print("dvt_words",dvt_words.norm())
+            # print("recovered_words",recovered_words.norm())
+            # print("diff",diff)
+            # print("losses",node.reconstruction_loss,node.eos_loss,node.reconstruction_diff_loss)
+            # print("mean diff",diff.mean().item()) #doesn't go to 0 when reconstruction goes to 0 => WTF
 
-    def forward(self, src, mask):
-        raise NotImplementedError
+            #dataset = ["I like big butts. I can not lie.", "some other song"]  # hard coded for tests
 
-    def encode(self, inputs, level=None):
-        if level is None:
-            level = find_level(inputs[0])  # Taking [0] because it's a batch
 
-        if level > 0:
-            lengths = [len(seq) for seq in inputs]
-            inputs = [item for seq in inputs for item in seq]
-            vectors = self.encode(inputs, level=level - 1)
+            nodes = batch_tree.batch_root.children
+            #print(len(nodes)) #2
+            res = [self.full_decode(node, embedding_matrices) for node in nodes]
+            text = [self.tree_tokenizer.deep_detokenize(r,3) for r in res]
+            sizes1 = [len(r) for r in res] #should be [2,1]
+            sizes2 = [[len(c.children) for c in r.children] for r in nodes] #should be [2,1]
+            print("text",text)
+            print("sizes",sizes1,sizes2)
+            #print("paragraph vector dist:",(nodes[0].vector - nodes[1].vector).norm().item()) #doesn't go to 0 :)
 
-            inputs = self.convert_vectors_to_indices(vectors, level)
-            inputs = np.split(inputs, lengths)
+        return loss_object, total_loss  # todo: make loss object
 
-            # TODO - Identify why this happens (there is an empty sequence in there for some reason)
-            inputs = [seq.tolist() for seq in inputs if len(seq) > 0]
+    def debug_decode(self, batch_tree,node_batch=None):
+        if node_batch==None:
+            node_batch = batch_tree.level_nodes[0]
+        tokens = [n.get_padded_word_tokens() for n in node_batch]
+        mask = torch.tensor(tokens) == Config.pad_token_id  # True => position to mask
+        eos_positions = (torch.tensor(tokens) == Config.eos_token_id).float()
+        vectors = torch.stack([n.vector for n in node_batch])
+        output = self.agent_levels[0].decompressor(vectors)
+        output = self.agent_levels[0].decoder(output, mask, eos_positions)
 
-        inputs, mask = self.create_inputs_mask(inputs, level)
-        return self.levels[level].encode(inputs, mask)
+        output = torch.matmul(output, self.char_embedding_layer.weight.transpose(0, 1))
+        output = torch.argmax(output, dim=2)
+        #pred = [dataset.tree_tokenizer.detokenize(w) for w in words]
 
-    # return_word_vectors is temporary now while debugging
-    def debug_decode(self, vectors, level=None, return_word_vectors=False):
-        if level is None:
-            # TODO - Check if can use this
-            # level = find_level(vectors)
-            level = len(vectors.size()) - 2
+        return output
 
-        if level == 0:
-            # Don't reshape when doing word level eval
-            # TODO - Make this dynamic in the future and not so rigid
-            need_reshape = len(vectors.size()) > 2
-            if need_reshape:
-                original_shape = vectors.size()
-                shape = (vectors.size(0) * vectors.size(1), vectors.size(2))
-                vectors = vectors.reshape(shape)
-        decoded = self.levels[level].debug_decode(vectors)
-        if level == 0:
-            if need_reshape:
-                decoded = decoded.reshape((original_shape[0], original_shape[1], decoded.size(1)))
-            return decoded
+    def full_decode(self,node,embedding_matrices):
+        agent_level = self.agent_levels[node.level]
+        children_vecs = agent_level.vec_to_children_vecs(node, embedding_matrices[node.level])
+        if node.level==0:
+            output = torch.matmul(torch.stack(children_vecs,dim=0).unsqueeze(0), self.char_embedding_layer.weight.transpose(0, 1))
+            output = torch.argmax(output, dim=2)
+            node.struct = output.tolist()
+            return node.struct
 
-        if level == 1 and return_word_vectors:
-            return decoded
+        children_nodes = []
+        for v in children_vecs:
+            n = Node()
+            n.vector = v
+            n.level = node.level-1
+            n.parent = node
+            children_nodes.append(n)
+        node.children = children_nodes
+        return [self.full_decode(n,embedding_matrices) for n in children_nodes]
 
-        return self.debug_decode(decoded, level=level - 1)

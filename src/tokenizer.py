@@ -6,14 +6,12 @@ class Tokenizer:
         '[PAD]': '[PAD]',
         '[MASK]': '[MASK]',
         '[EOS]': '.',
-        '[SEP]': ' ',
     }
 
     SPECIAL_INDICES = {
         '[PAD]': -1,
         '[MASK]': -1,
         '[EOS]': -1,
-        '[SEP]': -1,
     }
 
     def __init__(self, max_lengths):

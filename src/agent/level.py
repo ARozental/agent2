@@ -1,4 +1,4 @@
-from . import Compressor, Decompressor, Encoder, Decoder, CoherenceChecker
+from . import Compressor, Decompressor, Encoder, Decoder, CoherenceChecker, Generator, Discriminator
 import torch.nn as nn
 import torch
 from src.config import Config
@@ -15,27 +15,29 @@ class AgentLevel(nn.Module):
         self.compressor = Compressor(level)
         self.decompressor = Decompressor(level)
         self.coherence_checker = CoherenceChecker(Config.vector_sizes[level + 1])
-        self.classifier1w = torch.rand(1, requires_grad=True)
-        self.classifier1b = torch.rand(1, requires_grad=True)
-
+        self.generator = Generator(Config.vector_sizes[level + 1])
+        self.discriminator = Discriminator(Config.vector_sizes[level + 1])
 
         self.token_bias = None #only set for level 0
 
-        # doesn't really requires_grad, it is here for debug
-        self.pad_vector = torch.rand(Config.vector_sizes[level], requires_grad=True)
 
+
+        self.classifier1w = nn.Parameter(torch.rand(1, requires_grad=True))
+        self.classifier1b = nn.Parameter(torch.rand(1, requires_grad=True))
         # TODO - Initialize right (not uniform)
-        self.eos_vector = torch.rand(Config.vector_sizes[level], requires_grad=True)
+        self.eos_vector = nn.Parameter(torch.rand(Config.vector_sizes[level], requires_grad=True))
+        self.join_vector = nn.Parameter(torch.rand(Config.vector_sizes[level], requires_grad=True))
+        self.mask_vector = nn.Parameter(torch.rand(Config.vector_sizes[level], requires_grad=True))
+        self.pad_vector = nn.Parameter(torch.rand(Config.vector_sizes[level], requires_grad=True)) # doesn't really requires_grad, it is here for debug
 
-        self.join_vector = torch.rand(Config.vector_sizes[level], requires_grad=True)
-        self.mask_vector = torch.rand(Config.vector_sizes[level], requires_grad=True)
 
-    # these functions change the modes
+
+
+
 
     def eos_classifier1(self,x):
       # needed to make sure w1 can never be negative
       return (x.sign() * ((x*self.classifier1w).abs())) + self.classifier1b
-
 
     def get_children(self, node_batch, embedding_matrix=None):
         if self.level == 0:  # words => get token vectors
@@ -216,4 +218,18 @@ class AgentLevel(nn.Module):
         #print(len(children_vecs))
 
         return children_vecs
+
+    def get_generation_losses(self,x):
+      batch, vec_size = x.shape
+      fake_vecs = self.generator.forward(x) #make fake vecs of the same shape
+      labels = torch.cat([torch.ones(batch),torch.zeros(batch)],dim=0)
+      vecs = torch.cat([x,fake_vecs],dim=0)
+      disc_loss = self.discriminator.get_loss(vecs,labels)
+
+      coherence = self.coherence_checker(fake_vecs).squeeze()
+      coherence_g_loss = (coherence - torch.zeros(batch)).norm() / ((Config.vector_sizes[self.level+1])**0.5)
+      #also get coherence for fake children??
+
+      return coherence_g_loss,disc_loss
+
 

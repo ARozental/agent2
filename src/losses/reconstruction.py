@@ -50,8 +50,8 @@ def calc_reconstruction_loss(agent_level, matrices, vectors, mask,eos_positions,
     eos_losses = eos_losses1 + eos_losses2
     reconstruction_diff = (((matrices - post_decoder) * real_positions).norm(dim=[1, 2])) / ((matrices * real_positions).norm(dim=[1,2]))  # works :) with *10?, maybe we won't need the *10 when there is a real dataset, verify the norm doesn't go crazy because of this line later
     if agent_level.level==0:
-        eos_losses = 10 * eos_losses #todo: move this * 20 to hyper parameters for loss object, level 0 needs E and R but little M and no D
-        logits = logits+agent_level.token_bias #slows learning because common chars get a big bias from the start... it should probably still be here
+        eos_losses = eos_losses #todo: move this * 20 to hyper parameters for loss object, level 0 needs E and R but little M and no D
+        logits = logits+agent_level.token_bias
 
     reconstruction_losses = F.cross_entropy(
         logits.transpose(1, 2),

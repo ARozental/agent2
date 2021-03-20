@@ -1,4 +1,4 @@
-# find a name for this 
+# Notes for PNDB - we clearly need to have a book (or at least a long chapter) dataset to see that it works
 
 how to create an answer matrix:
 E = embedding size
@@ -38,20 +38,7 @@ Also add a dense layer before save and load???????
 
 
 ---------------------
-Have a teacher student model for sentence/paragraph representation from Universal Sentence Encoder.
-1. Universal makes representation from text.
-2. Alternative representation in DVT
-3. We need to get from one to the other with 0-1 intermediate layers
-4. loss can be MSE
-
-
----------
-tasks:
-make another encoder
-get domains for embedding matrixes.
-
-
-
+Adam learns 3 times faster than Adagrad
  
 
 

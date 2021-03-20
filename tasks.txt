@@ -11,11 +11,15 @@ Transformer Model:
 1. use SwiGLU activation function: https://arxiv.org/pdf/2102.11972.pdf
 2. have a universal transformer => a lot later, as it is ~6X slower than the regular one for the same number of params
 
-Training / refactoring:
+Training:
 1. create batches of controllable (set from config) memory footprint from all Tree nodes for each level:
 2. have a loss object multiplier and (maybe) an apply loss function like in the TF code => after medium dataset
 3. find a set of sane hyper parameters
-3. make code faster, avoid everyplace that exits the GPU
+
+Refactoring:
+4. make code faster, avoid everyplace that exits the GPU
+5. use the same name for hidden_size/vector_size/embed_size
+6. refactor full_decode to be: full_decode(self,node) and merge with deep_detokenize; so it becomess Node to text function
 
 
 CURRENT TASKS:
@@ -23,12 +27,13 @@ Datasets 1,2
 Transformer 1
 Tests 1
 AgentModel 1,2
+Refactoring 5,6
 
 AgentModel:
 1. refactor actual decode function
 2. write the generator
 3. write the discriminator
-4. write (and design?) the PNDB
+4. write (and design?) the PNDB => after medium dataset
 5. write lossless compression+decompression => after medium dataset
 6. write style GAN => Harry Potter and the Starship Enterprise
 

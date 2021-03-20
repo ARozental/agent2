@@ -16,7 +16,7 @@ class AgentModel(nn.Module):
         for i in range(Config.agent_level + 2):
             agent_level = AgentLevel(i)
             if i==0:
-                agent_level.token_bias = torch.rand(len(tree_tokenizer.letter_tokenizer.keys()), requires_grad=True)
+                agent_level.token_bias = nn.Parameter(torch.zeros(len(tree_tokenizer.letter_tokenizer.keys()), requires_grad=True))
             self.agent_levels.append(agent_level)
 
         self.char_embedding_layer = nn.Embedding(len(tree_tokenizer.letter_tokenizer.keys()), Config.vector_sizes[0])
@@ -57,6 +57,8 @@ class AgentModel(nn.Module):
         for i in range(1, Config.agent_level + 1):
             self.agent_levels[i].realize_vectors(batch_tree.level_nodes[i])
         return word_embedding_matrix
+
+
 
     def forward(self, batch_tree, epoch=0):
         word_embedding_matrix = self.set_text_vectors(batch_tree)
@@ -112,6 +114,22 @@ class AgentModel(nn.Module):
 
 
             nodes = batch_tree.batch_root.children
+            vecs = [n.vector for n in nodes]
+            vecs = torch.stack(vecs, dim=0)
+            coherence_loss, discrimination_loss = self.agent_levels[2].get_generation_losses(vecs)
+            paragraph_node = nodes[0]
+            sentence_node = paragraph_node.children[0]
+            word_node = sentence_node.children[0]
+            text2 = self.generate_texts(2, embedding_matrices, 1)[0]
+            text1 = self.generate_texts(1, embedding_matrices, 1)[0]
+            text0 = self.generate_texts(0, embedding_matrices, 1)[0]
+            # print("text0",text0)
+            # print("text1",text1)
+            # print("text2",text2)
+            # 1+None
+
+
+
             #print(len(nodes)) #2
             res = [self.full_decode(node, embedding_matrices) for node in nodes]
             text = [self.tree_tokenizer.deep_detokenize(r,3) for r in res]
@@ -140,6 +158,7 @@ class AgentModel(nn.Module):
         return output
 
     def full_decode(self,node,embedding_matrices):
+        #todo: refactor it to not get embedding_matrices as a parameter (only the char matrix is needed and it belongs to self)
         agent_level = self.agent_levels[node.level]
         children_vecs = agent_level.vec_to_children_vecs(node, embedding_matrices[node.level])
         if node.level==0:
@@ -157,4 +176,19 @@ class AgentModel(nn.Module):
             children_nodes.append(n)
         node.children = children_nodes
         return [self.full_decode(n,embedding_matrices) for n in children_nodes]
+
+    def generate_texts(self, level, embedding_matrices, num_texts=1):
+        vecs = self.agent_levels[level].generator(torch.zeros(num_texts, Config.vector_sizes[level + 1]))
+        nodes = []
+        for v in vecs:
+            n = Node()
+            n.vector = v
+            n.level = level
+            nodes.append(n)
+        return [self.full_decode(n, embedding_matrices) for n in nodes]
+
+
+
+        return 7
+
 

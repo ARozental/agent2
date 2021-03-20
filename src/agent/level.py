@@ -224,12 +224,12 @@ class AgentLevel(nn.Module):
       fake_vecs = self.generator.forward(x) #make fake vecs of the same shape
       labels = torch.cat([torch.ones(batch),torch.zeros(batch)],dim=0)
       vecs = torch.cat([x,fake_vecs],dim=0)
-      dis_loss = self.discriminator.get_loss(vecs,labels)
+      disc_loss = self.discriminator.get_loss(vecs,labels)
 
       coherence = self.coherence_checker(fake_vecs).squeeze()
-      coherence_loss = ((coherence - torch.zeros(batch)) ** 2).mean()
+      coherence_g_loss = (coherence - torch.zeros(batch)).norm() / ((Config.vector_sizes[self.level+1])**0.5)
       #also get coherence for fake children??
 
-      return coherence_loss,dis_loss
+      return coherence_g_loss,disc_loss
 
 

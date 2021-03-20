@@ -60,10 +60,10 @@ class AgentModel(nn.Module):
 
 
 
-    def forward(self, batch_tree, epoch=0):
+    def forward(self, batch_tree, generate=None,epoch=0):
         word_embedding_matrix = self.set_text_vectors(batch_tree)
         embedding_matrices = {0: self.char_embedding_layer.weight, 1: word_embedding_matrix}
-        total_loss = 0
+        total_g_loss, total_disc_loss, total_loss = 0,0,0
         loss_object = {}
         for i in range(Config.agent_level + 1):
             node_batch = batch_tree.level_nodes[i]  # currently all the nodes in the level
@@ -80,6 +80,17 @@ class AgentModel(nn.Module):
                               "d": reconstruction_diff_loss.mean().item()
                               }
 
+
+            if generate ==True:
+                g_loss, disc_loss = self.agent_levels[i].get_generation_losses(vectors)
+                loss_object[i]["g"] = g_loss.item()
+                loss_object[i]["disc_loss"] = disc_loss.item()
+                total_g_loss += g_loss
+                total_disc_loss += disc_loss
+
+
+
+
             [setattr(n, 'mlm_loss', l) for n, l in zip(node_batch, mlm_loss.tolist())]
             [setattr(n, 'coherence_loss', l) for n, l in zip(node_batch, coherence_loss.tolist())]
             [setattr(n, 'reconstruction_loss', l) for n, l in zip(node_batch, reconstruction_loss.tolist())]
@@ -87,6 +98,8 @@ class AgentModel(nn.Module):
             [setattr(n, 'reconstruction_diff_loss', l) for n, l in zip(node_batch, reconstruction_diff_loss.tolist())]
 
             embedding_matrices[i] = embedding_matrix
+
+
 
         #for full decode test
         if epoch % 100 == 0:
@@ -112,6 +125,8 @@ class AgentModel(nn.Module):
 
             #dataset = ["I like big butts. I can not lie.", "some other song"]  # hard coded for tests
 
+            print("epoch:",epoch,"main loss:",total_loss.item(),"loss object:",loss_object)
+
 
             nodes = batch_tree.batch_root.children
             vecs = [n.vector for n in nodes]
@@ -123,9 +138,9 @@ class AgentModel(nn.Module):
             text2 = self.generate_texts(2, embedding_matrices, 1)[0]
             text1 = self.generate_texts(1, embedding_matrices, 1)[0]
             text0 = self.generate_texts(0, embedding_matrices, 1)[0]
-            # print("text0",text0)
-            # print("text1",text1)
-            # print("text2",text2)
+            print("generated word:",text0)
+            print("generated sentence:",text1)
+            print("generated paragraph:",text2)
             # 1+None
 
 
@@ -135,11 +150,12 @@ class AgentModel(nn.Module):
             text = [self.tree_tokenizer.deep_detokenize(r,3) for r in res]
             sizes1 = [len(r) for r in res] #should be [2,1]
             sizes2 = [[len(c.children) for c in r.children] for r in nodes] #should be [2,1]
-            print("text",text)
+            print("reconstructed text:",text)
             print("sizes",sizes1,sizes2)
+
             #print("paragraph vector dist:",(nodes[0].vector - nodes[1].vector).norm().item()) #doesn't go to 0 :)
 
-        return loss_object, total_loss  # todo: make loss object
+        return total_g_loss, total_disc_loss,total_loss,loss_object   # todo: make loss object
 
     def debug_decode(self, batch_tree,node_batch=None):
         if node_batch==None:
@@ -185,10 +201,6 @@ class AgentModel(nn.Module):
             n.vector = v
             n.level = level
             nodes.append(n)
-        return [self.full_decode(n, embedding_matrices) for n in nodes]
-
-
-
-        return 7
-
+        decoded = [self.full_decode(n, embedding_matrices) for n in nodes]
+        return  [self.tree_tokenizer.deep_detokenize(r, level+1) for r in decoded]
 

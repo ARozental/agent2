@@ -14,7 +14,15 @@ def seed_torch(seed=777):
     torch.backends.cudnn.deterministic = True
 
 
-seed_torch()
+def change_dict(d, fn):
+    #with regular or default dict
+    for k, v in d.items():
+        if type(d) != type(d[k]):
+            d[k] = fn(v)
+        else:
+            d[k] = change_dict(d[k], fn)
+    return d
+
 
 def find_level(inputs):
     current = inputs[0]

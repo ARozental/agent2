@@ -24,33 +24,40 @@ main_params = [param for name,param in model.named_parameters() if ("discriminat
 generator_params = [param for name,param in model.named_parameters() if "generator" in name]
 discriminator_params = [param for name,param in model.named_parameters() if "discriminator" in name]
 
-main_optimizer = torch.optim.Adam(main_params, 0.001)
-generator_params = torch.optim.Adam(generator_params, 0.001)
-discriminator_params = torch.optim.Adam(discriminator_params, 0.001)
+main_optimizer = torch.optim.Adam(main_params, 0.002)
+generator_optimizer = torch.optim.Adam(generator_params, 0.002)
+discriminator_optimizer = torch.optim.Adam(discriminator_params, 0.002)
 
 # for name, param in model.named_parameters():
 #     if param.requires_grad:
 #         print(name)
 #optimizer_D = torch.optim.AdamW(D.parameters(), 0.001)
+#d_loss.backward(retain_graph=True)
 
 for epoch in range(10001):
     # print('Epoch', epoch + 1)
+    generate = True
 
     for batch in dataset.iterator():
         model.train()
         main_optimizer.zero_grad()
 
-        loss_object, total_loss = model.forward(batch,epoch)
-        #print(epoch, total_loss.item())
-        total_loss.backward()
+        g_loss, disc_loss, main_loss, loss_object  = model.forward(batch,generate=generate,epoch=epoch)
+        if generate == True:
+            disc_loss.backward(retain_graph=True)
+            (100*g_loss-disc_loss).backward(retain_graph=True)
+            generator_optimizer.step()
+            discriminator_optimizer.step()
+
+        main_loss.backward()
         main_optimizer.step()
 
 
-        if epoch % 100 == 0:
-            print("epoch:",epoch,"total_loss:",total_loss.item(),"loss object:",loss_object)
-            words = model.debug_decode(batch).detach().numpy()
-            pred = [dataset.tree_tokenizer.detokenize(w) for w in words]
-            print(pred)
+        # if epoch % 100 == 0:
+        #     print("epoch:",epoch,"total_loss:",main_loss.item(),"loss object:",loss_object)
+        #     words = model.debug_decode(batch).detach().numpy()
+        #     pred = [dataset.tree_tokenizer.detokenize(w) for w in words]
+        #     print(pred)
 
             # model.eval()
             # print('Word Level')

@@ -20,9 +20,11 @@ for batch_tree in dataset.iterator():
     model.forward(batch_tree)
     break
 
+
 main_params = [param for name,param in model.named_parameters() if ("discriminator" not in name) and ("generator" not in name)]
 generator_params = [param for name,param in model.named_parameters() if "generator" in name]
 discriminator_params = [param for name,param in model.named_parameters() if "discriminator" in name]
+
 
 main_optimizer = torch.optim.Adam(main_params, 0.002)
 generator_optimizer = torch.optim.Adam(generator_params, 0.002)
@@ -33,6 +35,8 @@ discriminator_optimizer = torch.optim.Adam(discriminator_params, 0.002)
 #         print(name)
 #optimizer_D = torch.optim.AdamW(D.parameters(), 0.001)
 #d_loss.backward(retain_graph=True)
+# print("discriminator_param: ", discriminator_params[0].data[0][0])
+
 
 for epoch in range(10001):
     # print('Epoch', epoch + 1)
@@ -47,18 +51,16 @@ for epoch in range(10001):
         g_loss, disc_loss, main_loss, loss_object  = model.forward(batch,generate=generate,epoch=epoch)
         if generate == True:
             main_loss.backward(retain_graph=True)
-            for p in main_params+generator_params:
-                p.requires_grad = False
+            [setattr(p, "requires_grad", False) for p in main_params+generator_params]
             disc_loss.backward(retain_graph=True)
-            for p in generator_params:
-                p.requires_grad = True
-            for p in discriminator_params:
-                p.requires_grad = False
+            [setattr(p, "requires_grad", True) for p in generator_params]
+            [setattr(p, "requires_grad", False) for p in discriminator_params]
 
-            (10*g_loss-disc_loss*0.1).backward()
+            (g_loss-disc_loss*0.01).backward() #disc loss won't go down even when this is commented => BUG
 
-            for p in main_params+discriminator_params:
-                p.requires_grad = True
+            [setattr(p, "requires_grad", True) for p in main_params+discriminator_params]
+
+
 
             main_optimizer.step()
             discriminator_optimizer.step()

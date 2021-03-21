@@ -166,45 +166,30 @@ class AgentLevel(nn.Module):
         mask = [False]
         eos_positions = [0]
 
-        if False:#self.level ==0:
-            output = torch.matmul(seq, torch.transpose(embedding_matrix, 0, 1))
-            output = torch.argmax(output, dim=1).tolist() #selected vector_id for each position, first 0 is eos
+        decompressed = seq.unsqueeze(0)
+        eos_vector = self.eos_vector.unsqueeze(0).unsqueeze(0)
+        dot = (decompressed / decompressed.norm(dim=2, keepdim=True) * eos_vector / eos_vector.norm()).sum(dim=-1,keepdim=True)
+        logits = self.eos_classifier1(dot).squeeze(-1).squeeze(0)
+        #logits = self.eos_classifier(seq).squeeze(-1) the
+        # if self.level == 2: #positions 1 and 2 are candidates for both paragraphs all other positions go to -1 => something wrong with the batch??
+        #   print("=====")
+        #   print("id",node.id)
+        #   #print("vector",node.vector) #come out similar 0.1 average diff per entry
+        #  # print("decompressed",decompressed) #come out nearly identical 0.01 average diff per entry
+        #   print("dot",dot)
+        #   print("logits",logits)
 
-            for i in range(1,len(output)):
-                mask.append(False)
-                if output[i]==0:
-                  eos_positions.append(1)
-                  break
-                else:
-                  eos_positions.append(0)
-            mask = (mask + ([True]*length))[0:length]
-            eos_positions = (eos_positions + ([0]*length))[0:length]
-            #print("out_toks:",output)
+        if max(nn.Softmax()(logits)) > 0.01: #it is hard to get overe 0.2 when you have 80 chars => change back to a large number later
+          num_tokens = torch.argmax(logits)
         else:
-            decompressed = seq.unsqueeze(0)
-            eos_vector = self.eos_vector.unsqueeze(0).unsqueeze(0)
-            dot = (decompressed / decompressed.norm(dim=2, keepdim=True) * eos_vector / eos_vector.norm()).sum(dim=-1,keepdim=True)
-            logits = self.eos_classifier1(dot).squeeze(-1).squeeze(0)
-            #logits = self.eos_classifier(seq).squeeze(-1) the
-            # if self.level == 2: #positions 1 and 2 are candidates for both paragraphs all other positions go to -1 => something wrong with the batch??
-            #   print("=====")
-            #   print("id",node.id)
-            #   #print("vector",node.vector) #come out similar 0.1 average diff per entry
-            #  # print("decompressed",decompressed) #come out nearly identical 0.01 average diff per entry
-            #   print("dot",dot)
-            #   print("logits",logits)
-
-            if max(nn.Softmax()(logits)) > 0.01: #it is hard to get overe 0.2 when you have 80 chars => change back to a large number later
-              num_tokens = torch.argmax(logits)
-            else:
-              num_tokens = len(logits)
-            for i in range(1,int(num_tokens)):
-              mask.append(False)
-              eos_positions.append(0)
-            mask.append(False)
-            eos_positions.append(1)
-            mask = (mask + ([True] * length))[0:length]
-            eos_positions = (eos_positions + ([0] * length))[0:length]
+          num_tokens = len(logits)
+        for i in range(1,int(num_tokens)):
+          mask.append(False)
+          eos_positions.append(0)
+        mask.append(False)
+        eos_positions.append(1)
+        mask = (mask + ([True] * length))[0:length]
+        eos_positions = (eos_positions + ([0] * length))[0:length]
 
         mask = torch.tensor(mask).unsqueeze(0)
         eos_positions = torch.tensor(eos_positions).unsqueeze(0)

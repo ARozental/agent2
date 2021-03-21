@@ -56,7 +56,7 @@ for epoch in range(10001):
             [setattr(p, "requires_grad", True) for p in generator_params]
             [setattr(p, "requires_grad", False) for p in discriminator_params]
 
-            (g_loss-disc_loss*0.01).backward() #disc loss won't go down even when this is commented => BUG
+            (g_loss-disc_loss*0.2).backward() #disc loss won't go down even when this is commented => BUG
 
             [setattr(p, "requires_grad", True) for p in main_params+discriminator_params]
 

@@ -15,7 +15,7 @@ class Discriminator(nn.Module):
     def forward(self, x):
         x = torch.tanh(self.d1(x))
         x = torch.tanh(self.d2(x))
-        x = torch.sigmoid(self.out(x))
+        x = self.out(x)
         return x
 
     def get_loss(self, x,labels):

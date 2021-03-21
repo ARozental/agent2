@@ -41,16 +41,34 @@ for epoch in range(10001):
     for batch in dataset.iterator():
         model.train()
         main_optimizer.zero_grad()
+        generator_optimizer.zero_grad()
+        discriminator_optimizer.zero_grad()
 
         g_loss, disc_loss, main_loss, loss_object  = model.forward(batch,generate=generate,epoch=epoch)
         if generate == True:
+            main_loss.backward(retain_graph=True)
+            for p in main_params+generator_params:
+                p.requires_grad = False
             disc_loss.backward(retain_graph=True)
-            (100*g_loss-disc_loss).backward(retain_graph=True)
-            generator_optimizer.step()
-            discriminator_optimizer.step()
+            for p in generator_params:
+                p.requires_grad = True
+            for p in discriminator_params:
+                p.requires_grad = False
 
-        main_loss.backward()
-        main_optimizer.step()
+            (10*g_loss-disc_loss*0.1).backward()
+
+            for p in main_params+discriminator_params:
+                p.requires_grad = True
+
+            main_optimizer.step()
+            discriminator_optimizer.step()
+            generator_optimizer.step()
+
+
+
+
+
+
 
 
         # if epoch % 100 == 0:

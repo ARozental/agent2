@@ -1,4 +1,4 @@
-from . import Compressor, Decompressor, Encoder, Decoder, CoherenceChecker, Generator, Discriminator
+from . import Compressor, Decompressor, Encoder, Decoder, CoherenceChecker, Generator, Discriminator, CnnDiscriminator
 import torch.nn as nn
 import torch
 from src.config import Config
@@ -17,6 +17,7 @@ class AgentLevel(nn.Module):
         self.coherence_checker = CoherenceChecker(Config.vector_sizes[level + 1])
         self.generator = Generator(Config.vector_sizes[level + 1])
         self.discriminator = Discriminator(Config.vector_sizes[level + 1])
+        #self.cnn_discriminator = CnnDiscriminator(Config.vector_sizes[level],Config.sequence_lengths[level])
 
         self.token_bias = None #only set for level 0
 
@@ -219,17 +220,5 @@ class AgentLevel(nn.Module):
 
         return children_vecs
 
-    def get_generation_losses(self,x):
-      batch, vec_size = x.shape
-      fake_vecs = self.generator.forward(x) #make fake vecs of the same shape
-      labels = torch.cat([torch.ones(batch),torch.zeros(batch)],dim=0)
-      vecs = torch.cat([x,fake_vecs],dim=0)
-      disc_loss = self.discriminator.get_loss(vecs,labels)
-
-      coherence = self.coherence_checker(fake_vecs).squeeze()
-      coherence_g_loss = (coherence - torch.zeros(batch)).norm() / ((Config.vector_sizes[self.level+1])**0.5)
-      #also get coherence for fake children??
-
-      return coherence_g_loss,disc_loss
 
 

@@ -5,6 +5,7 @@ from src.config import Config
 from src.losses.mlm import calc_mlm_loss
 from src.losses.coherence import calc_coherence_loss
 from src.losses.reconstruction import calc_reconstruction_loss
+from src.losses.generation import calc_generation_loss
 from src.pre_processing import Node
 
 
@@ -74,6 +75,7 @@ class AgentModel(nn.Module):
             coherence_loss = calc_coherence_loss(self.agent_levels[i], matrices, mask, eos_positions, embedding_matrix)
             vectors = torch.stack([n.vector for n in node_batch])
             reconstruction_diff_loss,eos_loss,reconstruction_loss = calc_reconstruction_loss(self.agent_levels[i], matrices, vectors, mask,eos_positions, embedding_matrix,labels,epoch=epoch)
+
             total_loss += (mlm_loss.mean() + coherence_loss.mean() + reconstruction_loss.mean() + eos_loss.mean() + reconstruction_diff_loss.mean()).sum()
             loss_object[i] = {'m': mlm_loss.mean().item(), "c": coherence_loss.mean().item(),
                               "r": reconstruction_loss.mean().item(),"e": eos_loss.mean().item(),
@@ -82,7 +84,7 @@ class AgentModel(nn.Module):
 
 
             if generate ==True:
-                g_loss, disc_loss = self.agent_levels[i].get_generation_losses(vectors)
+                g_loss, disc_loss = calc_generation_loss(self.agent_levels[i],vectors,matrices)
                 loss_object[i]["g"] = g_loss.item()
                 loss_object[i]["disc_loss"] = disc_loss.item()
                 total_g_loss += g_loss
@@ -129,12 +131,12 @@ class AgentModel(nn.Module):
 
 
             nodes = batch_tree.batch_root.children
-            vecs = [n.vector for n in nodes]
-            vecs = torch.stack(vecs, dim=0)
-            coherence_loss, discrimination_loss = self.agent_levels[2].get_generation_losses(vecs)
-            paragraph_node = nodes[0]
-            sentence_node = paragraph_node.children[0]
-            word_node = sentence_node.children[0]
+            # vecs = [n.vector for n in nodes]
+            # vecs = torch.stack(vecs, dim=0)
+            # coherence_loss, discrimination_loss = calc_generation_loss(self.agent_levels[2], vecs, None)
+            # paragraph_node = nodes[0]
+            # sentence_node = paragraph_node.children[0]
+            # word_node = sentence_node.children[0]
             text2 = self.generate_texts(2, embedding_matrices, 1)[0]
             text1 = self.generate_texts(1, embedding_matrices, 1)[0]
             text0 = self.generate_texts(0, embedding_matrices, 1)[0]

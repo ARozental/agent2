@@ -7,6 +7,7 @@ from src.config import Config
 
 bce_loss = nn.BCEWithLogitsLoss(reduction='none') #it makes all non EoS positions go and be the opposite of EoS => fixed by: dot = torch.max(dot, torch.zeros(dot.shape))
 mce_loss = nn.CrossEntropyLoss(reduction='none')
+dot_act=nn.ELU()
 
 def calc_reconstruction_loss(agent_level, matrices, vectors, mask,eos_positions, embeddings, labels,epoch=7):
     """
@@ -44,9 +45,11 @@ def calc_reconstruction_loss(agent_level, matrices, vectors, mask,eos_positions,
 
     dot = (decompressed / decompressed.norm(dim=2, keepdim=True) * eos_vector / eos_vector.norm()).sum(dim=-1,
                                                                                                        keepdim=True)
-    dot = torch.max(dot, torch.zeros(dot.shape))  # no need for vectors to learn to become anti eos
-    eos_losses1 = bce_loss(agent_level.eos_classifier1(dot).squeeze(-1), eos_positions).mean(-1) #needed because of texts with full size and no EoS
-    eos_losses2 = mce_loss(agent_level.eos_classifier1(dot).squeeze(-1), eos_labels)
+
+    #dot = torch.max(dot, torch.zeros(dot.shape))  # no need for vectors to learn to become anti eos, max kills learning if init is bad elu in classifier1 works
+    cdot = agent_level.eos_classifier1(dot).squeeze(-1)
+    eos_losses1 = bce_loss(cdot, eos_positions).mean(-1) #needed because of texts with full size and no EoS
+    eos_losses2 = mce_loss(cdot, eos_labels)
     eos_losses = eos_losses1 + eos_losses2
     reconstruction_diff = (((matrices - post_decoder) * real_positions).norm(dim=[1, 2])) / ((matrices * real_positions).norm(dim=[1,2]))  # works :) with *10?, maybe we won't need the *10 when there is a real dataset, verify the norm doesn't go crazy because of this line later
     if agent_level.level==0:

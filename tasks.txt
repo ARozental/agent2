@@ -5,7 +5,8 @@ Datasets:
     1 => ["I like big butts.", "I can not lie.", "some other song"]
     0 => ["I", "like", "big", "butts.", "I", "can", "not", "lie.", "some", "other", song"]
 3. make a medium dataset from ../datasets/no_titles
-4. find out who to get a real dataset (all of Kindle with style and star rating)
+4. make wiki dataset?
+5. find out who to get a real dataset (all of Kindle with style and star rating)
 
 Transformer Model:
 1. use SwiGLU activation function: https://arxiv.org/pdf/2102.11972.pdf
@@ -26,16 +27,17 @@ CURRENT TASKS:
 Datasets 1,2
 Transformer 1
 Tests 1
-AgentModel 1,2
+AgentModel 1
 Refactoring 5,6
+
 
 AgentModel:
 1. refactor actual decode function
-2. write the generator
-3. write the discriminator
-4. write (and design?) the PNDB => after medium dataset
-5. write lossless compression+decompression => after medium dataset
-6. write style GAN => Harry Potter and the Starship Enterprise
+2. write the cnn-discriminator
+3. write (and design?) the PNDB => after medium dataset
+4. write lossless compression+decompression => after medium dataset
+5. write style GAN => Harry Potter and the Starship Enterprise
+6. write level 0 coherence/mlm that accounts for generated real words?
 
 
 Tests:

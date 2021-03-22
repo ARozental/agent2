@@ -21,30 +21,23 @@ class AgentLevel(nn.Module):
 
         self.token_bias = None #only set for level 0
 
-
-
-        self.classifier1w = nn.Parameter(torch.rand(1, requires_grad=True))
-        self.classifier1b = nn.Parameter(torch.rand(1, requires_grad=True))
-        #self.classifier1dot = nn.Parameter(torch.rand(1, requires_grad=True))
+        self.classifier1w = nn.Parameter(2.2*torch.ones(1, requires_grad=True)) #with sane init
+        self.classifier1b = nn.Parameter((-1.1)*torch.ones(1, requires_grad=True)) #with sane init
         self.classifier1act = nn.ELU()
 
-        # TODO - Initialize right (not uniform)
+        # TODO - Initialize right (not uniform?)
         self.eos_vector = nn.Parameter(torch.rand(Config.vector_sizes[level], requires_grad=True))
         self.join_vector = nn.Parameter(torch.rand(Config.vector_sizes[level], requires_grad=True))
         self.mask_vector = nn.Parameter(torch.rand(Config.vector_sizes[level], requires_grad=True))
-        self.pad_vector = nn.Parameter(torch.rand(Config.vector_sizes[level], requires_grad=True)) # doesn't really requires_grad, it is here for debug
+        self.pad_vector = nn.Parameter(torch.zeros(Config.vector_sizes[level], requires_grad=True)) # doesn't really requires_grad, it is here for debug
 
 
 
-
-    #dot = dot_act(agent_level.classifier1dot*dot)  # fixes level 0 and breaks upper levels???
-    #cdot = agent_level.eos_classifier1(dot).squeeze(-1)
 
 
     def eos_classifier1(self,dot):
       # needed to make sure w1 can never be negative
       return self.classifier1act(dot*self.classifier1w.abs()) + self.classifier1b
-      #return (x.sign() * ((x*self.classifier1w).abs())) + self.classifier1b
 
     def get_children(self, node_batch, embedding_matrix=None):
         if self.level == 0:  # words => get token vectors
@@ -133,12 +126,6 @@ class AgentLevel(nn.Module):
 
             return self.level, matrices, mask, eos_positions, embedding, labels
 
-        # labels = torch.tensor([x.get_padded_word_tokens() for x in node_batch])
-        # batch_mask = torch.tensor([([False]*len(n.tokens)+[True]*Config.sequence_lengths[0])[0:Config.sequence_lengths[0]] for n in node_batch])
-        # all_char_matrices = torch.index_select(local_char_embedding_matrix, 0, lookup_ids)  #[words_in_batch,max_chars_in_word,char_vector_size]
-        # mlm = calc_mlm_loss(self.agent_levels[0],all_char_matrices,batch_mask,self.char_embedding_layer.weight,labels)
-        # # labels [batch,seq_length,1] 1=>id in embedding matrix
-
         return self.level, matrices, mask, embedding_matrix, labels
 
     def realize_vectors(self, node_batch):
@@ -164,46 +151,7 @@ class AgentLevel(nn.Module):
         [n.set_vector(v) for n, v in zip(node_batch, vectors)]
 
 
-    def vec_to_children_vecs(self,node):
-        #0th-element is the eos token; X is a vector
-        x = node.vector
-        seq = self.decompressor(x.unsqueeze(0)).squeeze()
-        length = Config.sequence_lengths[self.level]
-        mask = [False]
-        eos_positions = [0]
-
-        decompressed = seq.unsqueeze(0)
-        eos_vector = self.eos_vector.unsqueeze(0).unsqueeze(0)
-        dot = (decompressed / decompressed.norm(dim=2, keepdim=True) * eos_vector / eos_vector.norm()).sum(dim=-1,keepdim=True)
-        logits = self.eos_classifier1(dot).squeeze(-1).squeeze(0)
-
-        if max(nn.Softmax()(logits)) > 0.01: #it is hard to get overe 0.2 when you have 80 chars => change back to a large number later
-          num_tokens = torch.argmax(logits)
-        else:
-          num_tokens = len(logits)
-        for i in range(1,int(num_tokens)):
-          mask.append(False)
-          eos_positions.append(0)
-        mask.append(False)
-        eos_positions.append(1)
-        mask = (mask + ([True] * length))[0:length]
-        eos_positions = (eos_positions + ([0] * length))[0:length]
-
-        mask = torch.tensor(mask).unsqueeze(0)
-        eos_positions = torch.tensor(eos_positions).unsqueeze(0)
-
-        seq = seq.unsqueeze(0)
-        post_decoder = self.decoder(seq, mask, eos_positions).squeeze(0)
-        num_tokens = int((1-mask.int()).sum()-1)
-        children_vecs = []
-        for i in range(0,num_tokens):
-          children_vecs.append(post_decoder[i])
-
-        return children_vecs
-
-
-
-    def vecs_to_children_vecs2(self,vecs):
+    def vecs_to_children_vecs(self,vecs):
         #0th-element is the eos token; X is a vector
         decompressed = self.decompressor(vecs)
         length = Config.sequence_lengths[self.level]
@@ -234,14 +182,20 @@ class AgentLevel(nn.Module):
         mask = torch.tensor(mask_arr)
         eos_positions = torch.tensor(eos_positions_arr)
 
-        post_decoder = self.decoder(decompressed, mask, eos_positions).squeeze(0)
+        post_decoder = self.decoder(decompressed, mask, eos_positions)
+        num_tokens = ((1-mask.int()).sum(dim=-1)-1)
+
+
         children_vecs_arr = []
         for i in range(vecs.shape[0]):
           children_vecs = []
-          for t in range(0,num_tokens_arr[i]):
+          for t in range(0,num_tokens[i]):
             children_vecs.append(post_decoder[i][t])
           children_vecs_arr.append(children_vecs)
 
         return children_vecs_arr,post_decoder,mask
 
-
+    def node_to_children_vecs(self, node):
+      vecs = node.vector.unsqueeze(0)
+      children_vecs_arr, _, _ = self.vecs_to_children_vecs(vecs)
+      return children_vecs_arr[0]

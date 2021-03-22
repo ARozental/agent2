@@ -153,7 +153,7 @@ class AgentModel(nn.Module):
     def full_decode(self,node):
         #todo: refactor it to not get embedding_matrices as a parameter (only the char matrix is needed and it belongs to self)
         agent_level = self.agent_levels[node.level]
-        children_vecs = agent_level.vec_to_children_vecs(node)
+        children_vecs = agent_level.node_to_children_vecs(node)
         if node.level==0:
             output = torch.matmul(torch.stack(children_vecs,dim=0).unsqueeze(0), self.char_embedding_layer.weight.transpose(0, 1))
             output = torch.argmax(output, dim=2)

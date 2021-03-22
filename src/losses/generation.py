@@ -25,4 +25,4 @@ def calc_generation_loss(agent_level,vectors,matrices,mask):
     coherence_g_loss = (coherence - torch.zeros(batch)).norm() / ((Config.vector_sizes[agent_level.level + 1]) ** 0.5)
     # also get coherence for fake children??
 
-    return coherence_g_loss, disc_loss
+    return coherence_g_loss, cnn_disc_loss+disc_loss

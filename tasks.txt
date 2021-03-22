@@ -36,6 +36,7 @@ AgentModel:
 3. write (and design?) the PNDB => after medium dataset
 4. write lossless compression+decompression => after medium dataset
 5. write style GAN => Harry Potter and the Starship Enterprise
+6. write level 0 coherence/mlm that accounts for generated real words?
 
 
 Tests:

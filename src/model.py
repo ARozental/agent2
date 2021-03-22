@@ -59,9 +59,34 @@ class AgentModel(nn.Module):
             self.agent_levels[i].realize_vectors(batch_tree.level_nodes[i])
         return word_embedding_matrix
 
+    def do_debug(self,batch_tree,epoch,total_loss,loss_object):
+
+      print("epoch:", epoch, "main loss:", total_loss.item(), "loss object:", loss_object)
+      nodes = batch_tree.batch_root.children
+
+      text2 = self.generate_texts(2, 1)[0]
+      text1 = self.generate_texts(1, 1)[0]
+      text0 = self.generate_texts(0, 1)[0]
+      print("generated word:", text0)
+      print("generated sentence:", text1)
+      print("generated paragraph:", text2)
 
 
-    def forward(self, batch_tree, generate=None,epoch=0):
+      print("l2w",self.agent_levels[2].classifier1w.item())
+      print("l2b",self.agent_levels[2].classifier1b.item())
+
+
+      res = [self.full_decode(node) for node in nodes]
+      text = [self.tree_tokenizer.deep_detokenize(r, 3) for r in res]
+      sizes1 = [len(r) for r in res]  # should be [2,1]
+      sizes2 = [[len(c.children) for c in r.children] for r in nodes]  # should be [2,1]
+      print("reconstructed text:", text)
+      print("sizes", sizes1, sizes2)
+
+      debug_object = text
+      return debug_object
+
+    def forward(self, batch_tree, with_debug=False, generate=None,epoch=0):
         word_embedding_matrix = self.set_text_vectors(batch_tree)
         embedding_matrices = {0: self.char_embedding_layer.weight, 1: word_embedding_matrix}
         total_g_loss, total_disc_loss, total_loss = 0,0,0
@@ -104,63 +129,10 @@ class AgentModel(nn.Module):
 
 
         #for full decode test
-        if epoch % 100 == 0:
-            # node = batch_tree.batch_root.children[0].children[0] #node.id==3
-            # recovered_words = self.agent_levels[1].vec_to_children_vecs(node)
-            # dvt_words = [n.vector for n in node.children]
-            # diffs = []
-            # recovered_w = []
-            # dvt_w = []
-            # for d in range(min(len(recovered_words),len(dvt_words))):
-            #     diffs.append(dvt_words[d]-recovered_words[d])
-            #     recovered_w.append(recovered_words[d])
-            #     dvt_w.append(dvt_words[d])
-            #
-            # diff = torch.stack(diffs).abs()
-            # recovered_words = torch.stack(recovered_w)
-            # dvt_words = torch.stack(dvt_w)
-            # print("dvt_words",dvt_words.norm())
-            # print("recovered_words",recovered_words.norm())
-            # print("diff",diff)
-            # print("losses",node.reconstruction_loss,node.eos_loss,node.reconstruction_diff_loss)
-            # print("mean diff",diff.mean().item()) #doesn't go to 0 when reconstruction goes to 0 => WTF
-
-            #dataset = ["I like big butts. I can not lie.", "some other song"]  # hard coded for tests
-
-            print("epoch:",epoch,"main loss:",total_loss.item(),"loss object:",loss_object)
-
-            nodes = batch_tree.batch_root.children
-
-            res1 = self.agent_levels[2].vec_to_children_vecs(nodes[0])
-            res2 = self.agent_levels[2].vecs_to_children_vecs2(torch.stack([n.vector for n in nodes]))
-
-            # vecs = [n.vector for n in nodes]
-            # vecs = torch.stack(vecs, dim=0)
-            # coherence_loss, discrimination_loss = calc_generation_loss(self.agent_levels[2], vecs, None)
-            # paragraph_node = nodes[0]
-            # sentence_node = paragraph_node.children[0]
-            # word_node = sentence_node.children[0]
-            text2 = self.generate_texts(2, embedding_matrices, 1)[0]
-            text1 = self.generate_texts(1, embedding_matrices, 1)[0]
-            text0 = self.generate_texts(0, embedding_matrices, 1)[0]
-            print("generated word:",text0)
-            print("generated sentence:",text1)
-            print("generated paragraph:",text2)
-            # 1+None
-
-
-
-            #print(len(nodes)) #2
-            res = [self.full_decode(node, embedding_matrices) for node in nodes]
-            text = [self.tree_tokenizer.deep_detokenize(r,3) for r in res]
-            sizes1 = [len(r) for r in res] #should be [2,1]
-            sizes2 = [[len(c.children) for c in r.children] for r in nodes] #should be [2,1]
-            print("reconstructed text:",text)
-            print("sizes",sizes1,sizes2)
-
-            #print("paragraph vector dist:",(nodes[0].vector - nodes[1].vector).norm().item()) #doesn't go to 0 :)
-
-        return total_g_loss, total_disc_loss,total_loss,loss_object   # todo: make loss object
+        debug_object = None
+        if with_debug == True:
+          debug_object = self.do_debug(batch_tree,epoch,total_loss,loss_object)
+        return debug_object, total_g_loss, total_disc_loss,total_loss,loss_object   # todo: make loss object
 
     def debug_decode(self, batch_tree,node_batch=None):
         if node_batch==None:
@@ -178,7 +150,7 @@ class AgentModel(nn.Module):
 
         return output
 
-    def full_decode(self,node,embedding_matrices):
+    def full_decode(self,node):
         #todo: refactor it to not get embedding_matrices as a parameter (only the char matrix is needed and it belongs to self)
         agent_level = self.agent_levels[node.level]
         children_vecs = agent_level.vec_to_children_vecs(node)
@@ -196,9 +168,9 @@ class AgentModel(nn.Module):
             n.parent = node
             children_nodes.append(n)
         node.children = children_nodes
-        return [self.full_decode(n,embedding_matrices) for n in children_nodes]
+        return [self.full_decode(n) for n in children_nodes]
 
-    def generate_texts(self, level, embedding_matrices, num_texts=1):
+    def generate_texts(self, level, num_texts=1):
         vecs = self.agent_levels[level].generator(torch.zeros(num_texts, Config.vector_sizes[level + 1]))
         nodes = []
         for v in vecs:
@@ -206,6 +178,6 @@ class AgentModel(nn.Module):
             n.vector = v
             n.level = level
             nodes.append(n)
-        decoded = [self.full_decode(n, embedding_matrices) for n in nodes]
+        decoded = [self.full_decode(n) for n in nodes]
         return  [self.tree_tokenizer.deep_detokenize(r, level+1) for r in decoded]
 

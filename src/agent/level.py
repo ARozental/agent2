@@ -25,6 +25,9 @@ class AgentLevel(nn.Module):
 
         self.classifier1w = nn.Parameter(torch.rand(1, requires_grad=True))
         self.classifier1b = nn.Parameter(torch.rand(1, requires_grad=True))
+        #self.classifier1dot = nn.Parameter(torch.rand(1, requires_grad=True))
+        self.classifier1act = nn.ELU()
+
         # TODO - Initialize right (not uniform)
         self.eos_vector = nn.Parameter(torch.rand(Config.vector_sizes[level], requires_grad=True))
         self.join_vector = nn.Parameter(torch.rand(Config.vector_sizes[level], requires_grad=True))
@@ -34,11 +37,14 @@ class AgentLevel(nn.Module):
 
 
 
+    #dot = dot_act(agent_level.classifier1dot*dot)  # fixes level 0 and breaks upper levels???
+    #cdot = agent_level.eos_classifier1(dot).squeeze(-1)
 
 
-    def eos_classifier1(self,x):
+    def eos_classifier1(self,dot):
       # needed to make sure w1 can never be negative
-      return (x.sign() * ((x*self.classifier1w).abs())) + self.classifier1b
+      return self.classifier1act(dot*self.classifier1w.abs()) + self.classifier1b
+      #return (x.sign() * ((x*self.classifier1w).abs())) + self.classifier1b
 
     def get_children(self, node_batch, embedding_matrix=None):
         if self.level == 0:  # words => get token vectors

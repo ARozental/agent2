@@ -5,7 +5,7 @@ import torch
 
 
 from src.utils import seed_torch
-seed_torch(0) #learns faster than 777
+seed_torch(0) #0 learns 2 doesn't (before no cnn layer)
 
 
 USE_CUDA = False
@@ -45,26 +45,25 @@ for epoch in range(10001):
     for batch in dataset.iterator():
         model.train()
         main_optimizer.zero_grad()
-        generator_optimizer.zero_grad()
-        discriminator_optimizer.zero_grad()
 
-        g_loss, disc_loss, main_loss, loss_object  = model.forward(batch,generate=generate,epoch=epoch)
+        debug_object, g_loss, disc_loss, main_loss, loss_object  = model.forward(batch,with_debug=(epoch % 100 == 0),generate=generate,epoch=epoch)
+
         if generate == True:
+            generator_optimizer.zero_grad()
+            discriminator_optimizer.zero_grad()
             main_loss.backward(retain_graph=True)
             [setattr(p, "requires_grad", False) for p in main_params+generator_params]
             disc_loss.backward(retain_graph=True)
             [setattr(p, "requires_grad", True) for p in generator_params]
             [setattr(p, "requires_grad", False) for p in discriminator_params]
-
             (g_loss-disc_loss*0.2).backward() #disc loss won't go down even when this is commented => BUG
-
             [setattr(p, "requires_grad", True) for p in main_params+discriminator_params]
-
-
-
             main_optimizer.step()
             discriminator_optimizer.step()
             generator_optimizer.step()
+        else:
+          main_loss.backward()
+          main_optimizer.step()
 
 
 

@@ -17,7 +17,7 @@ class AgentLevel(nn.Module):
         self.coherence_checker = CoherenceChecker(Config.vector_sizes[level + 1])
         self.generator = Generator(Config.vector_sizes[level + 1])
         self.discriminator = Discriminator(Config.vector_sizes[level + 1])
-        #self.cnn_discriminator = CnnDiscriminator(Config.vector_sizes[level],Config.sequence_lengths[level])
+        self.cnn_discriminator = CnnDiscriminator(Config.vector_sizes[level],Config.sequence_lengths[level])
 
         self.token_bias = None #only set for level 0
 
@@ -158,7 +158,7 @@ class AgentLevel(nn.Module):
         [n.set_vector(v) for n, v in zip(node_batch, vectors)]
 
 
-    def vec_to_children_vecs(self,node,embedding_matrix):
+    def vec_to_children_vecs(self,node):
         #0th-element is the eos token; X is a vector
         x = node.vector
         seq = self.decompressor(x.unsqueeze(0)).squeeze()
@@ -170,14 +170,6 @@ class AgentLevel(nn.Module):
         eos_vector = self.eos_vector.unsqueeze(0).unsqueeze(0)
         dot = (decompressed / decompressed.norm(dim=2, keepdim=True) * eos_vector / eos_vector.norm()).sum(dim=-1,keepdim=True)
         logits = self.eos_classifier1(dot).squeeze(-1).squeeze(0)
-        #logits = self.eos_classifier(seq).squeeze(-1) the
-        # if self.level == 2: #positions 1 and 2 are candidates for both paragraphs all other positions go to -1 => something wrong with the batch??
-        #   print("=====")
-        #   print("id",node.id)
-        #   #print("vector",node.vector) #come out similar 0.1 average diff per entry
-        #  # print("decompressed",decompressed) #come out nearly identical 0.01 average diff per entry
-        #   print("dot",dot)
-        #   print("logits",logits)
 
         if max(nn.Softmax()(logits)) > 0.01: #it is hard to get overe 0.2 when you have 80 chars => change back to a large number later
           num_tokens = torch.argmax(logits)
@@ -201,9 +193,49 @@ class AgentLevel(nn.Module):
         for i in range(0,num_tokens):
           children_vecs.append(post_decoder[i])
 
-        #print(len(children_vecs))
-
         return children_vecs
 
+
+
+    def vecs_to_children_vecs2(self,vecs):
+        #0th-element is the eos token; X is a vector
+        decompressed = self.decompressor(vecs)
+        length = Config.sequence_lengths[self.level]
+
+        eos_vector = self.eos_vector.unsqueeze(0).unsqueeze(0)
+        dot = (decompressed / decompressed.norm(dim=2, keepdim=True) * eos_vector / eos_vector.norm()).sum(dim=-1,keepdim=True)
+        ll = self.eos_classifier1(dot).squeeze(-1)
+        mask_arr = []
+        eos_positions_arr = []
+        num_tokens_arr = []
+        for logits in ll:
+          if max(nn.Softmax()(logits)) > 0.01:
+            num_tokens = torch.argmax(logits)
+          else:
+            num_tokens = len(logits)
+          num_tokens_arr.append(num_tokens)
+          mask = [False]
+          eos_positions = [0]
+          for i in range(1,int(num_tokens)):
+            mask.append(False)
+            eos_positions.append(0)
+          mask.append(False)
+          eos_positions.append(1)
+          mask = (mask + ([True] * length))[0:length]
+          eos_positions = (eos_positions + ([0] * length))[0:length]
+          mask_arr.append(mask)
+          eos_positions_arr.append(eos_positions)
+        mask = torch.tensor(mask_arr)
+        eos_positions = torch.tensor(eos_positions_arr)
+
+        post_decoder = self.decoder(decompressed, mask, eos_positions).squeeze(0)
+        children_vecs_arr = []
+        for i in range(vecs.shape[0]):
+          children_vecs = []
+          for t in range(0,num_tokens_arr[i]):
+            children_vecs.append(post_decoder[i][t])
+          children_vecs_arr.append(children_vecs)
+
+        return children_vecs_arr,post_decoder,mask
 
 

@@ -27,14 +27,18 @@ class CnnDiscriminator(nn.Module):
     # needs the matrices object for to run; move to loss functions?
     def __init__(self, vector_size,sequence_length): #for the level
         super().__init__()
-        self.num_filters = 7
+        self.num_filters = 11
         self.conv = nn.Conv1d(vector_size, self.num_filters, 1) #<input_vector_size, num_filters, 1=unigram>
         self.max_pool = nn.MaxPool1d(sequence_length)
         self.act = nn.ReLU()
+        self.bce_loss = nn.BCEWithLogitsLoss()
+
 
         self.d1 = nn.Linear(self.num_filters, 1)
 
     def forward(self, x): #gets matrixes after decompress and decode
+        batch,length,vector_size = x.shape
+        x=torch.transpose(x,1,2)
         x=self.conv(x)
         x=self.max_pool(x).squeeze(-1)
         x = torch.sigmoid(self.d1(x)).squeeze(-1)

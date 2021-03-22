@@ -84,7 +84,7 @@ class AgentModel(nn.Module):
 
 
             if generate ==True:
-                g_loss, disc_loss = calc_generation_loss(self.agent_levels[i],vectors,matrices)
+                g_loss, disc_loss = calc_generation_loss(self.agent_levels[i],vectors,matrices,mask)
                 loss_object[i]["g"] = g_loss.item()
                 loss_object[i]["disc_loss"] = disc_loss.item()
                 total_g_loss += g_loss
@@ -106,7 +106,7 @@ class AgentModel(nn.Module):
         #for full decode test
         if epoch % 100 == 0:
             # node = batch_tree.batch_root.children[0].children[0] #node.id==3
-            # recovered_words = self.agent_levels[1].vec_to_children_vecs(node,embedding_matrices[1])
+            # recovered_words = self.agent_levels[1].vec_to_children_vecs(node)
             # dvt_words = [n.vector for n in node.children]
             # diffs = []
             # recovered_w = []
@@ -129,8 +129,11 @@ class AgentModel(nn.Module):
 
             print("epoch:",epoch,"main loss:",total_loss.item(),"loss object:",loss_object)
 
-
             nodes = batch_tree.batch_root.children
+
+            res1 = self.agent_levels[2].vec_to_children_vecs(nodes[0])
+            res2 = self.agent_levels[2].vecs_to_children_vecs2(torch.stack([n.vector for n in nodes]))
+
             # vecs = [n.vector for n in nodes]
             # vecs = torch.stack(vecs, dim=0)
             # coherence_loss, discrimination_loss = calc_generation_loss(self.agent_levels[2], vecs, None)
@@ -178,7 +181,7 @@ class AgentModel(nn.Module):
     def full_decode(self,node,embedding_matrices):
         #todo: refactor it to not get embedding_matrices as a parameter (only the char matrix is needed and it belongs to self)
         agent_level = self.agent_levels[node.level]
-        children_vecs = agent_level.vec_to_children_vecs(node, embedding_matrices[node.level])
+        children_vecs = agent_level.vec_to_children_vecs(node)
         if node.level==0:
             output = torch.matmul(torch.stack(children_vecs,dim=0).unsqueeze(0), self.char_embedding_layer.weight.transpose(0, 1))
             output = torch.argmax(output, dim=2)

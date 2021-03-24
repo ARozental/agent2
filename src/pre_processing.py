@@ -209,42 +209,11 @@ class TreeTokenizer:
 
 
 tt = TreeTokenizer()
-# x = tt.tokenize_word("sheeבt")
-# x = tt.text_to_tree_struct("I like big   butts. I can not lie.")
 tree = tt.batch_texts_to_trees(["I like big butts. I can not lie.", "some other song"])
-# x = tt.batch_texts_to_trees(["I am big. you are too.","I am big. you are too."] )
-# print([[k,len(v)] for (k,v) in x.level_nodes.items()])
-# print(x.batch_root.struct)
-
-# print(x.batch_root.bebug_get_tree(attr="tokens"))
-# print(set([x.tokens for x in tree.level_nodes[0]]))
-# print({str(x.tokens) : 7 for x in tree.level_nodes[0]})
-# print({str(n.tokens) : [i,n.tokens] for i,n in enumerate(tree.level_nodes[0])})
-# mapping = {str(n.tokens) : [i,n.get_padded_word_tokens()] for i,n in zip(reversed(range(len(tree.level_nodes[0]))),tree.level_nodes[0])} #reversed so that if a word exists twice the lower id will take
-# for n in tree.level_nodes[0]:
-#   n.distinct_lookup_id = mapping[str(n.tokens)][0]
-#
-# print([n.distinct_lookup_id for n in tree.level_nodes[0]])
-# ss = list(mapping.values())
-# ss.sort()
-# print(ss)
-
-# tree.make_distinct_words()
-# print("here")
-# print(tree.distinct_word_embedding_tokens)
-# print([n.distinct_lookup_id for n in tree.level_nodes[0]])
-
-# with open('../chars.txt', encoding='utf-8') as f:
-#   chars = [char.strip() for char in f.readlines()]
-# print(chars)
-
-# print(x.children[0].children[0].children[0].tokens)
-# print(x.bebug_get_tree("tokens"))
-# node = Node(struct=tt.text_to_tree_struct("I like big butts. I can not lie."),id=0,level=2,type="debug root") #level 0 is word node
-# node.expand_struct()
-# #print(node.children[-1].children[-1].tokens) #see that tokens are correct :)
-# print("struct",node.struct)
-# print("word ids",node.bebug_get_tree(attr="id"))
-# print("tokens",node.bebug_get_tree(attr="tokens"))
-# #print(node.bebug_get_tree())
-# print({i:3 for i in range(5)})
+def read_text(file_name):
+  f = open(file_name, "r")
+  return f.read()
+text = read_text("../datasets/no_stats_books/Scholar_of_Magic_2_trial.txt")
+#print(text)
+struct = tt.text_to_tree_struct(text,level=2)
+#print(struct)

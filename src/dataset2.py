@@ -32,7 +32,8 @@ class Dataset2(torch.utils.data.IterableDataset):
   def __iter__(self):
     return self.i
 
-dd=Dataset2("../datasets/dummy_dataset",batch_size=2)
+#dd=Dataset2("../datasets/dummy_dataset",batch_size=2)
+dd=Dataset2("../datasets/no_stats_books",batch_size=2)
 # can't use dataloader because: default_collate: batch must contain tensors, numpy arrays, numbers, dicts or lists; found
 print(next(dd.i))
 print(next(dd.i))

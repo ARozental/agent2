@@ -6,7 +6,7 @@ Datasets:
     0 => ["I", "like", "big", "butts.", "I", "can", "not", "lie.", "some", "other", song"]
 3. make a medium dataset from ../datasets/no_titles
 4. make wiki dataset?
-5. have a small dataset ~3 books with different main charecters with no stats (Scholar_of_Magic, Dragon heart
+5. use no titles dataset
 6. find out who to get a real dataset (all of Kindle with style and star rating)
 
 Transformer Model:
@@ -23,7 +23,15 @@ Refactoring:
 5. use the same name for hidden_size/vector_size/embed_size
 
 CURRENT TASKS:
-Datasets 1,2
+Datasets 1,5
+have preprocessing working up to level 4 (book)
+have a file with splitting functions for each dataset
+pass sanity check for book pre-processing (thet we merge small paragraphs)
+train on no_titles dataset and see that losses go down
+have a save model line after the train
+have a train only generator and discriminator part after the save
+
+
 Transformer 1
 Tests 1
 AgentModel 1

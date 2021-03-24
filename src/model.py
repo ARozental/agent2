@@ -59,33 +59,6 @@ class AgentModel(nn.Module):
             self.agent_levels[i].realize_vectors(batch_tree.level_nodes[i])
         return word_embedding_matrix
 
-    def do_debug(self,batch_tree,epoch,total_loss,loss_object):
-
-      print("epoch:", epoch, "main loss:", total_loss.item(), "loss object:", loss_object)
-      nodes = batch_tree.batch_root.children
-
-      text2 = self.generate_texts(2, 1)[0]
-      text1 = self.generate_texts(1, 1)[0]
-      text0 = self.generate_texts(0, 1)[0]
-      print("generated word:", text0)
-      print("generated sentence:", text1)
-      print("generated paragraph:", text2)
-
-
-      print("l2w",self.agent_levels[2].classifier1w.item())
-      print("l2b",self.agent_levels[2].classifier1b.item())
-
-
-      res = [self.full_decode(node) for node in nodes]
-      text = [self.tree_tokenizer.deep_detokenize(r, 3) for r in res]
-      sizes1 = [len(r) for r in res]  # should be [2,1]
-      sizes2 = [[len(c.children) for c in r.children] for r in nodes]  # should be [2,1]
-      print("reconstructed text:", text)
-      print("sizes", sizes1, sizes2)
-
-      debug_object = text
-      return debug_object
-
     def forward(self, batch_tree, with_debug=False, generate=None,epoch=0):
         word_embedding_matrix = self.set_text_vectors(batch_tree)
         embedding_matrices = {0: self.char_embedding_layer.weight, 1: word_embedding_matrix}
@@ -102,21 +75,20 @@ class AgentModel(nn.Module):
             reconstruction_diff_loss,eos_loss,reconstruction_loss = calc_reconstruction_loss(self.agent_levels[i], matrices, vectors, mask,eos_positions, embedding_matrix,labels,epoch=epoch)
 
             total_loss += (mlm_loss.mean() + coherence_loss.mean() + reconstruction_loss.mean() + eos_loss.mean() + reconstruction_diff_loss.mean()).sum()
-            loss_object[i] = {'m': mlm_loss.mean().item(), "c": coherence_loss.mean().item(),
-                              "r": reconstruction_loss.mean().item(),"e": eos_loss.mean().item(),
-                              "d": reconstruction_diff_loss.mean().item()
-                              }
+            loss_object[i] = {
+                'm': mlm_loss.mean().item(),
+                "c": coherence_loss.mean().item(),
+                "r": reconstruction_loss.mean().item(),
+                "e": eos_loss.mean().item(),
+                "d": reconstruction_diff_loss.mean().item()
+            }
 
-
-            if generate ==True:
+            if generate:
                 g_loss, disc_loss = calc_generation_loss(self.agent_levels[i],vectors,matrices,mask)
                 loss_object[i]["g"] = g_loss.item()
                 loss_object[i]["disc_loss"] = disc_loss.item()
                 total_g_loss += g_loss
                 total_disc_loss += disc_loss
-
-
-
 
             [setattr(n, 'mlm_loss', l) for n, l in zip(node_batch, mlm_loss.tolist())]
             [setattr(n, 'coherence_loss', l) for n, l in zip(node_batch, coherence_loss.tolist())]
@@ -126,16 +98,10 @@ class AgentModel(nn.Module):
 
             embedding_matrices[i] = embedding_matrix
 
+        return total_g_loss, total_disc_loss, total_loss, loss_object   # todo: make loss object
 
-
-        #for full decode test
-        debug_object = None
-        if with_debug == True:
-          debug_object = self.do_debug(batch_tree,epoch,total_loss,loss_object)
-        return debug_object, total_g_loss, total_disc_loss,total_loss,loss_object   # todo: make loss object
-
-    def debug_decode(self, batch_tree,node_batch=None):
-        if node_batch==None:
+    def debug_decode(self, batch_tree, node_batch=None):
+        if node_batch is None:
             node_batch = batch_tree.level_nodes[0]
         tokens = [n.get_padded_word_tokens() for n in node_batch]
         mask = torch.tensor(tokens) == Config.pad_token_id  # True => position to mask

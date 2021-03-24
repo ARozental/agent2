@@ -144,7 +144,7 @@ class BatchTree:
 
 
 class TreeTokenizer:
-    def __init__(self, char_file="../chars.txt"):
+    def __init__(self, char_file="chars.txt"):
         self.letter_tokenizer = defaultdict(int, dict(
             zip([l.strip() for l in open(char_file, "r", encoding='utf-8').readlines()], range(7777))))
         self.reverse_tokenizer = {value: key for key, value in self.letter_tokenizer.items()}

@@ -6,7 +6,8 @@ Datasets:
     0 => ["I", "like", "big", "butts.", "I", "can", "not", "lie.", "some", "other", song"]
 3. make a medium dataset from ../datasets/no_titles
 4. make wiki dataset?
-5. find out who to get a real dataset (all of Kindle with style and star rating)
+5. have a small dataset ~3 books with different main charecters with no stats (Scholar_of_Magic, Dragon heart
+6. find out who to get a real dataset (all of Kindle with style and star rating)
 
 Transformer Model:
 1. use SwiGLU activation function: https://arxiv.org/pdf/2102.11972.pdf
@@ -20,15 +21,13 @@ Training:
 Refactoring:
 4. make code faster, avoid everyplace that exits the GPU
 5. use the same name for hidden_size/vector_size/embed_size
-6. refactor full_decode to be: full_decode(self,node) and merge with deep_detokenize; so it becomess Node to text function
-
 
 CURRENT TASKS:
 Datasets 1,2
 Transformer 1
 Tests 1
 AgentModel 1
-Refactoring 5,6
+Refactoring 5
 
 
 AgentModel:

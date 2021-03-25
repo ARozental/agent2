@@ -3,6 +3,10 @@ import  random
 import  os
 import numpy as np
 import torch
+import torch.nn as nn
+import math
+import torch.nn.functional as F
+
 def seed_torch(seed=777):
     random.seed(seed)
     os.environ['PYTHONHASHSEED'] = str(seed)
@@ -32,3 +36,23 @@ def find_level(inputs):
         level += 1
 
     return level
+
+
+def attention(q, k, v, d_k, mask=None, dropout=None):
+  scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(d_k)
+  # print("s",scores)
+  # print("mask",mask)
+
+  if mask is not None:
+    mask = mask.unsqueeze(1)
+    scores = scores.masked_fill(mask == True, -1e9)
+
+  scores = F.softmax(scores, dim=-1)
+  # print("scores", scores)
+
+  if dropout is not None:
+    scores = dropout(scores)
+
+  output = torch.matmul(scores, v)
+
+  return output

@@ -1,4 +1,5 @@
 from src.agent import AgentLevel
+from src.agent import Pndb
 import torch.nn as nn
 import torch
 from src.config import Config
@@ -14,6 +15,8 @@ class AgentModel(nn.Module):
         super().__init__()
         self.tree_tokenizer = tree_tokenizer
         self.agent_levels = nn.ModuleList()
+        self.pndb = Pndb()
+
         for i in range(Config.agent_level + 2):
             agent_level = AgentLevel(i)
             if i==0:
@@ -69,6 +72,17 @@ class AgentModel(nn.Module):
             level, matrices, mask, eos_positions, embedding_matrix, labels = self.agent_levels[i].get_children(node_batch,
                                                                                                 embedding_matrices[
                                                                                                     i % 2])  # we only care about 0 and 1
+
+            ####PNDB debug
+            if level==1:
+              a=self.pndb.create_A_matrix(matrices,mask)
+              print(a)
+              1+None
+
+
+
+            ####PNDB debug
+
             mlm_loss = calc_mlm_loss(self.agent_levels[i], matrices, mask, eos_positions, embedding_matrix, labels)
             coherence_loss = calc_coherence_loss(self.agent_levels[i], matrices, mask, eos_positions, embedding_matrix)
             vectors = torch.stack([n.vector for n in node_batch])

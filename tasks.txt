@@ -11,6 +11,7 @@ Datasets:
 Transformer Model:
 1. use SwiGLU activation function: https://arxiv.org/pdf/2102.11972.pdf
 2. have a universal transformer => a lot later, as it is ~6X slower than the regular one for the same number of params
+3. did we lose the: / sqrt(hidden_dim) by accident?
 
 Training:
 1. create batches of controllable (set from config) memory footprint from all Tree nodes for each level:

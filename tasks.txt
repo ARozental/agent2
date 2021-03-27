@@ -25,6 +25,10 @@ Refactoring:
 
 
 CURRENT TASKS:
+PNDB -> split batch to create A
+have a root pointer
+place A on root?
+
 Datasets 1,2
 Transformer 1
 Tests 1

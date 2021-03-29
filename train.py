@@ -9,6 +9,7 @@ seed_torch(0)  # 0 learns 2 doesn't (before no cnn layer)
 
 USE_CUDA = False
 LOG_EVERY = 2
+PRINT_RECONSTRUCTED_TEXT = True
 
 dataset = TreeDataset()
 device = torch.device('cuda' if torch.cuda.is_available() and USE_CUDA else 'cpu')
@@ -76,5 +77,6 @@ for epoch in range(10001):
             sizes2 = [[len(c.children) for c in r.children] for r in nodes]  # should be [2,1]
             sizes = {1: sizes1, 2: sizes2}
 
-            print(reconstructed_text)
+            if PRINT_RECONSTRUCTED_TEXT:
+                print(reconstructed_text)
             Logger.log_text(generated, reconstructed_text, sizes, step=epoch)

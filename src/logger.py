@@ -23,12 +23,18 @@ class Logger:
 
     @classmethod
     def log_l2_classifiers(cls, model, step):
+        if cls.writer is None:
+            return
+
         for i, level in enumerate(model.agent_levels):
             cls.writer.add_scalar('l2/weight/' + str(i), level.classifier1w, step)
             cls.writer.add_scalar('l2/bias/' + str(i), level.classifier1b, step)
 
     @classmethod
     def log_text(cls, generated, reconstructed, sizes, step):
+        if cls.writer is None:
+            return
+
         for level, text in generated.items():
             cls.writer.add_text('generator/' + str(level), text, step)
 

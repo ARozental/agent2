@@ -92,20 +92,17 @@ class AgentLevel(nn.Module):
             all_children = []
             all_ids = []
 
+            max_length = Config.sequence_lengths[self.level]
             for n in node_batch:
                 children = n.children
-                mask = ([False for c in children] + [False] + ([True] * Config.sequence_lengths[self.level]))[
-                       0:Config.sequence_lengths[self.level]]
-                eos_position = ([0.0 for c in children] + [1.0] + ([0.0] * Config.sequence_lengths[self.level]))[0:Config.sequence_lengths[self.level]]
-                ids = ([c.id for c in children] + [0] + ([1] * Config.sequence_lengths[self.level]))[
-                      0:Config.sequence_lengths[self.level]]
+                mask = ([False for c in children] + [False] + ([True] * max_length))[0:max_length]
+                eos_position = ([0.0 for c in children] + [1.0] + ([0.0] * max_length))[0:max_length]
+                ids = ([c.id for c in children] + [0] + ([1] * max_length))[0:max_length]
                 all_children.extend(children)
                 masks.append(mask)
                 eos_positions.append(eos_position)
                 all_ids.append(ids)
-                matrix = ([c.vector for c in children] + [self.eos_vector] + (
-                        [self.pad_vector] * Config.sequence_lengths[self.level]))[
-                         0:Config.sequence_lengths[self.level]]
+                matrix = ([c.vector for c in children] + [self.eos_vector] + ([self.pad_vector] * max_length))[0:max_length]
                 matrix = torch.stack(matrix)
                 matrices.append(matrix)
             mask = torch.tensor(masks)

@@ -1,3 +1,4 @@
+from src.datasets import BookDataset, DummyDataset
 from src.logger import Logger
 from src.utils import seed_torch
 from src.model import AgentModel
@@ -11,7 +12,9 @@ USE_CUDA = False
 LOG_EVERY = 2
 PRINT_RECONSTRUCTED_TEXT = True
 
-dataset = TreeDataset()
+dataset = DummyDataset(batch_size=2)
+# dataset = BookDataset(batch_size=2, no_stats=True)
+
 device = torch.device('cuda' if torch.cuda.is_available() and USE_CUDA else 'cpu')
 model = AgentModel(TreeTokenizer())
 model.to(device)
@@ -42,7 +45,7 @@ for epoch in range(10001):
     # print('Epoch', epoch + 1)
     generate = True
 
-    for batch in dataset.iterator():
+    for batch in dataset:
         model.train()
         main_optimizer.zero_grad()
 

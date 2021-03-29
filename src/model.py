@@ -13,13 +13,8 @@ class AgentModel(nn.Module):
     def __init__(self, tree_tokenizer):
         super().__init__()
         self.tree_tokenizer = tree_tokenizer
-        self.agent_levels = nn.ModuleList()
-        for i in range(Config.agent_level + 2):
-            agent_level = AgentLevel(i)
-            if i==0:
-                agent_level.token_bias = nn.Parameter(torch.zeros(len(tree_tokenizer.letter_tokenizer.keys()), requires_grad=True))
-            self.agent_levels.append(agent_level)
-
+        num_letters = len(tree_tokenizer.letter_tokenizer.keys())
+        self.agent_levels = nn.ModuleList([AgentLevel(i, num_letters) for i in range(Config.agent_level + 2)])
         self.char_embedding_layer = nn.Embedding(len(tree_tokenizer.letter_tokenizer.keys()), Config.vector_sizes[0])
 
     def set_word_vectors(self, batch_tree):

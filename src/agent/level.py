@@ -6,7 +6,7 @@ from src.config import Config
 
 
 class AgentLevel(nn.Module):
-    def __init__(self, level):
+    def __init__(self, level, num_letters):
         super().__init__()
 
         self.level = level
@@ -20,7 +20,10 @@ class AgentLevel(nn.Module):
         self.discriminator = Discriminator(Config.vector_sizes[level + 1])
         self.cnn_discriminator = CnnDiscriminator(Config.vector_sizes[level],Config.sequence_lengths[level])
 
-        self.token_bias = None #only set for level 0
+        if self.level == 0:
+            self.token_bias = nn.Parameter(torch.zeros(num_letters, requires_grad=True))
+        else:
+            self.token_bias = None
 
         self.classifier1w = nn.Parameter(2.2*torch.ones(1, requires_grad=True)) #with sane init
         self.classifier1b = nn.Parameter((-1.1)*torch.ones(1, requires_grad=True)) #with sane init

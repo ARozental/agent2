@@ -1,4 +1,5 @@
 from . import Compressor, Decompressor, Encoder, Decoder, CoherenceChecker, Generator, Discriminator, CnnDiscriminator
+import torch.nn.functional as F
 import torch.nn as nn
 import torch
 from src.config import Config
@@ -163,7 +164,7 @@ class AgentLevel(nn.Module):
         eos_positions_arr = []
         num_tokens_arr = []
         for logits in ll:
-          if max(nn.Softmax()(logits)) > 0.01:
+          if max(F.softmax(logits, dim=0)) > 0.01:
             num_tokens = torch.argmax(logits)
           else:
             num_tokens = len(logits)

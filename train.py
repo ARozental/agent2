@@ -19,10 +19,6 @@ device = torch.device('cuda' if torch.cuda.is_available() and USE_CUDA else 'cpu
 model = AgentModel(TreeTokenizer())
 model.to(device)
 # model.train()
-model.eval()
-for batch_tree in dataset.iterator():
-    model.forward(batch_tree)
-    break
 
 main_params = [param for name, param in model.named_parameters() if
                ("discriminator" not in name) and ("generator" not in name)]
@@ -42,7 +38,7 @@ discriminator_optimizer = torch.optim.Adam(discriminator_params, 0.002)
 
 Logger.setup()
 for epoch in range(10001):
-    # print('Epoch', epoch + 1)
+    print('Epoch', epoch + 1)
     generate = True
 
     for batch in dataset:

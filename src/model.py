@@ -66,7 +66,7 @@ class AgentModel(nn.Module):
         loss_object = {}
         for i in range(Config.agent_level + 1):
             node_batch = batch_tree.level_nodes[i]  # currently all the nodes in the level
-            level, matrices, mask, eos_positions, embedding_matrix, labels = self.agent_levels[i].get_children(node_batch,
+            matrices, mask, eos_positions, embedding_matrix, labels = self.agent_levels[i].get_children(node_batch,
                                                                                                 embedding_matrices[
                                                                                                     i % 2])  # we only care about 0 and 1
             mlm_loss = calc_mlm_loss(self.agent_levels[i], matrices, mask, eos_positions, embedding_matrix, labels)

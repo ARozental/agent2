@@ -53,7 +53,7 @@ class AgentLevel(nn.Module):
             )
             labels = torch.LongTensor([x.get_padded_word_tokens() for x in node_batch])
 
-            return self.level, matrices, mask, eos_positions, embedding_matrix, labels
+            return matrices, mask, eos_positions, embedding_matrix, labels
         elif self.level == 1:  # sentences => get word vectors
             masks = []
             eos_positions = []
@@ -83,7 +83,7 @@ class AgentLevel(nn.Module):
             )
             labels = lookup_ids.view(len(node_batch), Config.sequence_lengths[1])
 
-            return self.level, matrices, mask, eos_positions, embedding_matrix, labels
+            return matrices, mask, eos_positions, embedding_matrix, labels
 
         else:
             matrices = []
@@ -125,9 +125,7 @@ class AgentLevel(nn.Module):
             labels = torch.tensor([[id_to_place2(i) for i in x] for x in all_ids])
             embedding = torch.stack([self.eos_vector] + embedding)
 
-            return self.level, matrices, mask, eos_positions, embedding, labels
-
-        return self.level, matrices, mask, embedding_matrix, labels
+            return matrices, mask, eos_positions, embedding, labels
 
     def realize_vectors(self, node_batch):
         # todo: realize join vectors here

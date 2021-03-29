@@ -110,7 +110,8 @@ class AgentLevel(nn.Module):
 
             # [sentences in node_batch, max words in sentence, word vec size] #after padding
             matrices = torch.stack(matrices)
-            all_children_ids = [c.id for c in all_children]
+            # all_children_ids = [c.id for c in all_children]
+            all_children_ids = [i for x in all_ids for i in x if i > 1]  #
 
             # 0 is saved for EoS,
             id_to_place = dict(zip(all_children_ids, range(1, matrices.shape[0] * matrices.shape[1] + 1)))

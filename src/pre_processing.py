@@ -119,14 +119,14 @@ class BatchTree:
         # the i-th element of distinct_word_embedding_tokens gets word tokens with full padding
         # each node in level_nodes[0] (word), gets distinct_lookup_id set to the relevant i from distinct_word_embedding_tokens
         # in the forward pass we will only embed self.distinct_word_embedding_tokens and fill the DVT word vector with lookup to this matrix
-        mapping = {str(n.tokens): [i, n.get_padded_word_tokens()] for i, n in
-                   zip(reversed(range(len(self.level_nodes[0]))), self.level_nodes[0])}
-        for n in self.level_nodes[0]:
-            n.distinct_lookup_id = mapping[str(n.tokens)][0]
-        id_and_pads = list(mapping.values())
-        id_and_pads.sort()  # by id (first element) is the default
-        self.distinct_word_embedding_tokens = [x[1] for x in id_and_pads]
-        return
+        tokens_to_nodes = {str(node.tokens): node.get_padded_word_tokens() for node in self.level_nodes[0]}
+        unique_words = list({str(node.tokens) for node in self.level_nodes[0]})
+        mapping = {tokens: i for i, tokens in enumerate(unique_words)}
+        for node in self.level_nodes[0]:
+            node.distinct_lookup_id = mapping[str(node.tokens)]
+
+        # Get the words in order
+        self.distinct_word_embedding_tokens = [tokens_to_nodes[tokens] for tokens in unique_words]
 
     def make_distinct_texts(self, lvl):
         # generalizes make_distinct_words
@@ -205,43 +205,44 @@ class TreeTokenizer:
         return batch_tree
 
 
-tt = TreeTokenizer()
-# x = tt.tokenize_word("sheeבt")
-# x = tt.text_to_tree_struct("I like big   butts. I can not lie.")
-tree = tt.batch_texts_to_trees(["I like big butts. I can not lie.", "some other song"])
-# x = tt.batch_texts_to_trees(["I am big. you are too.","I am big. you are too."] )
-# print([[k,len(v)] for (k,v) in x.level_nodes.items()])
-# print(x.batch_root.struct)
+if __name__ == '__main__':
+    tt = TreeTokenizer()
+    # x = tt.tokenize_word("sheeבt")
+    # x = tt.text_to_tree_struct("I like big   butts. I can not lie.")
+    tree = tt.batch_texts_to_trees(["I like big butts. I can not lie.", "some other song"])
+    # x = tt.batch_texts_to_trees(["I am big. you are too.","I am big. you are too."] )
+    # print([[k,len(v)] for (k,v) in x.level_nodes.items()])
+    # print(x.batch_root.struct)
 
-# print(x.batch_root.bebug_get_tree(attr="tokens"))
-# print(set([x.tokens for x in tree.level_nodes[0]]))
-# print({str(x.tokens) : 7 for x in tree.level_nodes[0]})
-# print({str(n.tokens) : [i,n.tokens] for i,n in enumerate(tree.level_nodes[0])})
-# mapping = {str(n.tokens) : [i,n.get_padded_word_tokens()] for i,n in zip(reversed(range(len(tree.level_nodes[0]))),tree.level_nodes[0])} #reversed so that if a word exists twice the lower id will take
-# for n in tree.level_nodes[0]:
-#   n.distinct_lookup_id = mapping[str(n.tokens)][0]
-#
-# print([n.distinct_lookup_id for n in tree.level_nodes[0]])
-# ss = list(mapping.values())
-# ss.sort()
-# print(ss)
+    # print(x.batch_root.bebug_get_tree(attr="tokens"))
+    # print(set([x.tokens for x in tree.level_nodes[0]]))
+    # print({str(x.tokens) : 7 for x in tree.level_nodes[0]})
+    # print({str(n.tokens) : [i,n.tokens] for i,n in enumerate(tree.level_nodes[0])})
+    # mapping = {str(n.tokens) : [i,n.get_padded_word_tokens()] for i,n in zip(reversed(range(len(tree.level_nodes[0]))),tree.level_nodes[0])} #reversed so that if a word exists twice the lower id will take
+    # for n in tree.level_nodes[0]:
+    #   n.distinct_lookup_id = mapping[str(n.tokens)][0]
+    #
+    # print([n.distinct_lookup_id for n in tree.level_nodes[0]])
+    # ss = list(mapping.values())
+    # ss.sort()
+    # print(ss)
 
-# tree.make_distinct_words()
-# print("here")
-# print(tree.distinct_word_embedding_tokens)
-# print([n.distinct_lookup_id for n in tree.level_nodes[0]])
+    # tree.make_distinct_words()
+    # print("here")
+    # print(tree.distinct_word_embedding_tokens)
+    # print([n.distinct_lookup_id for n in tree.level_nodes[0]])
 
-# with open('../chars.txt', encoding='utf-8') as f:
-#   chars = [char.strip() for char in f.readlines()]
-# print(chars)
+    # with open('../chars.txt', encoding='utf-8') as f:
+    #   chars = [char.strip() for char in f.readlines()]
+    # print(chars)
 
-# print(x.children[0].children[0].children[0].tokens)
-# print(x.bebug_get_tree("tokens"))
-# node = Node(struct=tt.text_to_tree_struct("I like big butts. I can not lie."),id=0,level=2,type="debug root") #level 0 is word node
-# node.expand_struct()
-# #print(node.children[-1].children[-1].tokens) #see that tokens are correct :)
-# print("struct",node.struct)
-# print("word ids",node.bebug_get_tree(attr="id"))
-# print("tokens",node.bebug_get_tree(attr="tokens"))
-# #print(node.bebug_get_tree())
-# print({i:3 for i in range(5)})
+    # print(x.children[0].children[0].children[0].tokens)
+    # print(x.bebug_get_tree("tokens"))
+    # node = Node(struct=tt.text_to_tree_struct("I like big butts. I can not lie."),id=0,level=2,type="debug root") #level 0 is word node
+    # node.expand_struct()
+    # #print(node.children[-1].children[-1].tokens) #see that tokens are correct :)
+    # print("struct",node.struct)
+    # print("word ids",node.bebug_get_tree(attr="id"))
+    # print("tokens",node.bebug_get_tree(attr="tokens"))
+    # #print(node.bebug_get_tree())
+    # print({i:3 for i in range(5)})

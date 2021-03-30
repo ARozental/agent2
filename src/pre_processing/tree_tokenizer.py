@@ -21,9 +21,8 @@ class Splitters:
 
 
 class TreeTokenizer:
-    letter_tokenizer = defaultdict(int, dict(
-        zip([l.strip() for l in open('chars.txt', 'r', encoding='utf-8').readlines()], range(7777))))
-    reverse_tokenizer = {value: key for key, value in letter_tokenizer.items()}
+    letter_tokenizer = defaultdict(int, {char.strip(): i for i, char in enumerate(open('chars.txt', encoding='utf-8'))})
+    reverse_tokenizer = {index: char for char, index in letter_tokenizer.items()}
     split_functions = None  # [paragraph_to_sentences, self.sentence_to_words]
     max_depth = None
     separators = ['', ' ', '<s>', '<p>', '<c>']
@@ -38,7 +37,7 @@ class TreeTokenizer:
     @classmethod
     def tokenize_word(cls, word):
         # "sheeבt" => [68, 57, 54, 54, 0, 69]
-        return [cls.letter_tokenizer[l] for l in word]
+        return [cls.letter_tokenizer[letter] for letter in word]
 
     @classmethod
     def detokenize(cls, struct):

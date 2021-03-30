@@ -12,8 +12,8 @@ seed_torch(0)  # 0 learns 2 doesn't (before no cnn layer)
 LOG_EVERY = 2
 PRINT_RECONSTRUCTED_TEXT = True
 
-dataset = DummyDataset(batch_size=2, num_examples=2)
-# dataset = BookDataset(batch_size=2, no_stats=True, num_examples=2)
+dataset = DummyDataset(batch_size=2, max_num=2)
+# dataset = BookDataset(batch_size=2, no_stats=True, max_num=2)
 
 model = AgentModel(TreeTokenizer())
 model.to(Config.device)

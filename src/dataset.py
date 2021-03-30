@@ -4,13 +4,13 @@ import glob
 
 
 class Dataset(IterableDataset):
-    def __init__(self, folder, batch_size=2, num_examples=None):
+    def __init__(self, folder, batch_size=2, max_num=None):
         self.tree_tokenizer = TreeTokenizer()
         self.batch_size = batch_size
 
         self.data = glob.glob(folder)
-        if num_examples is not None:
-            self.data = self.data[:num_examples]
+        if max_num is not None:
+            self.data = self.data[:max_num]
 
     def _process(self, file):
         raise NotImplementedError

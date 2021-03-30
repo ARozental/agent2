@@ -13,7 +13,6 @@ class Config:
     mlm_rate = 0.15  # 0.15 like BERT
     batch_size = 2  # todo: use it to create the actual dataset, it is also hardcoded there
     drop_rate = 0.0
-    batch_size = batch_size
 
     pad_token_id = 1  # hard coded; will break logic if changed!!!
     eos_token_id = 2  # hard coded; will break logic if changed!!!

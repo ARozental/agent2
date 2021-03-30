@@ -1,9 +1,10 @@
 from src.config import Config
 from src.datasets import BookDataset, DummyDataset
 from src.logger import Logger
+from src.pre_processing import TreeTokenizer
 from src.utils import seed_torch
 from src.model import AgentModel
-from src.pre_processing import TreeTokenizer
+from torch.utils.data.dataloader import DataLoader
 import torch
 
 seed_torch(0)  # 0 learns 2 doesn't (before no cnn layer)
@@ -11,10 +12,17 @@ seed_torch(0)  # 0 learns 2 doesn't (before no cnn layer)
 LOG_EVERY = 2
 PRINT_RECONSTRUCTED_TEXT = True
 
-dataset = DummyDataset(batch_size=2, max_num=2)
-# dataset = BookDataset(batch_size=2, no_stats=True, max_num=2)
+dataset = DummyDataset(max_num=2)
+# dataset = BookDataset(no_stats=True, max_num=4)
 
-model = AgentModel(TreeTokenizer())
+dataloader = DataLoader(
+    dataset,
+    batch_size=Config.batch_size,
+    collate_fn=TreeTokenizer.batch_texts_to_trees,
+    num_workers=0,
+)
+
+model = AgentModel()
 model.to(Config.device)
 # model.train()
 
@@ -39,7 +47,7 @@ for epoch in range(10001):
     print('Epoch', epoch + 1)
     generate = True
 
-    for batch in dataset:
+    for batch in dataloader:
         model.train()
         main_optimizer.zero_grad()
 
@@ -70,7 +78,7 @@ for epoch in range(10001):
 
             nodes = batch.batch_root.children
             res = [model.full_decode(node) for node in nodes]
-            reconstructed_text = [model.tree_tokenizer.deep_detokenize(r, 3) for r in res]
+            reconstructed_text = [TreeTokenizer.deep_detokenize(r, 3) for r in res]
             sizes1 = [len(r) for r in res]  # should be [2,1]
             sizes2 = [[len(c.children) for c in r.children] for r in nodes]  # should be [2,1]
             sizes = {1: sizes1, 2: sizes2}

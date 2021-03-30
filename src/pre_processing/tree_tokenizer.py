@@ -6,21 +6,42 @@ import nltk
 import re
 
 
+class Splitters:
+    sentence_splitter = nltk.data.load('tokenizers/punkt/english.pickle')
+
+    @classmethod
+    def sentence_to_words(cls, sentence):
+        # "I like big butts." => ['I', 'like', 'big', 'butts.']
+        return re.split(' ', sentence)
+
+    @classmethod
+    def paragraph_to_sentences(cls, p):
+        # "I like big butts. I can not lie." => ['I like big butts.', 'I can not lie.']
+        return cls.sentence_splitter.tokenize(p)
+
+
 class TreeTokenizer:
-    def __init__(self, char_file="chars.txt"):
-        self.letter_tokenizer = defaultdict(int, dict(
-            zip([l.strip() for l in open(char_file, "r", encoding='utf-8').readlines()], range(7777))))
-        self.reverse_tokenizer = {value: key for key, value in self.letter_tokenizer.items()}
-        self.sentence_spliter = nltk.data.load('tokenizers/punkt/english.pickle')
-        self.split_functions = [self.paragraph_to_sentences, self.sentence_to_words]
-        self.max_depth = len(self.split_functions)
-        self.seperators = ['', ' ', '<s>', '<p>', '<c>']
+    letter_tokenizer = defaultdict(int, dict(
+        zip([l.strip() for l in open('chars.txt', 'r', encoding='utf-8').readlines()], range(7777))))
+    reverse_tokenizer = {value: key for key, value in letter_tokenizer.items()}
+    split_functions = None  # [paragraph_to_sentences, self.sentence_to_words]
+    max_depth = None
+    separators = ['', ' ', '<s>', '<p>', '<c>']
 
-    def tokenize_word(self, word):
+    @classmethod
+    def finalize(cls):
+        """
+        Called by the Dataset class after the split_functions are set.
+        """
+        cls.max_depth = len(cls.split_functions)
+
+    @classmethod
+    def tokenize_word(cls, word):
         # "sheeבt" => [68, 57, 54, 54, 0, 69]
-        return [self.letter_tokenizer[l] for l in word]
+        return [cls.letter_tokenizer[l] for l in word]
 
-    def detokenize(self, struct):
+    @classmethod
+    def detokenize(cls, struct):
         # struct=> [3,4,5,67,8]
         # vec/struct to text todo: make it
         res = ""
@@ -28,42 +49,30 @@ class TreeTokenizer:
             if c == Config.eos_token_id:
                 return res
             else:
-                res += self.reverse_tokenizer[c]
+                res += cls.reverse_tokenizer[c]
         return res
 
-    def deep_detokenize(self, struct, level):
-        if level == 0:  # isinstance(struct[0], int):
-            return self.detokenize(struct)
-        else:
-            return self.seperators[level - 1].join([self.deep_detokenize(s, level - 1) for s in struct])
-            # return " ".join([self.deep_detokenize(s) for s in struct])
+    @classmethod
+    def deep_detokenize(cls, struct, level):
+        if level == 0:
+            return cls.detokenize(struct)
 
-    def sentence_to_words(self, sentence):
-        # "I like big butts." => ['I', 'like', 'big', 'butts.']
-        # print('sentence', sentence)
-        # print('words', re.split(' ', sentence))
-        return re.split(' ', sentence)
+        return cls.separators[level - 1].join([cls.deep_detokenize(s, level - 1) for s in struct])
 
-    def paragraph_to_sentences(self, p):
-        # "I like big butts. I can not lie." => ['I like big butts.', 'I can not lie.']
-        # print('paragraph', p)
-        return self.sentence_spliter.tokenize(p)
-
-    def text_to_tree_struct(self, text, level=2):
-        # if level == 2:
-        #     print('full text', text)
+    @classmethod
+    def text_to_tree_struct(cls, text, level):
         # "I like big butts. I can not lie." => [[[32], [61, 58, 60, 54], [51, 58, 56], [51, 70, 69, 69, 68, 10]], [[32], [52, 50, 63], [63, 64, 69], [61, 58, 54, 10]]]
-        if level > 0:
-            return [self.text_to_tree_struct(x, level - 1) for x in self.split_functions[self.max_depth - level](text)
-                    if len(x) > 0]
-        else:
-            return self.tokenize_word(text)
+        if level == 0:
+            return cls.tokenize_word(text)
 
-    def batch_texts_to_trees(self, texts):  # todo: use level here to make ensure texts are in the right depth
+        return [cls.text_to_tree_struct(x, level - 1) for x in cls.split_functions[level - 1](text) if len(x) > 0]
+
+    @classmethod
+    def batch_texts_to_trees(cls, texts):  # todo: use level here to make ensure texts are in the right depth
         # input: ["I like big butts. I can not lie.","You other brothers can't deny"]
         # self.text_to_tree_struct(texts[0])
         # exit()
-        structs = [self.text_to_tree_struct(text) for text in texts]
+        structs = [cls.text_to_tree_struct(text, level=Config.agent_level) for text in texts]
         batch_root = Node(struct=structs, type="batch root", id=0, level=Config.agent_level + 1)
         batch_root.expand_struct()
         batch_tree = BatchTree(batch_root)
@@ -76,10 +85,9 @@ class TreeTokenizer:
 
 
 if __name__ == '__main__':
-    tt = TreeTokenizer()
     # x = tt.tokenize_word("sheeבt")
     # x = tt.text_to_tree_struct("I like big   butts. I can not lie.")
-    tree = tt.batch_texts_to_trees(["I like big butts. I can not lie.", "some other song"])
+    tree = TreeTokenizer.batch_texts_to_trees(["I like big butts. I can not lie.", "some other song"])
     # x = tt.batch_texts_to_trees(["I am big. you are too.","I am big. you are too."] )
     # print([[k,len(v)] for (k,v) in x.level_nodes.items()])
     # print(x.batch_root.struct)

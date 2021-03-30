@@ -1,21 +1,20 @@
 from src.agent import AgentLevel
-import torch.nn as nn
-import torch
 from src.config import Config
 from src.losses.mlm import calc_mlm_loss
 from src.losses.coherence import calc_coherence_loss
 from src.losses.reconstruction import calc_reconstruction_loss
 from src.losses.generation import calc_generation_loss
-from src.pre_processing import Node
+from src.pre_processing import Node, TreeTokenizer
+import torch.nn as nn
+import torch
 
 
 class AgentModel(nn.Module):
-    def __init__(self, tree_tokenizer):
+    def __init__(self):
         super().__init__()
-        self.tree_tokenizer = tree_tokenizer
-        num_letters = len(tree_tokenizer.letter_tokenizer.keys())
+        num_letters = len(TreeTokenizer.letter_tokenizer.keys())
         self.agent_levels = nn.ModuleList([AgentLevel(i, num_letters) for i in range(Config.agent_level + 2)])
-        self.char_embedding_layer = nn.Embedding(len(tree_tokenizer.letter_tokenizer.keys()), Config.vector_sizes[0])
+        self.char_embedding_layer = nn.Embedding(num_letters, Config.vector_sizes[0])
 
     def set_word_vectors(self, batch_tree):
         node_batch = batch_tree.level_nodes[0]
@@ -140,5 +139,5 @@ class AgentModel(nn.Module):
             n.level = level
             nodes.append(n)
         decoded = [self.full_decode(n) for n in nodes]
-        return  [self.tree_tokenizer.deep_detokenize(r, level+1) for r in decoded]
+        return [TreeTokenizer.deep_detokenize(r, level+1) for r in decoded]
 

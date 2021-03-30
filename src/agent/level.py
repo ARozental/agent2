@@ -150,52 +150,51 @@ class AgentLevel(nn.Module):
         vectors = self.compressor(self.encoder(matrices, mask,eos_positions), mask)
         [n.set_vector(v) for n, v in zip(node_batch, vectors)]
 
-
-    def vecs_to_children_vecs(self,vecs):
-        #0th-element is the eos token; X is a vector
+    def vecs_to_children_vecs(self, vecs):
+        # 0th-element is the eos token; X is a vector
         decompressed = self.decompressor(vecs)
-        length = Config.sequence_lengths[self.level]
+        max_length = Config.sequence_lengths[self.level]
 
         eos_vector = self.eos_vector.unsqueeze(0).unsqueeze(0)
-        dot = (decompressed / decompressed.norm(dim=2, keepdim=True) * eos_vector / eos_vector.norm()).sum(dim=-1,keepdim=True)
+        dot = (decompressed / decompressed.norm(dim=2, keepdim=True) * eos_vector / eos_vector.norm()).sum(dim=-1,
+                                                                                                           keepdim=True)
         ll = self.eos_classifier1(dot).squeeze(-1)
         mask_arr = []
         eos_positions_arr = []
         num_tokens_arr = []
         for logits in ll:
-          if max(F.softmax(logits, dim=0)) > 0.01:
-            num_tokens = torch.argmax(logits)
-          else:
-            num_tokens = len(logits)
-          num_tokens_arr.append(num_tokens)
-          mask = [False]
-          eos_positions = [0]
-          for i in range(1,int(num_tokens)):
+            if max(F.softmax(logits, dim=0)) > 0.01:
+                num_tokens = torch.argmax(logits)
+            else:
+                num_tokens = len(logits)
+            num_tokens_arr.append(num_tokens)
+            mask = [False]
+            eos_positions = [0]
+            for i in range(1, int(num_tokens)):
+                mask.append(False)
+                eos_positions.append(0)
             mask.append(False)
-            eos_positions.append(0)
-          mask.append(False)
-          eos_positions.append(1)
-          mask = (mask + ([True] * length))[0:length]
-          eos_positions = (eos_positions + ([0] * length))[0:length]
-          mask_arr.append(mask)
-          eos_positions_arr.append(eos_positions)
+            eos_positions.append(1)
+            mask = (mask + ([True] * max_length))[0:max_length]
+            eos_positions = (eos_positions + ([0] * max_length))[0:max_length]
+            mask_arr.append(mask)
+            eos_positions_arr.append(eos_positions)
         mask = torch.tensor(mask_arr).to(Config.device)
         eos_positions = torch.tensor(eos_positions_arr).to(Config.device)
 
         post_decoder = self.decoder(decompressed, mask, eos_positions)
-        num_tokens = ((1-mask.int()).sum(dim=-1)-1)
-
+        num_tokens = ((1 - mask.int()).sum(dim=-1) - 1)
 
         children_vecs_arr = []
         for i in range(vecs.shape[0]):
-          children_vecs = []
-          for t in range(0,num_tokens[i]):
-            children_vecs.append(post_decoder[i][t])
-          children_vecs_arr.append(children_vecs)
+            children_vecs = []
+            for t in range(0, num_tokens[i]):
+                children_vecs.append(post_decoder[i][t])
+            children_vecs_arr.append(children_vecs)
 
-        return children_vecs_arr,post_decoder,mask
+        return children_vecs_arr, post_decoder, mask
 
     def node_to_children_vecs(self, node):
-      vecs = node.vector.unsqueeze(0)
-      children_vecs_arr, _, _ = self.vecs_to_children_vecs(vecs)
-      return children_vecs_arr[0]
+        vecs = node.vector.unsqueeze(0)
+        children_vecs_arr, _, _ = self.vecs_to_children_vecs(vecs)
+        return children_vecs_arr[0]

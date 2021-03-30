@@ -12,8 +12,8 @@ seed_torch(0)  # 0 learns 2 doesn't (before no cnn layer)
 LOG_EVERY = 2
 PRINT_RECONSTRUCTED_TEXT = True
 
-dataset = DummyDataset(batch_size=2)
-# dataset = BookDataset(batch_size=2, no_stats=True)
+dataset = DummyDataset(batch_size=2, num_examples=2)
+# dataset = BookDataset(batch_size=2, no_stats=True, num_examples=2)
 
 model = AgentModel(TreeTokenizer())
 model.to(Config.device)
@@ -66,6 +66,7 @@ for epoch in range(10001):
             main_optimizer.step()
 
         if epoch % LOG_EVERY == 0:
+            model.eval()
             generated = {i: model.generate_texts(i, 1)[0] for i in reversed(range(3))}
 
             nodes = batch.batch_root.children

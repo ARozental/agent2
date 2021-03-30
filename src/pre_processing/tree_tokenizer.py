@@ -32,6 +32,7 @@ class TreeTokenizer:
         """
         Called by the Dataset class after the split_functions are set.
         """
+        cls.split_functions = cls.split_functions[:Config.agent_level]  # Truncate down to the max agent level
         cls.max_depth = len(cls.split_functions)
 
     @classmethod

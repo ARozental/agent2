@@ -3,7 +3,6 @@ from src.datasets import BookDataset, DummyDataset
 from src.logger import Logger
 from src.utils import seed_torch
 from src.model import AgentModel
-from src.tree_dataset import TreeDataset
 from src.pre_processing import TreeTokenizer
 import torch
 

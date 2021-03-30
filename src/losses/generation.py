@@ -7,7 +7,7 @@ bce_loss = nn.BCEWithLogitsLoss()
 def calc_generation_loss(agent_level,vectors,matrices,mask):
     batch, vec_size = vectors.shape
     fake_vecs = agent_level.generator.forward(vectors)  # make fake vecs of the same shape
-    labels = torch.cat([torch.ones(batch), torch.zeros(batch)], dim=0)
+    labels = torch.cat([torch.ones(batch), torch.zeros(batch)], dim=0).to(Config.device)
     vecs = torch.cat([vectors, fake_vecs], dim=0)
     disc_loss = agent_level.discriminator.get_loss(vecs, labels)
 
@@ -22,7 +22,7 @@ def calc_generation_loss(agent_level,vectors,matrices,mask):
 
 
     coherence = agent_level.coherence_checker(fake_vecs).squeeze()
-    coherence_g_loss = (coherence - torch.zeros(batch)).norm() / ((Config.vector_sizes[agent_level.level + 1]) ** 0.5)
+    coherence_g_loss = (coherence - torch.zeros(batch).to(Config.device)).norm() / ((Config.vector_sizes[agent_level.level + 1]) ** 0.5)
     # also get coherence for fake children??
 
     return coherence_g_loss, cnn_disc_loss+disc_loss

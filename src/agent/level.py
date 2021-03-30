@@ -45,7 +45,7 @@ class AgentLevel(nn.Module):
 
     def get_children(self, node_batch, embedding_matrix=None):
         if self.level == 0:  # words => get token vectors
-            lookup_ids = torch.LongTensor([x.get_padded_word_tokens() for x in node_batch])
+            lookup_ids = torch.LongTensor([x.get_padded_word_tokens() for x in node_batch]).to(Config.device)
             mask = lookup_ids == Config.pad_token_id
             eos_positions = (lookup_ids == Config.eos_token_id).float()
             matrices = torch.index_select(embedding_matrix, 0, lookup_ids.view(-1))
@@ -54,7 +54,7 @@ class AgentLevel(nn.Module):
                 Config.sequence_lengths[self.level],
                 Config.vector_sizes[self.level]
             )
-            labels = torch.LongTensor([x.get_padded_word_tokens() for x in node_batch])
+            labels = torch.LongTensor([x.get_padded_word_tokens() for x in node_batch]).to(Config.device)
 
             return matrices, mask, eos_positions, embedding_matrix, labels
         elif self.level == 1:  # sentences => get word vectors
@@ -66,8 +66,8 @@ class AgentLevel(nn.Module):
                 masks.append(mask)
                 eos_positions.append(eos_position)
 
-            mask = torch.tensor(masks)
-            eos_positions = torch.tensor(eos_positions)
+            mask = torch.tensor(masks).to(Config.device)
+            eos_positions = torch.tensor(eos_positions).to(Config.device)
 
             # +3 for pad, eos and join, also need to change the matrix here and also handle Join-Tokens
             # TODO - todo: +2 if join is not in config
@@ -76,8 +76,8 @@ class AgentLevel(nn.Module):
 
             lookup_ids = torch.LongTensor(
                 [(x + [0] + ([1] * Config.sequence_lengths[1]))[0:Config.sequence_lengths[1]] for x in
-                 lookup_ids])
-            lookup_ids = torch.LongTensor(lookup_ids).view(-1)
+                 lookup_ids]).to(Config.device)
+            lookup_ids = lookup_ids.view(-1)
             matrices = torch.index_select(embedding_matrix, 0, lookup_ids)
             matrices = matrices.view(
                 len(node_batch),
@@ -108,11 +108,11 @@ class AgentLevel(nn.Module):
                 matrix = ([c.vector for c in children] + [self.eos_vector] + ([self.pad_vector] * max_length))[0:max_length]
                 matrix = torch.stack(matrix)
                 matrices.append(matrix)
-            mask = torch.tensor(masks)
-            eos_positions = torch.tensor(eos_positions)
+            mask = torch.tensor(masks).to(Config.device)
+            eos_positions = torch.tensor(eos_positions).to(Config.device)
 
             # [sentences in node_batch, max words in sentence, word vec size] #after padding
-            matrices = torch.stack(matrices)
+            matrices = torch.stack(matrices).to(Config.device)
             # all_children_ids = [c.id for c in all_children]
             all_children_ids = [i for x in all_ids for i in x if i > 1]  #
 
@@ -123,8 +123,8 @@ class AgentLevel(nn.Module):
                 return i if i <= 1 else id_to_place[i]
 
             embedding = [c.vector for c in all_children]
-            labels = torch.tensor([[id_to_place2(i) for i in x] for x in all_ids])
-            embedding = torch.stack([self.eos_vector] + embedding)
+            labels = torch.tensor([[id_to_place2(i) for i in x] for x in all_ids]).to(Config.device)
+            embedding = torch.stack([self.eos_vector] + embedding).to(Config.device)
 
             return matrices, mask, eos_positions, embedding, labels
 
@@ -145,8 +145,8 @@ class AgentLevel(nn.Module):
 
         matrices = torch.stack(matrices)  # [sentences in node_batch, max words in sentence, word vec size]
 
-        mask = torch.tensor(masks)
-        eos_positions = torch.tensor(eos_positions)
+        mask = torch.tensor(masks).to(Config.device)
+        eos_positions = torch.tensor(eos_positions).to(Config.device)
         vectors = self.compressor(self.encoder(matrices, mask,eos_positions), mask)
         [n.set_vector(v) for n, v in zip(node_batch, vectors)]
 
@@ -179,8 +179,8 @@ class AgentLevel(nn.Module):
           eos_positions = (eos_positions + ([0] * length))[0:length]
           mask_arr.append(mask)
           eos_positions_arr.append(eos_positions)
-        mask = torch.tensor(mask_arr)
-        eos_positions = torch.tensor(eos_positions_arr)
+        mask = torch.tensor(mask_arr).to(Config.device)
+        eos_positions = torch.tensor(eos_positions_arr).to(Config.device)
 
         post_decoder = self.decoder(decompressed, mask, eos_positions)
         num_tokens = ((1-mask.int()).sum(dim=-1)-1)

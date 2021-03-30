@@ -1,3 +1,4 @@
+from src.config import Config
 from src.datasets import BookDataset, DummyDataset
 from src.logger import Logger
 from src.utils import seed_torch
@@ -8,16 +9,14 @@ import torch
 
 seed_torch(0)  # 0 learns 2 doesn't (before no cnn layer)
 
-USE_CUDA = False
 LOG_EVERY = 2
 PRINT_RECONSTRUCTED_TEXT = True
 
 dataset = DummyDataset(batch_size=2)
 # dataset = BookDataset(batch_size=2, no_stats=True)
 
-device = torch.device('cuda' if torch.cuda.is_available() and USE_CUDA else 'cpu')
 model = AgentModel(TreeTokenizer())
-model.to(device)
+model.to(Config.device)
 # model.train()
 
 main_params = [param for name, param in model.named_parameters() if

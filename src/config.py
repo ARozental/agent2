@@ -1,3 +1,5 @@
+import torch
+
 class Config:
     sequence_lengths = [7, 9, 6, 3, 4]  # [10,12,6,20,20]
     #vector_sizes = [8, 10, 12, 14, 16, 18]  # [4,6,8,10] #letters,words,sentences,paragraphs,chapters,book
@@ -17,6 +19,10 @@ class Config:
     join_token_id = 3  # hard coded; will break logic if changed!!!
     join_texts = True
     agent_level = 2  # most complex vector agent can create 2=paragraph
+
+    # Run configuration below (keeping device here makes it easier to use throughout all of the code)
+    USE_CUDA = True
+    device = torch.device('cuda' if torch.cuda.is_available() and USE_CUDA else 'cpu')
 
 # MODEL_CONFIG = [
 #     {

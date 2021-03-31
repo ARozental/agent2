@@ -73,7 +73,7 @@ def train():
 
             if epoch % LOG_EVERY == 0:
                 model.eval()
-                generated = {i: model.generate_texts(i, 1)[0] for i in reversed(range(3))}
+                generated = {i: model.generate_texts(i, 1)[0] for i in reversed(range(Config.agent_level + 1))}
 
                 nodes = batch.batch_root.children
                 res = [model.full_decode(node) for node in nodes]

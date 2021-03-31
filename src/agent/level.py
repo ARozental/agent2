@@ -18,30 +18,26 @@ class AgentLevel(nn.Module):
         self.coherence_checker = CoherenceChecker(Config.vector_sizes[level + 1])
         self.generator = Generator(Config.vector_sizes[level + 1])
         self.discriminator = Discriminator(Config.vector_sizes[level + 1])
-        self.cnn_discriminator = CnnDiscriminator(Config.vector_sizes[level],Config.sequence_lengths[level])
+        self.cnn_discriminator = CnnDiscriminator(Config.vector_sizes[level], Config.sequence_lengths[level])
 
         if self.level == 0:
             self.token_bias = nn.Parameter(torch.zeros(num_letters, requires_grad=True))
         else:
             self.token_bias = None
 
-        self.classifier1w = nn.Parameter(2.2*torch.ones(1, requires_grad=True)) #with sane init
-        self.classifier1b = nn.Parameter((-1.1)*torch.ones(1, requires_grad=True)) #with sane init
+        self.classifier1w = nn.Parameter(2.2 * torch.ones(1, requires_grad=True))  # with sane init
+        self.classifier1b = nn.Parameter((-1.1) * torch.ones(1, requires_grad=True))  # with sane init
         self.classifier1act = nn.ELU()
 
         # TODO - Initialize right (not uniform?)
         self.eos_vector = nn.Parameter(torch.rand(Config.vector_sizes[level], requires_grad=True))
         self.join_vector = nn.Parameter(torch.rand(Config.vector_sizes[level], requires_grad=True))
         self.mask_vector = nn.Parameter(torch.rand(Config.vector_sizes[level], requires_grad=True))
-        self.pad_vector = nn.Parameter(torch.zeros(Config.vector_sizes[level], requires_grad=True)) # doesn't really requires_grad, it is here for debug
+        self.pad_vector = nn.Parameter(torch.zeros(Config.vector_sizes[level], requires_grad=True))  # True for debug
 
-
-
-
-
-    def eos_classifier1(self,dot):
-      # needed to make sure w1 can never be negative
-      return self.classifier1act(dot*self.classifier1w.abs()) + self.classifier1b
+    def eos_classifier1(self, dot):
+        # needed to make sure w1 can never be negative
+        return self.classifier1act(dot * self.classifier1w.abs()) + self.classifier1b
 
     def get_children(self, node_batch, embedding_matrix=None):
         if self.level == 0:  # words => get token vectors
@@ -147,7 +143,7 @@ class AgentLevel(nn.Module):
 
         mask = torch.tensor(masks).to(Config.device)
         eos_positions = torch.tensor(eos_positions).to(Config.device)
-        vectors = self.compressor(self.encoder(matrices, mask,eos_positions), mask)
+        vectors = self.compressor(self.encoder(matrices, mask, eos_positions), mask)
         [n.set_vector(v) for n, v in zip(node_batch, vectors)]
 
     def vecs_to_children_vecs(self, vecs):

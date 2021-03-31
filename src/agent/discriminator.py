@@ -35,8 +35,7 @@ class CnnDiscriminator(nn.Module):
 
         self.d1 = nn.Linear(self.num_filters, 1)
 
-    def forward(self, x):  # gets matrixes after decompress and decode
-        batch, length, vector_size = x.shape
+    def forward(self, x):  # gets matrices after decompress and decode
         x = torch.transpose(x, 1, 2)
         x = self.conv(x)
         x = self.max_pool(x).squeeze(-1)

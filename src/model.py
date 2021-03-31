@@ -56,7 +56,7 @@ class AgentModel(nn.Module):
     def forward(self, batch_tree, with_debug=False, generate=None,epoch=0):
         word_embedding_matrix = self.set_text_vectors(batch_tree)
         embedding_matrices = {0: self.char_embedding_layer.weight, 1: word_embedding_matrix}
-        total_g_loss, total_disc_loss, total_loss = 0,0,0
+        total_g_loss, total_disc_loss, total_loss = 0, 0, 0
         loss_object = {}
         for i in range(Config.agent_level + 1):
             node_batch = batch_tree.level_nodes[i]  # currently all the nodes in the level
@@ -78,7 +78,7 @@ class AgentModel(nn.Module):
             }
 
             if generate:
-                g_loss, disc_loss = calc_generation_loss(self.agent_levels[i],vectors,matrices,mask)
+                g_loss, disc_loss = calc_generation_loss(self.agent_levels[i], vectors, matrices, mask)
                 loss_object[i]["g"] = g_loss.item()
                 loss_object[i]["disc_loss"] = disc_loss.item()
                 total_g_loss += g_loss

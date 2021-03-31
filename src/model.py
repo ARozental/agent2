@@ -110,12 +110,13 @@ class AgentModel(nn.Module):
 
         return output
 
-    def full_decode(self,node):
-        #todo: refactor it to not get embedding_matrices as a parameter (only the char matrix is needed and it belongs to self)
+    def full_decode(self, node):
+        # todo: refactor it to not get embedding_matrices as a parameter (only the char matrix is needed and it belongs to self)
         agent_level = self.agent_levels[node.level]
         children_vecs = agent_level.node_to_children_vecs(node)
-        if node.level==0:
-            output = torch.matmul(torch.stack(children_vecs,dim=0).unsqueeze(0), self.char_embedding_layer.weight.transpose(0, 1))
+        if node.level == 0:
+            output = torch.stack(children_vecs, dim=0).unsqueeze(0)
+            output = torch.matmul(output, self.char_embedding_layer.weight.transpose(0, 1))
             output = torch.argmax(output, dim=2)
             node.struct = output.tolist()
             return node.struct
@@ -124,7 +125,7 @@ class AgentModel(nn.Module):
         for v in children_vecs:
             n = Node()
             n.vector = v
-            n.level = node.level-1
+            n.level = node.level - 1
             n.parent = node
             children_nodes.append(n)
         node.children = children_nodes

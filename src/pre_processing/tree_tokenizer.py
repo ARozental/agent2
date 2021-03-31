@@ -65,13 +65,13 @@ class TreeTokenizer:
         if level == 0:
             return cls.tokenize_word(text)
 
-        return [cls.text_to_tree_struct(x, level - 1) for x in cls.split_functions[level - 1](text) if len(x) > 0]
+        max_length = Config.sequence_lengths[level - 1] - 1  # Truncate to fit in the EOS token.
+        parts = cls.split_functions[level - 1](text)
+        return [cls.text_to_tree_struct(part, level - 1)[:max_length] for part in parts if len(part) > 0]
 
     @classmethod
     def batch_texts_to_trees(cls, texts):  # todo: use level here to make ensure texts are in the right depth
         # input: ["I like big butts. I can not lie.","You other brothers can't deny"]
-        # self.text_to_tree_struct(texts[0])
-        # exit()
         structs = [cls.text_to_tree_struct(text, level=Config.agent_level) for text in texts]
         batch_root = Node(struct=structs, type="batch root", id=0, level=Config.agent_level + 1)
         batch_root.expand_struct()

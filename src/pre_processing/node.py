@@ -23,8 +23,11 @@ class Node:
     def get_padded_word_tokens(self):
         if self.level != 0:
             return
-        return (self.tokens + [Config.eos_token_id] + [Config.pad_token_id] * Config.sequence_lengths[0])[
-               0:Config.sequence_lengths[0]]
+
+        # Focus on shortening the tokens, the EOS token should always be at the end no matter what.
+        max_length = Config.sequence_lengths[0]
+        tokens = self.tokens[:max_length - 1] + [Config.eos_token_id]
+        return tokens + [Config.pad_token_id] * (max_length - len(tokens))
 
     def set_vector(self, v):
         self.vector = v

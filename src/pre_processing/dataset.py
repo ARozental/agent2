@@ -1,6 +1,17 @@
 from src.pre_processing import TreeTokenizer
 from torch.utils.data import IterableDataset
+import torch
 import glob
+
+
+# If using workers then make each dataset worker only process a certain chunk
+def worker_init_fn(worker_id):
+    worker_info = torch.utils.data.get_worker_info()
+    dataset = worker_info.dataset  # the dataset copy in this worker process
+    num_workers = worker_info.num_workers
+
+    dataset.data = dataset.data[worker_id::num_workers]
+    dataset.init_tree_tokenizer()
 
 
 class Dataset(IterableDataset):

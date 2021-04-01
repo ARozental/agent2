@@ -54,26 +54,22 @@ class AgentLevel(nn.Module):
 
             return matrices, mask, eos_positions, embedding_matrix, labels
         elif self.level == 1:  # sentences => get word vectors
-            masks = []
-            eos_positions = []
-            for n in node_batch:
-                mask = ([False for c in n.children] + [False] + ([True] * Config.sequence_lengths[1]))[0:Config.sequence_lengths[1]]
-                eos_position = ([0.0 for c in n.children] + [1.0] + ([0.0] * Config.sequence_lengths[1]))[0:Config.sequence_lengths[1]]
-                masks.append(mask)
-                eos_positions.append(eos_position)
+            max_length = Config.sequence_lengths[1]
+            masks = [[False] * (len(node.children) + 1) for node in node_batch]
+            eos_positions = [[0.0] * len(node.children) + [1.0] for node in node_batch]
+
+            masks = [item + [True] * (max_length - len(item)) for item in masks]
+            eos_positions = [item + [0.0] * (max_length - len(item)) for item in eos_positions]
 
             mask = torch.tensor(masks).to(Config.device)
             eos_positions = torch.tensor(eos_positions).to(Config.device)
 
             # +3 for pad, eos and join, also need to change the matrix here and also handle Join-Tokens
             # TODO - todo: +2 if join is not in config
-            lookup_ids = [list(map(lambda x: x.distinct_lookup_id + 2 + int(Config.join_texts), n.children)) for n in
-                          node_batch]
-
-            lookup_ids = torch.LongTensor(
-                [(x + [0] + ([1] * Config.sequence_lengths[1]))[0:Config.sequence_lengths[1]] for x in
-                 lookup_ids]).to(Config.device)
-            lookup_ids = lookup_ids.view(-1)
+            add_value = 2 + int(Config.join_texts)
+            lookup_ids = [[child.distinct_lookup_id + add_value for child in node.children] for node in node_batch]
+            lookup_ids = torch.LongTensor([item + [0] + [1] * (max_length - (len(item) + 1)) for item in lookup_ids])
+            lookup_ids = lookup_ids.to(Config.device).view(-1)
             matrices = torch.index_select(embedding_matrix, 0, lookup_ids)
             matrices = matrices.view(
                 len(node_batch),
@@ -83,27 +79,20 @@ class AgentLevel(nn.Module):
             labels = lookup_ids.view(len(node_batch), Config.sequence_lengths[1])
 
             return matrices, mask, eos_positions, embedding_matrix, labels
-
         else:
-            matrices = []
-            masks = []
-            eos_positions = []
-            all_children = []
-            all_ids = []
-
             max_length = Config.sequence_lengths[self.level]
-            for n in node_batch:
-                children = n.children
-                mask = ([False for c in children] + [False] + ([True] * max_length))[0:max_length]
-                eos_position = ([0.0 for c in children] + [1.0] + ([0.0] * max_length))[0:max_length]
-                ids = ([c.id for c in children] + [0] + ([1] * max_length))[0:max_length]
-                all_children.extend(children)
-                masks.append(mask)
-                eos_positions.append(eos_position)
-                all_ids.append(ids)
-                matrix = ([c.vector for c in children] + [self.eos_vector] + ([self.pad_vector] * max_length))[0:max_length]
-                matrix = torch.stack(matrix)
-                matrices.append(matrix)
+            masks = [[False] * (len(node.children) + 1) for node in node_batch]
+            eos_positions = [[0.0] * len(node.children) + [1.0] for node in node_batch]
+            all_ids = [[child.id for child in node.children] + [0] for node in node_batch]
+            matrices = [[child.vector for child in node.children] + [self.eos_vector] for node in node_batch]
+
+            masks = [item + [True] * (max_length - len(item)) for item in masks]
+            eos_positions = [item + [0.0] * (max_length - len(item)) for item in eos_positions]
+            all_ids = [item + [1] * (max_length - len(item)) for item in all_ids]
+            matrices = [torch.stack(item + [self.pad_vector] * (max_length - len(item))) for item in matrices]
+
+            all_children = [child for node in node_batch for child in node.children]
+
             mask = torch.tensor(masks).to(Config.device)
             eos_positions = torch.tensor(eos_positions).to(Config.device)
 
@@ -126,23 +115,21 @@ class AgentLevel(nn.Module):
 
     def realize_vectors(self, node_batch):
         # todo: realize join vectors here
-        matrices = []
-        masks = []
-        eos_positions = []
-        for n in node_batch:
-            mask = ([False for c in n.children] + [False] + ([True] * Config.sequence_lengths[self.level]))[0:Config.sequence_lengths[self.level]]
-            eos_position = ([0.0 for c in n.children] + [1.0] + ([0.0] * Config.sequence_lengths[self.level]))[0:Config.sequence_lengths[self.level]]
-            matrix = ([c.vector for c in n.children] + [self.eos_vector] + (
-                    [self.pad_vector] * Config.sequence_lengths[self.level]))[0:Config.sequence_lengths[self.level]]
-            matrix = torch.stack(matrix)
-            matrices.append(matrix)
-            masks.append(mask)
-            eos_positions.append(eos_position)
+        max_length = Config.sequence_lengths[self.level]
+        masks = [[False] * (len(node.children) + 1) for node in node_batch]
+        eos_positions = [[0.0] * len(node.children) + [1.0] for node in node_batch]
+        matrices = [[child.vector for child in node.children] + [self.eos_vector] for node in node_batch]
 
-        matrices = torch.stack(matrices)  # [sentences in node_batch, max words in sentence, word vec size]
+        masks = [item + [True] * (max_length - len(item)) for item in masks]
+        eos_positions = [item + [0.0] * (max_length - len(item)) for item in eos_positions]
+        matrices = [torch.stack(item + [self.pad_vector] * (max_length - len(item))) for item in matrices]
 
         mask = torch.tensor(masks).to(Config.device)
         eos_positions = torch.tensor(eos_positions).to(Config.device)
+
+        # [sentences_in_node_batch, max_words_in sentence, word vec size]
+        matrices = torch.stack(matrices).to(Config.device)
+
         vectors = self.compressor(self.encoder(matrices, mask, eos_positions), mask)
         [n.set_vector(v) for n, v in zip(node_batch, vectors)]
 

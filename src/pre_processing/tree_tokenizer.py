@@ -63,11 +63,31 @@ class TreeTokenizer:
     def text_to_tree_struct(cls, text, level):
         # "I like big butts. I can not lie." => [[[32], [61, 58, 60, 54], [51, 58, 56], [51, 70, 69, 69, 68, 10]], [[32], [52, 50, 63], [63, 64, 69], [61, 58, 54, 10]]]
         if level == 0:
-            return cls.tokenize_word(text)
+            return cls.tokenize_word(text)[:Config.sequence_lengths[0] - 1]  # Truncate to fit in the EOS token.
 
-        max_length = Config.sequence_lengths[level - 1] - 1  # Truncate to fit in the EOS token.
+        max_length = Config.sequence_lengths[level] - 1  # Truncate to fit in the EOS token.
         parts = cls.split_functions[level - 1](text)
-        return [cls.text_to_tree_struct(part, level - 1)[:max_length] for part in parts if len(part) > 0]
+        return [cls.text_to_tree_struct(part, level - 1) for part in parts if len(part) > 0][:max_length]
+
+    @classmethod
+    def find_max_lengths(cls, text):
+        text = text[0]
+        level_lengths = {i: 0 for i in range(Config.agent_level + 1)}
+
+        def sub_find(item, level):
+            if level == 0:
+                length = len(item)
+            else:
+                parts = [part for part in cls.split_functions[level - 1](item) if len(part) > 0]
+                [sub_find(part, level - 1) for part in parts]
+                length = len(parts)
+
+            if length > level_lengths[level]:
+                level_lengths[level] = length
+
+        sub_find(text, Config.agent_level)
+
+        return level_lengths
 
     @classmethod
     def batch_texts_to_trees(cls, texts):  # todo: use level here to make ensure texts are in the right depth

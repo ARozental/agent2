@@ -17,6 +17,7 @@ def book_to_chapters(text):
 
 
 class BookDataset(Dataset):
+    # sequence lengths for all five books: [47, 72, 23, 200, 21]
     def __init__(self, no_stats=False, **kwargs):
         if no_stats:
             folder = os.path.join('datasets', 'no_stats_books', '*.txt')
@@ -39,9 +40,4 @@ class BookDataset(Dataset):
         if Config.agent_level < Config.levels['CHAPTER']:
             data = CHAPTER_REGEX.sub('', data)
 
-        data = data.split(' ')
-        # print(' '.join(data[:5]))
-        return ' '.join(data[:5])
-        # data = data.split('. ')
-        # return data[0]
-        return data[:25]
+        return data

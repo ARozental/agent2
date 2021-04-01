@@ -11,14 +11,14 @@ import time
 seed_torch(0)  # 0 learns 2 doesn't (before no cnn layer)
 
 LOG_EVERY = 10
-GENERATE_TEXT = False
+GENERATE_TEXT = True
 PRINT_RECONSTRUCTED_TEXT = True
 
 
 # Need to wrap in a function for the child workers
 def train():
-    dataset = DummyDataset(max_num=2)
-    # dataset = BookDataset(no_stats=True, max_num=2)
+    # dataset = DummyDataset(max_num=2)
+    dataset = BookDataset(no_stats=True, max_num=2)
 
     dataloader = DataLoader(
         dataset,
@@ -75,6 +75,9 @@ def train():
                 model.eval()
                 generated = {i: model.generate_texts(i, 1)[0] for i in reversed(range(Config.agent_level + 1))}
 
+                # I believe that this needs to be called to make the vectors correspond with the updated weights
+                model.set_text_vectors(batch)
+
                 nodes = batch.batch_root.children
                 res = [model.full_decode(node) for node in nodes]
                 reconstructed_text = [TreeTokenizer.deep_detokenize(r, Config.agent_level + 1) for r in res]
@@ -83,6 +86,13 @@ def train():
                 sizes = {1: sizes1, 2: sizes2}
 
                 if PRINT_RECONSTRUCTED_TEXT:
+                    reconstructed = [[model.full_decode(node) for node in batch.level_nodes[i][:5]] for i in
+                                     range(Config.agent_level)]
+                    reconstructed = [[TreeTokenizer.deep_detokenize(node, i + 1) for node in items] for i, items in
+                                     enumerate(reconstructed)]
+                    for i, text in enumerate(reconstructed):
+                        print(i, text)
+
                     print(reconstructed_text)
                 Logger.log_text(generated, reconstructed_text, sizes, step=epoch)
         # print('Epoch', epoch + 1, 'completed in', "%s seconds" % (time.time() - start_time))

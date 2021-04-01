@@ -41,7 +41,8 @@ class AgentLevel(nn.Module):
 
     def get_children(self, node_batch, embedding_matrix=None):
         if self.level == 0:  # words => get token vectors
-            lookup_ids = torch.LongTensor([x.get_padded_word_tokens() for x in node_batch]).to(Config.device)
+            lookup_ids = torch.LongTensor([node.get_padded_word_tokens() for node in node_batch])
+            lookup_ids = lookup_ids.to(Config.device)
             mask = lookup_ids == Config.pad_token_id
             eos_positions = (lookup_ids == Config.eos_token_id).float()
             matrices = torch.index_select(embedding_matrix, 0, lookup_ids.view(-1))
@@ -50,9 +51,9 @@ class AgentLevel(nn.Module):
                 Config.sequence_lengths[self.level],
                 Config.vector_sizes[self.level]
             )
-            labels = torch.LongTensor([x.get_padded_word_tokens() for x in node_batch]).to(Config.device)
 
-            return matrices, mask, eos_positions, embedding_matrix, labels
+            # lookup_ids is also labels
+            return matrices, mask, eos_positions, embedding_matrix, lookup_ids
         elif self.level == 1:  # sentences => get word vectors
             max_length = Config.sequence_lengths[1]
             masks = [[False] * (len(node.children) + 1) for node in node_batch]

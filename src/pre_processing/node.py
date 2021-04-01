@@ -2,18 +2,14 @@ from src.config import Config
 
 
 class Node:
-    def __init__(self, id=None, parent=None, children=None, level=2, struct=None,
-                 tokens=None, vector=None, realized=False, type=None, tree_id=None):
+    def __init__(self, id=None, children=None, level=2, struct=None, tokens=None, vector=None, type=None):
         self.id = id  # pre order id
         self.struct = struct
-        self.parent = parent
         self.children = children
         self.level = level
         self.tokens = tokens
         self.vector = vector
-        self.realized = realized
         self.type = type  # leaf, inner, root, join_token, eos_token
-        self.tree_id = tree_id  # not sure if we'll need it
         self.distinct_lookup_id = None
         self.mlm_loss = None
         self.coherence_loss = None
@@ -86,7 +82,7 @@ class Node:
                 if Config.join_texts is True and self.level >= 2 and self.type != "batch root":
                     self.join_struct_short_children()
                 self.children = [
-                    expand_struct1(Node(struct=x, parent=self, level=self.level - 1, type="inner"))
+                    expand_struct1(Node(struct=x, level=self.level - 1, type="inner"))
                     for x in self.struct]
             # self.struct = None #todo: delete struct later, this line is only commented for debugging and it take up space
             return self

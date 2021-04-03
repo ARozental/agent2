@@ -5,20 +5,21 @@ from src.pre_processing import TreeTokenizer, worker_init_fn
 from src.utils import seed_torch
 from src.model import AgentModel
 from torch.utils.data.dataloader import DataLoader
+import numpy as np
 import torch
 import time
 
 seed_torch(0)  # 0 learns 2 doesn't (before no cnn layer)
 
 LOG_EVERY = 10
-GENERATE_TEXT = True
+GENERATE_TEXT = False
 PRINT_RECONSTRUCTED_TEXT = True
 
 
 # Need to wrap in a function for the child workers
 def train():
-    # dataset = DummyDataset(max_num=2)
-    dataset = BookDataset(no_stats=True, max_num=2)
+    dataset = DummyDataset(max_num=2)
+    # dataset = BookDataset(no_stats=True, max_num=2)
 
     dataloader = DataLoader(
         dataset,
@@ -41,10 +42,11 @@ def train():
     generator_optimizer = torch.optim.Adam(generator_params, 0.002)
     discriminator_optimizer = torch.optim.Adam(discriminator_params, 0.002)
 
-    Logger.setup()
+    # Logger.setup()
+    all_times = []
     for epoch in range(10001):
-        print('Epoch', epoch + 1)
-        # start_time = time.time()
+        # print('Epoch', epoch + 1)
+        start_time = time.time()
 
         for batch in dataloader:
             model.train()
@@ -73,29 +75,35 @@ def train():
 
             if epoch % LOG_EVERY == 0:
                 model.eval()
-                generated = {i: model.generate_texts(i, 1)[0] for i in reversed(range(Config.agent_level + 1))}
+
+                # TODO - Re-enable the generator
+                # if GENERATE_TEXT:
+                #     generated = {i: model.generate_texts(i, 1)[0] for i in reversed(range(Config.agent_level + 1))}
+                #     Logger.log_text(generated, step=epoch)
 
                 # I believe that this needs to be called to make the vectors correspond with the updated weights
                 model.set_text_vectors(batch)
 
                 nodes = batch.batch_root.children
-                res = [model.full_decode(node) for node in nodes]
-                reconstructed_text = [TreeTokenizer.deep_detokenize(r, Config.agent_level + 1) for r in res]
-                sizes1 = [len(r) for r in res]  # should be [2,1]
-                sizes2 = [[len(c.children) for c in r.children] for r in nodes]  # should be [2,1]
-                sizes = {1: sizes1, 2: sizes2}
+                expected = [TreeTokenizer.deep_detokenize(node.struct, Config.agent_level) for node in nodes]
 
                 if PRINT_RECONSTRUCTED_TEXT:
                     reconstructed = [[model.full_decode(node) for node in batch.level_nodes[i][:5]] for i in
-                                     range(Config.agent_level)]
-                    reconstructed = [[TreeTokenizer.deep_detokenize(node, i + 1) for node in items] for i, items in
+                                     range(Config.agent_level + 1)]
+                    reconstructed = [[TreeTokenizer.deep_detokenize(node, i) for node in items] for i, items in
                                      enumerate(reconstructed)]
                     for i, text in enumerate(reconstructed):
-                        print(i, text)
+                        print('Level', i, text)
+                        Logger.log_reconstructed(text, i, step=epoch)
+                        if i == len(reconstructed) - 1:
+                            if text[0] == expected[0] and text[1] == expected[1]:
+                                print('MATCHED')
+                                exit()
 
-                    print(reconstructed_text)
-                Logger.log_text(generated, reconstructed_text, sizes, step=epoch)
-        # print('Epoch', epoch + 1, 'completed in', "%s seconds" % (time.time() - start_time))
+                current_time = time.time() - start_time
+                all_times.append(current_time)
+                print('Epoch', epoch + 1, 'completed in', round(current_time, 3), 'average',
+                      round(np.mean(all_times), 3))
 
 
 if __name__ == '__main__':

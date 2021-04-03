@@ -38,16 +38,17 @@ class TreeTokenizer:
     @classmethod
     def tokenize_word(cls, word):
         # "sheeבt" => [68, 57, 54, 54, 0, 69]
-        return [cls.letter_tokenizer[letter] for letter in word]
+        # Add the EoS token here since it needs to be split later into its own word (if necessary based on word length)
+        return [cls.letter_tokenizer[letter] for letter in word] + [Config.eos_token_id]
 
     @classmethod
     def detokenize(cls, struct):
         # struct=> [3,4,5,67,8]
-        # vec/struct to text todo: make it
+        # TODO - Simplify this into list comprehension
         res = ""
         for c in struct:
             if c == Config.eos_token_id:
-                return res
+                return res + cls.separators[1]
             else:
                 res += cls.reverse_tokenizer[c]
         return res
@@ -57,17 +58,20 @@ class TreeTokenizer:
         if level == 0:
             return cls.detokenize(struct)
 
-        return cls.separators[level - 1].join([cls.deep_detokenize(s, level - 1) for s in struct])
+        if level == 1:
+            # [:-1] should delete the last space and the <s> separator should handle the spaces between
+            return ''.join([cls.deep_detokenize(s, level - 1) for s in struct])[:-1]
+
+        return cls.separators[level].join([cls.deep_detokenize(s, level - 1) for s in struct])
 
     @classmethod
     def text_to_tree_struct(cls, text, level):
         # "I like big butts. I can not lie." => [[[32], [61, 58, 60, 54], [51, 58, 56], [51, 70, 69, 69, 68, 10]], [[32], [52, 50, 63], [63, 64, 69], [61, 58, 54, 10]]]
         if level == 0:
-            return cls.tokenize_word(text)[:Config.sequence_lengths[0] - 1]  # Truncate to fit in the EOS token.
+            return cls.tokenize_word(text)
 
-        max_length = Config.sequence_lengths[level] - 1  # Truncate to fit in the EOS token.
         parts = cls.split_functions[level - 1](text)
-        return [cls.text_to_tree_struct(part, level - 1) for part in parts if len(part) > 0][:max_length]
+        return [cls.text_to_tree_struct(part, level - 1) for part in parts if len(part) > 0]
 
     @classmethod
     def find_max_lengths(cls, text):

@@ -20,10 +20,7 @@ class Node:
         if self.level != 0:
             return
 
-        # Focus on shortening the tokens, the EOS token should always be at the end no matter what.
-        max_length = Config.sequence_lengths[0]
-        tokens = self.tokens[:max_length - 1] + [Config.eos_token_id]
-        return tokens + [Config.pad_token_id] * (max_length - len(tokens))
+        return self.tokens + [Config.pad_token_id] * (Config.sequence_lengths[0] - len(self.tokens))
 
     def set_vector(self, v):
         self.vector = v
@@ -59,7 +56,6 @@ class Node:
                 subs = [sub[i:i + max_length] for i in range(0, len(sub), max_length)]
                 new_struct.extend(subs)
         self.struct = new_struct
-        return
 
     def expand_struct(self):  # move set ids to after we are done with joins
         counter = self.id

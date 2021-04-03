@@ -80,7 +80,7 @@ class AgentModel(nn.Module):
             if generate:
                 g_loss, disc_loss = calc_generation_loss(self.agent_levels[i], vectors, matrices, mask)
                 loss_object[i]["g"] = g_loss.item()
-                loss_object[i]["disc_loss"] = disc_loss.item()
+                loss_object[i]["disc"] = disc_loss.item()
                 total_g_loss += g_loss
                 total_disc_loss += disc_loss
 
@@ -117,7 +117,7 @@ class AgentModel(nn.Module):
         if node.level == 0:
             output = torch.stack(children_vecs, dim=0).unsqueeze(0)
             output = torch.matmul(output, self.char_embedding_layer.weight.transpose(0, 1))
-            output = torch.argmax(output, dim=2)
+            output = torch.argmax(output, dim=2).squeeze(0)
             node.struct = output.tolist()
             return node.struct
 

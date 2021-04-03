@@ -147,27 +147,36 @@ class AgentLevel(nn.Module):
         eos_positions_arr = []
         num_tokens_arr = []
         for logits in ll:
-            if max(F.softmax(logits, dim=0)) > 0.01:
+            if F.softmax(logits, dim=0).max() > 0.5 and torch.sigmoid(logits).max() > 0.5:
                 num_tokens = torch.argmax(logits)
             else:
                 num_tokens = len(logits)
+
             num_tokens_arr.append(num_tokens)
-            mask = [False]
-            eos_positions = [0]
-            for i in range(1, int(num_tokens)):
+
+            # TODO - Transform this into list comprehension or create a big matrix and then use indices
+            mask = []
+            eos_positions = []
+            for i in range(int(num_tokens)):
                 mask.append(False)
                 eos_positions.append(0)
             mask.append(False)
             eos_positions.append(1)
             mask = (mask + ([True] * max_length))[0:max_length]
             eos_positions = (eos_positions + ([0] * max_length))[0:max_length]
+
             mask_arr.append(mask)
             eos_positions_arr.append(eos_positions)
         mask = torch.tensor(mask_arr).to(Config.device)
         eos_positions = torch.tensor(eos_positions_arr).to(Config.device)
 
         post_decoder = self.decoder(decompressed, mask, eos_positions)
-        num_tokens = ((1 - mask.int()).sum(dim=-1) - 1)
+        num_tokens = (1 - mask.int()).sum(dim=-1)  # TODO - refactor this to use num_tokens_arr
+
+        # There can be a word that has only the EoS token so cannot assume one less token
+        # But for all other levels we can assume one less token so we subtract one from the num tokens/mask.
+        if self.level > 0:
+            num_tokens -= 1
 
         children_vecs_arr = []
         for i in range(vecs.shape[0]):

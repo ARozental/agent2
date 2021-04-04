@@ -76,18 +76,18 @@ def train():
             if epoch % LOG_EVERY == 0:
                 model.eval()
 
-                # TODO - Re-enable the generator
-                # if GENERATE_TEXT:
-                #     generated = {i: model.generate_texts(i, 1)[0] for i in reversed(range(Config.agent_level + 1))}
-                #     Logger.log_text(generated, step=epoch)
-
                 # I believe that this needs to be called to make the vectors correspond with the updated weights
                 model.set_text_vectors(batch)
 
-                nodes = batch.batch_root.children
-                expected = [TreeTokenizer.deep_detokenize(node.struct, Config.agent_level) for node in nodes]
+                if GENERATE_TEXT:
+                    generated = {i: model.generate_texts(i, 1)[0] for i in reversed(range(Config.agent_level + 1))}
+                    print(generated)
+                    Logger.log_text(generated, step=epoch)
 
                 if PRINT_RECONSTRUCTED_TEXT:
+                    nodes = batch.batch_root.children
+                    expected = [TreeTokenizer.deep_detokenize(node.struct, Config.agent_level) for node in nodes]
+
                     reconstructed = [[model.full_decode(node) for node in batch.level_nodes[i][:5]] for i in
                                      range(Config.agent_level + 1)]
                     reconstructed = [[TreeTokenizer.deep_detokenize(node, i) for node in items] for i, items in

@@ -140,5 +140,5 @@ class AgentModel(nn.Module):
             n.level = level
             nodes.append(n)
         decoded = [self.full_decode(n) for n in nodes]
-        return [TreeTokenizer.deep_detokenize(r, level+1) for r in decoded]
+        return [TreeTokenizer.deep_detokenize(r, level) for r in decoded]
 

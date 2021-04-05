@@ -137,55 +137,31 @@ class AgentLevel(nn.Module):
     def vecs_to_children_vecs(self, vecs):
         # 0th-element is the eos token; X is a vector
         decompressed = self.decompressor(vecs)
-        max_length = Config.sequence_lengths[self.level]
 
         eos_vector = self.eos_vector.unsqueeze(0).unsqueeze(0)
         dot = (decompressed / decompressed.norm(dim=2, keepdim=True) * eos_vector / eos_vector.norm()).sum(dim=-1,
                                                                                                            keepdim=True)
-        ll = self.eos_classifier1(dot).squeeze(-1)
-        mask_arr = []
-        eos_positions_arr = []
-        num_tokens_arr = []
-        for logits in ll:
-            if F.softmax(logits, dim=0).max() > 0.5 and torch.sigmoid(logits).max() > 0.5:
-                num_tokens = torch.argmax(logits)
-            else:
-                num_tokens = len(logits)
+        logits = self.eos_classifier1(dot).squeeze(-1)
 
-            num_tokens_arr.append(num_tokens)
+        max_softmax = F.softmax(logits, dim=1).max(dim=-1).values
+        max_sigmoid = torch.sigmoid(logits).max(dim=-1).values
+        is_valid = torch.logical_and(max_softmax > 0.5, max_sigmoid > 0.5)
+        num_tokens = torch.where(is_valid, torch.argmax(logits, dim=-1), logits.size(1))
 
-            # TODO - Transform this into list comprehension or create a big matrix and then use indices
-            mask = []
-            eos_positions = []
-            for i in range(int(num_tokens)):
-                mask.append(False)
-                eos_positions.append(0)
-            mask.append(False)
-            eos_positions.append(1)
-            mask = (mask + ([True] * max_length))[0:max_length]
-            eos_positions = (eos_positions + ([0] * max_length))[0:max_length]
-
-            mask_arr.append(mask)
-            eos_positions_arr.append(eos_positions)
-        mask = torch.tensor(mask_arr).to(Config.device)
-        eos_positions = torch.tensor(eos_positions_arr).to(Config.device)
+        range_matrix = torch.arange(logits.size(1)).repeat(logits.size(0), 1).to(Config.device)
+        mask = range_matrix > num_tokens.unsqueeze(-1)
+        eos_positions = (range_matrix == num_tokens.unsqueeze(-1)).long()
 
         post_decoder = self.decoder(decompressed, mask, eos_positions)
-        num_tokens = (1 - mask.int()).sum(dim=-1)  # TODO - refactor this to use num_tokens_arr
 
-        # There can be a word that has only the EoS token so cannot assume one less token
-        # But for all other levels we can assume one less token so we subtract one from the num tokens/mask.
-        if self.level > 0:
-            num_tokens -= 1
+        # There can be a word that has only the EoS token so words need at least one token
+        # But for all other levels we can assume one less token
+        if self.level == 0:
+            num_tokens += 1
 
-        children_vecs_arr = []
-        for i in range(vecs.shape[0]):
-            children_vecs = []
-            for t in range(0, num_tokens[i]):
-                children_vecs.append(post_decoder[i][t])
-            children_vecs_arr.append(children_vecs)
+        children_vectors = [decoded[:num] for num, decoded in zip(num_tokens, post_decoder)]
 
-        return children_vecs_arr, post_decoder, mask
+        return children_vectors, post_decoder, mask
 
     def node_to_children_vecs(self, node):
         vecs = node.vector.unsqueeze(0)

@@ -115,7 +115,7 @@ class AgentModel(nn.Module):
         agent_level = self.agent_levels[node.level]
         children_vecs = agent_level.node_to_children_vecs(node)
         if node.level == 0:
-            output = torch.stack(children_vecs, dim=0).unsqueeze(0)
+            output = children_vecs.unsqueeze(0)
             output = torch.matmul(output, self.char_embedding_layer.weight.transpose(0, 1))
             output = torch.argmax(output, dim=2).squeeze(0)
             node.struct = output.tolist()

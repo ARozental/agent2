@@ -1,79 +1,110 @@
+from src.config import Config
+from src.datasets import BookDataset, DummyDataset
 from src.logger import Logger
+from src.pre_processing import TreeTokenizer, worker_init_fn
 from src.utils import seed_torch
 from src.model import AgentModel
-from src.tree_dataset import TreeDataset
-from src.pre_processing import TreeTokenizer
+from torch.utils.data.dataloader import DataLoader
+import numpy as np
 import torch
+import time
 
 seed_torch(0)  # 0 learns 2 doesn't (before no cnn layer)
 
-USE_CUDA = False
-LOG_EVERY = 2
+LOG_EVERY = 10
+GENERATE_TEXT = False
+PRINT_RECONSTRUCTED_TEXT = True
 
-dataset = TreeDataset()
-device = torch.device('cuda' if torch.cuda.is_available() and USE_CUDA else 'cpu')
-model = AgentModel(TreeTokenizer())
-model.to(device)
-# model.train()
-model.eval()
-for batch_tree in dataset.iterator():
-    model.forward(batch_tree)
-    break
 
-main_params = [param for name, param in model.named_parameters() if
-               ("discriminator" not in name) and ("generator" not in name)]
-generator_params = [param for name, param in model.named_parameters() if "generator" in name]
-discriminator_params = [param for name, param in model.named_parameters() if "discriminator" in name]
+# Need to wrap in a function for the child workers
+def train():
+    dataset = DummyDataset(max_num=2)
+    # dataset = BookDataset(no_stats=True, max_num=2)
 
-main_optimizer = torch.optim.Adam(main_params, 0.002)
-generator_optimizer = torch.optim.Adam(generator_params, 0.002)
-discriminator_optimizer = torch.optim.Adam(discriminator_params, 0.002)
+    dataloader = DataLoader(
+        dataset,
+        batch_size=Config.batch_size,
+        collate_fn=TreeTokenizer.batch_texts_to_trees,
+        worker_init_fn=worker_init_fn,
+        num_workers=0,
+        # persistent_workers=True  # This is helpful when num_workers > 0
+    )
 
-# for name, param in model.named_parameters():
-#     if param.requires_grad:
-#         print(name)
-# optimizer_D = torch.optim.AdamW(D.parameters(), 0.001)
-# d_loss.backward(retain_graph=True)
-# print("discriminator_param: ", discriminator_params[0].data[0][0])
+    model = AgentModel()
+    model.to(Config.device)
 
-Logger.setup()
-for epoch in range(10001):
-    # print('Epoch', epoch + 1)
-    generate = True
+    main_params = [param for name, param in model.named_parameters() if
+                   ("discriminator" not in name) and ("generator" not in name)]
+    generator_params = [param for name, param in model.named_parameters() if "generator" in name]
+    discriminator_params = [param for name, param in model.named_parameters() if "discriminator" in name]
 
-    for batch in dataset.iterator():
-        model.train()
-        main_optimizer.zero_grad()
+    main_optimizer = torch.optim.Adam(main_params, 0.002)
+    generator_optimizer = torch.optim.Adam(generator_params, 0.002)
+    discriminator_optimizer = torch.optim.Adam(discriminator_params, 0.002)
 
-        g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=generate, epoch=epoch)
-        Logger.log_losses(g_loss, disc_loss, main_loss, loss_object, step=epoch)
-        Logger.log_l2_classifiers(model, step=epoch)
+    # Logger.setup()
+    all_times = []
+    for epoch in range(10001):
+        # print('Epoch', epoch + 1)
+        start_time = time.time()
 
-        if generate:
-            generator_optimizer.zero_grad()
-            discriminator_optimizer.zero_grad()
-            main_loss.backward(retain_graph=True)
-            [setattr(p, "requires_grad", False) for p in main_params + generator_params]
-            disc_loss.backward(retain_graph=True)
-            [setattr(p, "requires_grad", True) for p in generator_params]
-            [setattr(p, "requires_grad", False) for p in discriminator_params]
-            (g_loss - disc_loss * 0.2).backward()  # disc loss won't go down even when this is commented => BUG
-            [setattr(p, "requires_grad", True) for p in main_params + discriminator_params]
-            main_optimizer.step()
-            discriminator_optimizer.step()
-            generator_optimizer.step()
-        else:
-            main_loss.backward()
-            main_optimizer.step()
+        for batch in dataloader:
+            model.train()
+            main_optimizer.zero_grad()
 
-        if epoch % LOG_EVERY == 0:
-            generated = {i: model.generate_texts(i, 1)[0] for i in reversed(range(3))}
+            g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT, epoch=epoch)
+            Logger.log_losses(g_loss, disc_loss, main_loss, loss_object, step=epoch)
+            Logger.log_l2_classifiers(model, step=epoch)
 
-            nodes = batch.batch_root.children
-            res = [model.full_decode(node) for node in nodes]
-            reconstructed_text = [model.tree_tokenizer.deep_detokenize(r, 3) for r in res]
-            sizes1 = [len(r) for r in res]  # should be [2,1]
-            sizes2 = [[len(c.children) for c in r.children] for r in nodes]  # should be [2,1]
-            sizes = {1: sizes1, 2: sizes2}
+            if GENERATE_TEXT:
+                generator_optimizer.zero_grad()
+                discriminator_optimizer.zero_grad()
+                main_loss.backward(retain_graph=True)
+                [setattr(p, "requires_grad", False) for p in main_params + generator_params]
+                disc_loss.backward(retain_graph=True)
+                [setattr(p, "requires_grad", True) for p in generator_params]
+                [setattr(p, "requires_grad", False) for p in discriminator_params]
+                (g_loss - disc_loss * 0.2).backward()  # disc loss won't go down even when this is commented => BUG
+                [setattr(p, "requires_grad", True) for p in main_params + discriminator_params]
+                main_optimizer.step()
+                discriminator_optimizer.step()
+                generator_optimizer.step()
+            else:
+                main_loss.backward()
+                main_optimizer.step()
 
-            Logger.log_text(generated, reconstructed_text, sizes, step=epoch)
+            if epoch % LOG_EVERY == 0:
+                model.eval()
+
+                # I believe that this needs to be called to make the vectors correspond with the updated weights
+                model.set_text_vectors(batch)
+
+                if GENERATE_TEXT:
+                    generated = {i: model.generate_texts(i, 1)[0] for i in reversed(range(Config.agent_level + 1))}
+                    print(generated)
+                    Logger.log_text(generated, step=epoch)
+
+                if PRINT_RECONSTRUCTED_TEXT:
+                    nodes = batch.batch_root.children
+                    expected = [TreeTokenizer.deep_detokenize(node.struct, Config.agent_level) for node in nodes]
+
+                    reconstructed = [[model.full_decode(node) for node in batch.level_nodes[i][:5]] for i in
+                                     range(Config.agent_level + 1)]
+                    reconstructed = [[TreeTokenizer.deep_detokenize(node, i) for node in items] for i, items in
+                                     enumerate(reconstructed)]
+                    for i, text in enumerate(reconstructed):
+                        print('Level', i, text)
+                        Logger.log_reconstructed(text, i, step=epoch)
+                        if i == len(reconstructed) - 1:
+                            if text[0] == expected[0] and text[1] == expected[1]:
+                                print('MATCHED')
+                                exit()
+
+                current_time = time.time() - start_time
+                all_times.append(current_time)
+                print('Epoch', epoch + 1, 'completed in', round(current_time, 3), 'average',
+                      round(np.mean(all_times), 3))
+
+
+if __name__ == '__main__':
+    train()

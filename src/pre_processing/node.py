@@ -16,10 +16,17 @@ class Node:
         self.reconstruction_loss = None
         self.reconstruction_diff_loss = None
 
-    def get_padded_word_tokens(self):
+    def is_word(self):
         if self.level != 0:
-            return
+            return False
 
+        # sentence => [[1, 2, 3], [3, 2], -1, [2, 3]]
+        if self.tokens == -1:  # This is a join word for higher levels
+            return False
+
+        return True
+
+    def get_padded_word_tokens(self):
         return self.tokens + [Config.pad_token_id] * (Config.sequence_lengths[0] - len(self.tokens))
 
     def set_vector(self, v):

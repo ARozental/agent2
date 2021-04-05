@@ -41,13 +41,13 @@ class AgentLevel(nn.Module):
 
     def get_children(self, node_batch, embedding_matrix=None):
         if self.level == 0:  # words => get token vectors
-            lookup_ids = torch.LongTensor([node.get_padded_word_tokens() for node in node_batch])
+            lookup_ids = torch.LongTensor([node.get_padded_word_tokens() for node in node_batch if node.is_word()])
             lookup_ids = lookup_ids.to(Config.device)
             mask = lookup_ids == Config.pad_token_id
             eos_positions = (lookup_ids == Config.eos_token_id).float()
             matrices = torch.index_select(embedding_matrix, 0, lookup_ids.view(-1))
             matrices = matrices.view(
-                len(node_batch),
+                lookup_ids.size(0),
                 Config.sequence_lengths[self.level],
                 Config.vector_sizes[self.level]
             )

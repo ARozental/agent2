@@ -65,7 +65,7 @@ class AgentModel(nn.Module):
                                                                                                     i % 2])  # we only care about 0 and 1
             mlm_loss = calc_mlm_loss(self.agent_levels[i], matrices, mask, eos_positions, embedding_matrix, labels)
             coherence_loss = calc_coherence_loss(self.agent_levels[i], matrices, mask, eos_positions, embedding_matrix)
-            vectors = torch.stack([n.vector for n in node_batch])
+            vectors = torch.stack([node.vector for node in node_batch if i > 0 or node.is_word()])
             reconstruction_diff_loss,eos_loss,reconstruction_loss = calc_reconstruction_loss(self.agent_levels[i], matrices, vectors, mask,eos_positions, embedding_matrix,labels)
 
             total_loss += (mlm_loss.mean() + coherence_loss.mean() + reconstruction_loss.mean() + eos_loss.mean() + reconstruction_diff_loss.mean()).sum()

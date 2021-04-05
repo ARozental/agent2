@@ -56,6 +56,8 @@ class TreeTokenizer:
     @classmethod
     def deep_detokenize(cls, struct, level):
         if level == 0:
+            if struct == -1:
+                return ''
             return cls.detokenize(struct)
 
         if level == 1:

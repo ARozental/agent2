@@ -110,6 +110,7 @@ class AgentModel(nn.Module):
 
         return output
 
+    # TODO - Optimize this to call node_to_children_vecs as a batch of nodes instead of singular node
     def full_decode(self, node):
         # todo: refactor it to not get embedding_matrices as a parameter (only the char matrix is needed and it belongs to self)
         agent_level = self.agent_levels[node.level]

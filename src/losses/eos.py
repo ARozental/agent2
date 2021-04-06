@@ -10,8 +10,8 @@ def calc_eos_loss(agent_level, decompressed, eos_positions):
     eos_vector = agent_level.eos_vector.unsqueeze(0).unsqueeze(0)
     eos_labels = torch.argmax(eos_positions, dim=1)
 
-    dot = (decompressed / decompressed.norm(dim=2, keepdim=True) * eos_vector / eos_vector.norm()).sum(dim=-1,
-                                                                                                       keepdim=True)
+    dot = (decompressed / decompressed.norm(dim=2, keepdim=True) * eos_vector / eos_vector.norm())
+    dot = dot.sum(dim=-1, keepdim=True)
 
     cdot = agent_level.eos_classifier1(dot).squeeze(-1)
     loss1 = bce_loss(cdot, eos_positions).mean(-1)  # needed because of texts with full size and no EoS

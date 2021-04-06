@@ -4,7 +4,6 @@ import torch
 # It makes all non EoS positions go and be the opposite of EoS => fixed by: dot = torch.max(dot, torch.zeros(dot.shape))
 bce_loss = nn.BCEWithLogitsLoss(reduction='none')
 mce_loss = nn.CrossEntropyLoss(reduction='none')
-dot_act = nn.ELU()
 
 
 def calc_eos_loss(agent_level, decompressed, eos_positions):

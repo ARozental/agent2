@@ -93,24 +93,22 @@ class AgentLevel(nn.Module):
             matrices = [torch.stack(item + [self.pad_vector] * (max_length - len(item))) for item in matrices]
 
             all_children = [child for node in node_batch for child in node.children]
-
             mask = torch.tensor(masks).to(Config.device)
             eos_positions = torch.tensor(eos_positions).to(Config.device)
 
-            # [sentences in node_batch, max words in sentence, word vec size] #after padding
+            # [sentences in node_batch, max words in sentence, word vec size]
             matrices = torch.stack(matrices).to(Config.device)
-            # all_children_ids = [c.id for c in all_children]
-            all_children_ids = [i for x in all_ids for i in x if i > 1]  #
 
-            # 0 is saved for EoS,
-            id_to_place = dict(zip(all_children_ids, range(1, matrices.shape[0] * matrices.shape[1] + 1)))
+            # 0 is saved for EoS, 1 is saved for pad (so start counting at 2)
+            all_children_ids = set([i for x in all_ids for i in x if i > 1])  # set() just in case of duplicates
+            id_to_place = {child_id: i + 2 for i, child_id in enumerate(all_children_ids)}
 
             def id_to_place2(i):
                 return i if i <= 1 else id_to_place[i]
 
             embedding = [c.vector for c in all_children]
             labels = torch.tensor([[id_to_place2(i) for i in x] for x in all_ids]).to(Config.device)
-            embedding = torch.stack([self.eos_vector] + embedding).to(Config.device)
+            embedding = torch.stack([self.eos_vector] + [self.pad_vector] + embedding).to(Config.device)
 
             return matrices, mask, eos_positions, embedding, labels
 

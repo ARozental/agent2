@@ -3,6 +3,7 @@ from src.pre_processing.node import Node
 from src.config import Config
 from collections import defaultdict
 import nltk
+import os
 import re
 
 
@@ -21,7 +22,9 @@ class Splitters:
 
 
 class TreeTokenizer:
-    letter_tokenizer = defaultdict(int, {char.strip(): i for i, char in enumerate(open('chars.txt', encoding='utf-8'))})
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    char_file = os.path.join(dir_path, '..', '..', 'chars.txt')
+    letter_tokenizer = defaultdict(int, {char.strip(): i for i, char in enumerate(open(char_file, encoding='utf-8'))})
     reverse_tokenizer = {index: char for char, index in letter_tokenizer.items()}
     split_functions = None  # [paragraph_to_sentences, self.sentence_to_words]
     max_depth = None
@@ -43,28 +46,65 @@ class TreeTokenizer:
 
     @classmethod
     def detokenize(cls, struct):
-        # struct=> [3,4,5,67,8]
-        # TODO - Simplify this into list comprehension
-        res = ""
-        for c in struct:
-            if c == Config.eos_token_id:
-                return res + cls.separators[1]
-            else:
-                res += cls.reverse_tokenizer[c]
-        return res
+        # struct => [3,4,5,67,8]
+        try:
+            eos_index = struct.index(Config.eos_token_id)
+            struct = struct[:eos_index]
+        except ValueError:
+            eos_index = None  # No EoS token in this word
+
+        result = cls.separators[0].join([cls.reverse_tokenizer[c] for c in struct])
+
+        return result, eos_index is not None
 
     @classmethod
     def deep_detokenize(cls, struct, level):
         if level == 0:
-            if struct == -1:
-                return ''
+            if struct == -1:  # This is probably the parent call so returning some join token
+                return '<join>'
             return cls.detokenize(struct)
 
+        # Need to specifically handle the missing EoS token from words
         if level == 1:
-            # [:-1] should delete the last space and the <s> separator should handle the spaces between
-            return ''.join([cls.deep_detokenize(s, level - 1) for s in struct])[:-1]
+            result = []
+            continue_word = False
+            for word in struct:
+                if word == -1:
+                    # If the result is empty then don't do anything with the join
+                    if len(result) == 0:
+                        continue
 
-        return cls.separators[level].join([cls.deep_detokenize(s, level - 1) for s in struct])
+                    if continue_word:
+                        result.append(cls.separators[level + 1])
+                    else:
+                        result[-1] = cls.separators[level + 1]
+                    continue_word = False
+                    continue
+
+                text, has_eos = cls.deep_detokenize(word, level - 1)
+                if continue_word:
+                    result[-1] += text
+                else:
+                    result.append(text)
+
+                if has_eos:
+                    result.append(cls.separators[level])
+
+                continue_word = not has_eos
+            return ''.join(result[:-1])  # Delete the last separator
+
+        result = []
+        for part in struct:
+            if part == -1:
+                if len(result) == 0:
+                    continue
+
+                result[-1] = cls.separators[level + 1]
+            else:
+                result.append(cls.deep_detokenize(part, level - 1))
+                result.append(cls.separators[level])
+
+        return ''.join(result[:-1])
 
     @classmethod
     def text_to_tree_struct(cls, text, level):

@@ -1,6 +1,7 @@
 from src.agent import AgentLevel
 from src.config import Config
 from src.losses.eos import calc_eos_loss
+from src.losses.join import calc_join_loss
 from src.losses.mlm import calc_mlm_loss
 from src.losses.coherence import calc_coherence_loss
 from src.losses.reconstruction import calc_reconstruction_loss
@@ -61,21 +62,29 @@ class AgentModel(nn.Module):
         loss_object = {}
         for i in range(Config.agent_level + 1):
             node_batch = batch_tree.level_nodes[i]  # currently all the nodes in the level
-            matrices, mask, eos_positions, embedding_matrix, labels = self.agent_levels[i].get_children(node_batch,
+            matrices, mask, eos_positions, join_positions, embedding_matrix, labels = self.agent_levels[i].get_children(node_batch,
                                                                                                 embedding_matrices[
                                                                                                     i % 2])  # we only care about 0 and 1
             mlm_loss = calc_mlm_loss(self.agent_levels[i], matrices, mask, eos_positions, embedding_matrix, labels)
             coherence_loss = calc_coherence_loss(self.agent_levels[i], matrices, mask, eos_positions, embedding_matrix)
+
+            # TODO - Check if this grabbing of vectors is correct
             vectors = torch.stack([node.vector for node in node_batch if i > 0 or node.is_word()])
             decompressed = self.agent_levels[i].decompressor(vectors)
             reconstruction_diff_loss, reconstruction_loss = calc_reconstruction_loss(self.agent_levels[i], matrices, decompressed, mask, eos_positions, embedding_matrix, labels)
             eos_loss = calc_eos_loss(self.agent_levels[i], decompressed, eos_positions)
+
+            if Config.join_texts and i >= 1:
+                join_loss = calc_join_loss(self.agent_levels[i], decompressed, join_positions)
+            else:
+                join_loss = torch.tensor([0.0] * matrices.size(0))
 
             total_loss += (
                     mlm_loss.mean() +
                     coherence_loss.mean() +
                     reconstruction_loss.mean() +
                     eos_loss.mean() +
+                    join_loss.mean() +
                     reconstruction_diff_loss.mean()
             ).sum()
 
@@ -84,6 +93,7 @@ class AgentModel(nn.Module):
                 "c": coherence_loss.mean().item(),
                 "r": reconstruction_loss.mean().item(),
                 "e": eos_loss.mean().item(),
+                "j": join_loss.mean().item(),
                 "d": reconstruction_diff_loss.mean().item()
             }
 
@@ -94,10 +104,12 @@ class AgentModel(nn.Module):
                 total_g_loss += g_loss
                 total_disc_loss += disc_loss
 
+            # TODO - FIX THIS ZIP WHEN USING JOIN TOKEN
             [setattr(n, 'mlm_loss', l) for n, l in zip(node_batch, mlm_loss.tolist())]
             [setattr(n, 'coherence_loss', l) for n, l in zip(node_batch, coherence_loss.tolist())]
             [setattr(n, 'reconstruction_loss', l) for n, l in zip(node_batch, reconstruction_loss.tolist())]
             [setattr(n, 'eos_loss', l) for n, l in zip(node_batch, eos_loss.tolist())]
+            [setattr(n, 'join_loss', l) for n, l in zip(node_batch, join_loss.tolist())]
             [setattr(n, 'reconstruction_diff_loss', l) for n, l in zip(node_batch, reconstruction_diff_loss.tolist())]
 
             embedding_matrices[i] = embedding_matrix
@@ -122,6 +134,9 @@ class AgentModel(nn.Module):
 
     # TODO - Optimize this to call node_to_children_vecs as a batch of nodes instead of singular node
     def full_decode(self, node):
+        if node.is_join():
+            return node.struct
+
         # todo: refactor it to not get embedding_matrices as a parameter (only the char matrix is needed and it belongs to self)
         agent_level = self.agent_levels[node.level]
         children_vecs = agent_level.node_to_children_vecs(node)
@@ -135,7 +150,11 @@ class AgentModel(nn.Module):
         children_nodes = []
         for v in children_vecs:
             n = Node()
-            n.vector = v
+            if v is None:
+                n.tokens = -1
+                n.struct = -1
+            else:
+                n.vector = v
             n.level = node.level - 1
             n.parent = node
             children_nodes.append(n)

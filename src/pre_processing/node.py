@@ -26,6 +26,9 @@ class Node:
 
         return True
 
+    def is_join(self):
+        return self.tokens == -1
+
     def get_padded_word_tokens(self):
         return self.tokens + [Config.pad_token_id] * (Config.sequence_lengths[0] - len(self.tokens))
 

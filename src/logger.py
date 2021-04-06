@@ -8,6 +8,7 @@ class Logger:
         'c': 'coherence',
         'r': 'reconstruction',
         'e': 'eos',
+        'j': 'join',
         'd': 'reconstruction_diff',
         'g': 'generator',
         'disc': 'discriminator',

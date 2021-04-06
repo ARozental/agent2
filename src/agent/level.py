@@ -142,9 +142,9 @@ class AgentLevel(nn.Module):
                                                                                                            keepdim=True)
         logits = self.eos_classifier1(dot).squeeze(-1)
 
-        max_softmax = F.softmax(logits, dim=1).max(dim=-1).values
-        max_sigmoid = torch.sigmoid(logits).max(dim=-1).values
-        is_valid = torch.logical_and(max_softmax > 0.5, max_sigmoid > 0.5)
+        eos_softmax = F.softmax(logits, dim=1).max(dim=-1).values
+        eos_sigmoid = torch.sigmoid(logits).max(dim=-1).values
+        is_valid = torch.logical_and(eos_softmax > 0.5, eos_sigmoid > 0.5)
         num_tokens = torch.where(is_valid, torch.argmax(logits, dim=-1), logits.size(1))
 
         range_matrix = torch.arange(logits.size(1)).repeat(logits.size(0), 1).to(Config.device)

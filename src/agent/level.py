@@ -101,7 +101,8 @@ class AgentLevel(nn.Module):
 
             # 0 is saved for EoS, 1 is saved for pad (so start counting at 2)
             all_children_ids = set([i for x in all_ids for i in x if i > 1])  # set() just in case of duplicates
-            id_to_place = {child_id: i + 2 for i, child_id in enumerate(all_children_ids)}
+            add_value = 1 + int(Config.join_texts)
+            id_to_place = {child_id: i + add_value for i, child_id in enumerate(all_children_ids)}
 
             def id_to_place2(i):
                 return i if i <= 1 else id_to_place[i]

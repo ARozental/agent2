@@ -1,5 +1,6 @@
 from src.agent import AgentLevel
 from src.config import Config
+from src.losses.eos import calc_eos_loss
 from src.losses.mlm import calc_mlm_loss
 from src.losses.coherence import calc_coherence_loss
 from src.losses.reconstruction import calc_reconstruction_loss
@@ -53,7 +54,7 @@ class AgentModel(nn.Module):
             self.agent_levels[i].realize_vectors(batch_tree.level_nodes[i])
         return word_embedding_matrix
 
-    def forward(self, batch_tree, with_debug=False, generate=None,epoch=0):
+    def forward(self, batch_tree, with_debug=False, generate=None, epoch=0):
         word_embedding_matrix = self.set_text_vectors(batch_tree)
         embedding_matrices = {0: self.char_embedding_layer.weight, 1: word_embedding_matrix}
         total_g_loss, total_disc_loss, total_loss = 0, 0, 0
@@ -66,9 +67,18 @@ class AgentModel(nn.Module):
             mlm_loss = calc_mlm_loss(self.agent_levels[i], matrices, mask, eos_positions, embedding_matrix, labels)
             coherence_loss = calc_coherence_loss(self.agent_levels[i], matrices, mask, eos_positions, embedding_matrix)
             vectors = torch.stack([node.vector for node in node_batch if i > 0 or node.is_word()])
-            reconstruction_diff_loss,eos_loss,reconstruction_loss = calc_reconstruction_loss(self.agent_levels[i], matrices, vectors, mask,eos_positions, embedding_matrix,labels)
+            decompressed = self.agent_levels[i].decompressor(vectors)
+            reconstruction_diff_loss, reconstruction_loss = calc_reconstruction_loss(self.agent_levels[i], matrices, decompressed, mask, eos_positions, embedding_matrix, labels)
+            eos_loss = calc_eos_loss(self.agent_levels[i], decompressed, eos_positions)
 
-            total_loss += (mlm_loss.mean() + coherence_loss.mean() + reconstruction_loss.mean() + eos_loss.mean() + reconstruction_diff_loss.mean()).sum()
+            total_loss += (
+                    mlm_loss.mean() +
+                    coherence_loss.mean() +
+                    reconstruction_loss.mean() +
+                    eos_loss.mean() +
+                    reconstruction_diff_loss.mean()
+            ).sum()
+
             loss_object[i] = {
                 'm': mlm_loss.mean().item(),
                 "c": coherence_loss.mean().item(),

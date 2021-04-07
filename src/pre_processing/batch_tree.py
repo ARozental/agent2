@@ -24,7 +24,7 @@ class BatchTree:
         # the i-th element of distinct_word_embedding_tokens gets word tokens with full padding
         # each node in level_nodes[0] (word), gets distinct_lookup_id set to the relevant i from distinct_word_embedding_tokens
         # in the forward pass we will only embed self.distinct_word_embedding_tokens and fill the DVT word vector with lookup to this matrix
-        word_nodes = [node for node in self.level_nodes[0] if node.is_word()]
+        word_nodes = [node for node in self.level_nodes[0] if not node.is_join()]
         tokens_to_nodes = {str(node.tokens): node.get_padded_word_tokens() for node in word_nodes}
         unique_words = list({str(node.tokens) for node in word_nodes})
         mapping = {tokens: i for i, tokens in enumerate(unique_words)}

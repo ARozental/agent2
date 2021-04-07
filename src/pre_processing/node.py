@@ -16,16 +16,6 @@ class Node:
         self.reconstruction_loss = None
         self.reconstruction_diff_loss = None
 
-    def is_word(self):
-        if self.level != 0:
-            return False
-
-        # sentence => [[1, 2, 3], [3, 2], -1, [2, 3]]
-        if self.tokens == -1:  # This is a join word for higher levels
-            return False
-
-        return True
-
     def is_join(self):
         return self.tokens == -1
 

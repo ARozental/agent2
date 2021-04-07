@@ -61,7 +61,9 @@ class AgentModel(nn.Module):
         total_g_loss, total_disc_loss, total_loss = 0, 0, 0
         loss_object = {}
         for i in range(Config.agent_level + 1):
-            node_batch = batch_tree.level_nodes[i]  # currently all the nodes in the level
+            # All the nodes in this level (not including join tokens if on lowest level)
+            node_batch = [node for node in batch_tree.level_nodes[i] if i > 0 or not node.is_join()]
+
             matrices, mask, eos_positions, join_positions, embedding_matrix, labels = self.agent_levels[i].get_children(node_batch,
                                                                                                 embedding_matrices[
                                                                                                     i % 2])  # we only care about 0 and 1
@@ -69,7 +71,7 @@ class AgentModel(nn.Module):
             coherence_loss = calc_coherence_loss(self.agent_levels[i], matrices, mask, eos_positions, embedding_matrix)
 
             # TODO - Check if this grabbing of vectors is correct
-            vectors = torch.stack([node.vector for node in node_batch if i > 0 or node.is_word()])
+            vectors = torch.stack([node.vector for node in node_batch])
             decompressed = self.agent_levels[i].decompressor(vectors)
             reconstruction_diff_loss, reconstruction_loss = calc_reconstruction_loss(self.agent_levels[i], matrices, decompressed, mask, eos_positions, embedding_matrix, labels)
             eos_loss = calc_eos_loss(self.agent_levels[i], decompressed, eos_positions)
@@ -104,7 +106,10 @@ class AgentModel(nn.Module):
                 total_g_loss += g_loss
                 total_disc_loss += disc_loss
 
-            # TODO - FIX THIS ZIP WHEN USING JOIN TOKEN
+            # If the lengths are not equal then let's catch this
+            assert len(node_batch) == mlm_loss.size(0)
+            assert len(node_batch) == reconstruction_loss.size(0)
+
             [setattr(n, 'mlm_loss', l) for n, l in zip(node_batch, mlm_loss.tolist())]
             [setattr(n, 'coherence_loss', l) for n, l in zip(node_batch, coherence_loss.tolist())]
             [setattr(n, 'reconstruction_loss', l) for n, l in zip(node_batch, reconstruction_loss.tolist())]
@@ -114,7 +119,7 @@ class AgentModel(nn.Module):
 
             embedding_matrices[i] = embedding_matrix
 
-        return total_g_loss, total_disc_loss, total_loss, loss_object   # todo: make loss object
+        return total_g_loss, total_disc_loss, total_loss, loss_object
 
     def debug_decode(self, batch_tree, node_batch=None):
         if node_batch is None:

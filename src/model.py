@@ -133,38 +133,55 @@ class AgentModel(nn.Module):
 
         output = torch.matmul(output, self.char_embedding_layer.weight.transpose(0, 1))
         output = torch.argmax(output, dim=2)
-        #pred = [dataset.tree_tokenizer.detokenize(w) for w in words]
+        # pred = [dataset.tree_tokenizer.detokenize(w) for w in words]
 
         return output
 
     # TODO - Optimize this to call node_to_children_vecs as a batch of nodes instead of singular node
-    def full_decode(self, node):
-        if node.is_join():
-            return node.struct
+    # todo: refactor it to not get embedding_matrices as a parameter (only the char matrix is needed and it belongs to self)
+    def full_decode(self, nodes):
+        assert len(set([node.level for node in nodes])) == 1  # All nodes must be on the same level
 
-        # todo: refactor it to not get embedding_matrices as a parameter (only the char matrix is needed and it belongs to self)
-        agent_level = self.agent_levels[node.level]
-        children_vecs = agent_level.node_to_children_vecs(node)
-        if node.level == 0:
-            output = children_vecs.unsqueeze(0)
-            output = torch.matmul(output, self.char_embedding_layer.weight.transpose(0, 1))
-            output = torch.argmax(output, dim=2).squeeze(0)
-            node.struct = output.tolist()
-            return node.struct
+        agent_level = self.agent_levels[nodes[0].level]
+        node_vectors = torch.stack([node.vector for node in nodes if not node.is_join()]).to(Config.device)
+        children_vectors, _, _ = agent_level.vecs_to_children_vecs(node_vectors)
 
-        children_nodes = []
-        for v in children_vecs:
-            n = Node()
-            if v is None:
-                n.tokens = -1
-                n.struct = -1
-            else:
-                n.vector = v
-            n.level = node.level - 1
-            n.parent = node
-            children_nodes.append(n)
-        node.children = children_nodes
-        return [self.full_decode(n) for n in children_nodes]
+        if nodes[0].level == 0:
+            index = 0
+            # TODO - use numpy.split here for even faster batching
+            for node in nodes:
+                if node.is_join():
+                    continue
+
+                output = children_vectors[index].unsqueeze(0)
+                output = torch.matmul(output, self.char_embedding_layer.weight.transpose(0, 1))
+                output = torch.argmax(output, dim=2).squeeze(0)
+                node.struct = output.tolist()
+                index += 1
+            return [node.struct for node in nodes]
+
+        # TODO - use numpy.split here for even faster batching
+        results = []
+        index = 0
+        for node in nodes:
+            if node.is_join():
+                continue
+
+            children_nodes = []
+            for v in children_vectors[index]:
+                n = Node()
+                if v is None:
+                    n.tokens = -1
+                    n.struct = -1
+                else:
+                    n.vector = v
+                n.level = node.level - 1
+                n.parent = node
+                children_nodes.append(n)
+            results.append(self.full_decode(children_nodes))
+            index += 1
+
+        return results
 
     def generate_texts(self, level, num_texts=1):
         vecs = self.agent_levels[level].generator(torch.zeros(num_texts, Config.vector_sizes[level + 1]))
@@ -174,6 +191,5 @@ class AgentModel(nn.Module):
             n.vector = v
             n.level = level
             nodes.append(n)
-        decoded = [self.full_decode(n) for n in nodes]
+        decoded = self.full_decode(nodes)
         return [TreeTokenizer.deep_detokenize(r, level) for r in decoded]
-

@@ -139,8 +139,9 @@ class TreeTokenizer:
     def batch_texts_to_trees(cls, texts):  # todo: use level here to make ensure texts are in the right depth
         # input: ["I like big butts. I can not lie.","You other brothers can't deny"]
         structs = [cls.text_to_tree_struct(text, level=Config.agent_level) for text in texts]
-        batch_root = Node(struct=structs, type="batch root", id=0, level=Config.agent_level + 1)
-        batch_root.expand_struct()
+        batch_root = Node(level=Config.agent_level + 1)
+        batch_root.id = 0
+        batch_root.expand_struct(structs)
         batch_tree = BatchTree(batch_root)
         batch_tree.batch_up_nodes()
         batch_tree.make_distinct_words()

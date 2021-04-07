@@ -1,10 +1,7 @@
 from src.agent import AgentLevel
-<<<<<<< HEAD
 from src.agent import Pndb
 import torch.nn as nn
 import torch
-=======
->>>>>>> master
 from src.config import Config
 from src.losses.eos import calc_eos_loss
 from src.losses.join import calc_join_loss

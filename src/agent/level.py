@@ -48,6 +48,8 @@ class AgentLevel(nn.Module):
         return F.elu(dot * self.join_classifier_w.abs()) + self.join_classifier_b
 
     def get_children(self, node_batch, embedding_matrix=None):
+        max_length = Config.sequence_lengths[self.level]
+
         if self.level == 0:  # words => get token vectors
             lookup_ids = torch.LongTensor([node.get_padded_word_tokens() for node in node_batch]).to(Config.device)
             mask = lookup_ids == Config.pad_token_id
@@ -62,7 +64,6 @@ class AgentLevel(nn.Module):
             # lookup_ids is also labels
             return matrices, mask, eos_positions, None, embedding_matrix, lookup_ids
         elif self.level == 1:  # sentences => get word vectors
-            max_length = Config.sequence_lengths[1]
             masks = [[False] * (len(node.children) + 1) for node in node_batch]
             eos_positions = [[0.0] * len(node.children) + [1.0] for node in node_batch]
             join_positions = [[1 if child.is_join() else 0 for child in node.children] for node in node_batch]
@@ -71,6 +72,11 @@ class AgentLevel(nn.Module):
             eos_positions = [item + [0.0] * (max_length - len(item)) for item in eos_positions]
             join_positions = [item + [0.0] * (max_length - len(item)) for item in join_positions]
 
+            # These two arrays may be longer than the max_length because they assume that the EoS token exists
+            # But some sentences, etc don't have the EoS at all if they were split
+            masks = [item[:max_length] for item in masks]
+            eos_positions = [item[:max_length] for item in eos_positions]
+
             mask = torch.tensor(masks).to(Config.device)
             eos_positions = torch.tensor(eos_positions).to(Config.device)
             join_positions = torch.tensor(join_positions).to(Config.device)
@@ -78,9 +84,9 @@ class AgentLevel(nn.Module):
             # +3 for pad, eos and join, also need to change the matrix here and also handle Join-Tokens
             # TODO - todo: +2 if join is not in config
             add_value = 2 + int(Config.join_texts)
-            lookup_ids = [[child.distinct_lookup_id + add_value for child in node.children] for node in node_batch]
-            lookup_ids = torch.LongTensor([item + [0] + [1] * (max_length - (len(item) + 1)) for item in lookup_ids])
-            lookup_ids = lookup_ids.to(Config.device).view(-1)
+            lookup_ids = [[child.distinct_lookup_id + add_value for child in node.children] + [0] for node in node_batch]
+            lookup_ids = [(item + [1] * (max_length - len(item)))[:max_length] for item in lookup_ids]
+            lookup_ids = torch.LongTensor(lookup_ids).to(Config.device).view(-1)
             matrices = torch.index_select(embedding_matrix, 0, lookup_ids)
             matrices = matrices.view(
                 len(node_batch),
@@ -91,7 +97,6 @@ class AgentLevel(nn.Module):
 
             return matrices, mask, eos_positions, join_positions, embedding_matrix, labels
         else:
-            max_length = Config.sequence_lengths[self.level]
             masks = [[False] * (len(node.children) + 1) for node in node_batch]
             eos_positions = [[0.0] * len(node.children) + [1.0] for node in node_batch]
             join_positions = [[1 if child.is_join() else 0 for child in node.children] for node in node_batch]
@@ -103,6 +108,13 @@ class AgentLevel(nn.Module):
             join_positions = [item + [0.0] * (max_length - len(item)) for item in join_positions]
             all_ids = [item + [1] * (max_length - len(item)) for item in all_ids]
             matrices = [torch.stack(item + [self.pad_vector] * (max_length - len(item))) for item in matrices]
+
+            # These arrays may be longer than the max_length because they assume that the EoS token exists
+            # But some sentences, etc don't have the EoS at all if they were split
+            masks = [item[:max_length] for item in masks]
+            eos_positions = [item[:max_length] for item in eos_positions]
+            all_ids = [item[:max_length] for item in all_ids]
+            matrices = [item[:max_length] for item in matrices]
 
             all_children = [child for node in node_batch for child in node.children]
             mask = torch.tensor(masks).to(Config.device)
@@ -141,6 +153,12 @@ class AgentLevel(nn.Module):
         masks = [item + [True] * (max_length - len(item)) for item in masks]
         eos_positions = [item + [0.0] * (max_length - len(item)) for item in eos_positions]
         matrices = [torch.stack(item + [self.pad_vector] * (max_length - len(item))) for item in matrices]
+
+        # These arrays may be longer than the max_length because they assume that the EoS token exists
+        # But some sentences, etc don't have the EoS at all if they were split
+        masks = [item[:max_length] for item in masks]
+        eos_positions = [item[:max_length] for item in eos_positions]
+        matrices = [item[:max_length] for item in matrices]
 
         mask = torch.tensor(masks).to(Config.device)
         eos_positions = torch.tensor(eos_positions).to(Config.device)

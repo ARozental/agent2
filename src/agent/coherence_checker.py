@@ -5,9 +5,9 @@ import torch
 class CoherenceChecker(nn.Module):
     def __init__(self, embed_size):
         super().__init__()
-        self.d1 = nn.Linear(embed_size, 4*embed_size)
-        self.d2 = nn.Linear(4*embed_size, 4*embed_size)
-        self.out = nn.Linear(4*embed_size, 1)
+        self.d1 = nn.Linear(embed_size, 4 * embed_size)
+        self.d2 = nn.Linear(4 * embed_size, 4 * embed_size)
+        self.out = nn.Linear(4 * embed_size, 1)
 
     # TODO - Add Dropout
     def forward(self, x):

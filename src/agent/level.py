@@ -112,16 +112,21 @@ class AgentLevel(nn.Module):
             matrices = torch.stack(matrices).to(Config.device)
 
             # 0 is saved for EoS, 1 is saved for pad (so start counting at 2)
-            all_children_ids = set([i for x in all_ids for i in x if i > 1])  # set() just in case of duplicates
-            add_value = 1 + int(Config.join_texts)
+            all_children_ids = [i for x in all_ids for i in x if i > 1]
+            add_value = 2 + int(Config.join_texts)
             id_to_place = {child_id: i + add_value for i, child_id in enumerate(all_children_ids)}
 
             def id_to_place2(i):
-                return i if i <= 1 else id_to_place[i]
+                return i if i <= (add_value - 1) else id_to_place[i]
 
-            embedding = [c.vector for c in all_children]
             labels = torch.tensor([[id_to_place2(i) for i in x] for x in all_ids]).to(Config.device)
-            embedding = torch.stack([self.eos_vector] + [self.pad_vector] + embedding).to(Config.device)
+
+            embedding = torch.stack(
+                [self.eos_vector] +
+                [self.pad_vector] +
+                ([self.join_vector] if Config.join_texts else []) +
+                [child.vector for child in all_children]
+            ).to(Config.device)
 
             return matrices, mask, eos_positions, join_positions, embedding, labels
 
@@ -182,7 +187,8 @@ class AgentLevel(nn.Module):
 
         children_vectors = [decoded[:num] for num, decoded in zip(num_tokens, post_decoder)]
         if Config.join_texts and self.level > 0:
-            children_vectors = [[vector if not j else None for vector, j in zip(child, joins)] for child, joins in zip(children_vectors, is_join)]
+            children_vectors = [[vector if not j else None for vector, j in zip(child, joins)] for child, joins in
+                                zip(children_vectors, is_join)]
 
         return children_vectors, post_decoder, mask
 

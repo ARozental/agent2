@@ -66,7 +66,7 @@ class Node:
     def split_node(node):
         """
         Split nodes that have too many children.
-        Don't allow the last child to not have an EoS token.
+        (Disabled) Don't allow the last child to not have an EoS token.
         """
         max_length = Config.sequence_lengths[node.level]
         if len(node.children) <= max_length:

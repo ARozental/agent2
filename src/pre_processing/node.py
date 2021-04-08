@@ -121,11 +121,17 @@ class Node:
             child.id = get_unique_id()
 
     # For debugging purposes to get the struct from the current node
-    def build_struct(self):
+    def build_struct(self, return_eos=False):
         if self.level == 0:
+            if return_eos:
+                return self.tokens, self.has_eos
             return self.tokens
 
-        return [child.build_struct() for child in self.children]
+        result = [child.build_struct(return_eos=return_eos) for child in self.children]
+        if return_eos:
+            return result, self.has_eos
+
+        return result
 
 
 if __name__ == '__main__':

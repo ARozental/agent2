@@ -209,9 +209,4 @@ class AgentLevel(nn.Module):
             children_vectors = [[vector if not j else None for vector, j in zip(child, joins)] for child, joins in
                                 zip(children_vectors, is_join)]
 
-        return children_vectors, post_decoder, mask
-
-    def node_to_children_vecs(self, node):
-        vecs = node.vector.unsqueeze(0)
-        children_vecs_arr, _, _ = self.vecs_to_children_vecs(vecs)
-        return children_vecs_arr[0]
+        return children_vectors, is_eos, post_decoder, mask

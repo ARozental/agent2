@@ -26,6 +26,7 @@ class TreeTokenizer:
     char_file = os.path.join(dir_path, '..', '..', 'chars.txt')
     letter_tokenizer = defaultdict(int, {char.strip(): i for i, char in enumerate(open(char_file, encoding='utf-8'))})
     reverse_tokenizer = {index: char for char, index in letter_tokenizer.items()}
+    reverse_tokenizer[2] = ''
     split_functions = None  # [paragraph_to_sentences, self.sentence_to_words]
     max_depth = None
     separators = ['', ' ', '<s>', '<p>', '<c>']
@@ -47,15 +48,7 @@ class TreeTokenizer:
     @classmethod
     def detokenize(cls, struct):
         # struct => [3,4,5,67,8]
-        try:
-            eos_index = struct.index(Config.eos_token_id)
-            struct = struct[:eos_index]
-        except ValueError:
-            eos_index = None  # No EoS token in this word
-
-        result = cls.separators[0].join([cls.reverse_tokenizer[c] for c in struct])
-
-        return result, eos_index is not None
+        return cls.separators[0].join([cls.reverse_tokenizer[c] for c in struct])
 
     @classmethod
     def deep_detokenize(cls, struct, level):
@@ -68,7 +61,7 @@ class TreeTokenizer:
         if level == 1:
             result = []
             continue_word = False
-            for word in struct:
+            for word, has_eos in struct:
                 if word == -1:
                     # If the result is empty then don't do anything with the join
                     if len(result) == 0:
@@ -81,7 +74,7 @@ class TreeTokenizer:
                     continue_word = False
                     continue
 
-                text, has_eos = cls.deep_detokenize(word, level - 1)
+                text = cls.deep_detokenize(word, level - 1)
                 if continue_word:
                     result[-1] += text
                 else:
@@ -92,6 +85,22 @@ class TreeTokenizer:
 
                 continue_word = not has_eos
             return ''.join(result[:-1])  # Delete the last separator
+
+        # Combine parts
+        new_struct = []
+        continue_part = False
+        for part, has_eos in struct:
+            if part == -1:
+                new_struct.append(-1)
+                continue
+
+            if continue_part:
+                new_struct[-1] += part
+            else:
+                new_struct.append(part)
+
+            continue_part = not has_eos
+        struct = new_struct
 
         result = []
         for part in struct:

@@ -12,7 +12,7 @@ def calc_generation_loss(agent_level, vectors, matrices, mask):
     vecs = torch.cat([vectors, fake_vecs], dim=0)
     disc_loss = agent_level.discriminator.get_loss(vecs, labels)
 
-    _, fake_matrices, fake_mask = agent_level.vecs_to_children_vecs(vectors)
+    _, _, fake_matrices, fake_mask = agent_level.vecs_to_children_vecs(vectors)
     fake_mask = (1 - fake_mask.float()).unsqueeze(-1)
     cnn_mask = (1 - mask.float()).unsqueeze(-1)
     fake_matrices *= fake_mask  # 0 on all pad positions to make life easy for the CNN

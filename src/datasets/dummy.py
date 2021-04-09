@@ -1,10 +1,10 @@
 from src.pre_processing import Splitters, TreeTokenizer
-from src.pre_processing.dataset import Dataset
+from src.pre_processing.local_dataset import LocalDataset
 from src.config import Config
 import os
 
 
-class DummyDataset(Dataset):
+class DummyDataset(LocalDataset):
     def __init__(self, **kwargs):
         super().__init__(folder=os.path.join('datasets', 'dummy', '*.txt'), **kwargs)
         assert Config.agent_level <= Config.levels['PARAGRAPH']

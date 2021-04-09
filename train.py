@@ -1,5 +1,5 @@
 from src.config import Config
-from src.datasets import BookDataset, DummyDataset
+from src.datasets import BookDataset, DummyDataset, WikiDataset
 from src.logger import Logger
 from src.pre_processing import TreeTokenizer, worker_init_fn
 from src.utils import seed_torch
@@ -20,6 +20,7 @@ PRINT_RECONSTRUCTED_TEXT = True
 def train():
     dataset = DummyDataset(max_num=2)
     # dataset = BookDataset(no_stats=True, max_num=2)
+    # dataset = WikiDataset()
 
     dataloader = DataLoader(
         dataset,

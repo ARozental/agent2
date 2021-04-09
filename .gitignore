@@ -3,3 +3,6 @@
 /src/agent/__pycache__
 /src/losses/__pycache__
 runs/*
+
+tmp/*
+!tmp/.gitkeep # Keep the gitkeep

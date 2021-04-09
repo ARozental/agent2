@@ -11,8 +11,10 @@ def get_unique_id():
 
 
 class Node:
-
     def __init__(self, level=2, tokens=None, has_eos=True, children=None):
+        if children is None:
+            children = []
+
         self.id = None  # pre order id
         self.children = children
         self.level = level
@@ -35,19 +37,23 @@ class Node:
     def set_vector(self, v):
         self.vector = v
 
-    def join_struct_short_children(self):
-        # for level >= 2 => a paragraph(2) can join its sentences
-        new_struct = [self.struct[0]]
-        max_length = Config.sequence_lengths[self.level - 1]  # for each child
-        for sub in self.struct[1:]:
-            if len(new_struct[-1]) + 1 + len(sub) < max_length:
-                # new_struct[-1].append(Config.join_token_id)
-                new_struct[-1].append(-1)  # -1+3=2 #this is the most helpful comment ever; thanks for nothing past me!
-                new_struct[-1].extend(sub)
+    @staticmethod
+    def join_children(node):
+        """
+        Join children nodes into one if they can fit within the max length.
+        This is just for level >= 2
+        """
+        max_length = Config.sequence_lengths[node.level - 1]
+        new_children = [node.children[0]]
+        # TODO: Figure out if need to set has_eos to False on this (probably not?)
+        for i, child in enumerate(node.children[1:]):
+            if len(new_children[-1].children) + 1 + len(child.children) < max_length:
+                # tokens = -1 because when join is on we will add 3 (3 special tokens)
+                new_children[-1].children.append(Node(level=child.level - 1, tokens=-1))  # TODO: WHY minus one level?
+                new_children[-1].children += child.children
             else:
-                new_struct.append(sub)
-        self.struct = new_struct
-        return
+                new_children.append(child)
+        node.children = new_children
 
     def split_words(self):
         max_length = Config.sequence_lengths[self.level - 1]
@@ -103,9 +109,6 @@ class Node:
             self.id = get_unique_id()
             return
 
-        # if Config.join_texts is True and self.level >= 2 and self.type != "batch root":
-        #     self.join_struct_short_children()
-
         self.children = []
         for part in struct:
             node = Node(level=self.level - 1)
@@ -115,6 +118,10 @@ class Node:
         if self.level == 1:
             self.split_words()
         else:
+            # Join above level 2 but never at the root
+            # TODO - Maybe should enable the root?
+            if Config.join_texts is True and self.level >= 2 and self.level != Config.agent_level + 1:
+                self.join_children(self)
             self.children = [node for child in self.children for node in self.split_node(child)]
 
         for child in self.children:
@@ -122,6 +129,11 @@ class Node:
 
     # For debugging purposes to get the struct from the current node
     def build_struct(self, return_eos=False):
+        if self.is_join():
+            if return_eos:
+                return -1, True
+            return -1
+
         if self.level == 0:
             if return_eos:
                 return self.tokens, self.has_eos

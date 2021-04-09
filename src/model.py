@@ -153,24 +153,25 @@ class AgentModel(nn.Module):
         if nodes[0].level == 0:
             index = 0
             # TODO - use numpy.split here for even faster batching
-            for node, has_eos in zip(nodes, children_eos):
+            result = []
+            for node in nodes:
                 if node.is_join():
+                    result.append((-1, True))
                     continue
 
                 output = children_vectors[index].unsqueeze(0)
                 output = torch.matmul(output, self.char_embedding_layer.weight.transpose(0, 1))
                 output = torch.argmax(output, dim=2).squeeze(0)
-                node.struct = output.tolist()
-                node.has_eos = has_eos
+                result.append((output.tolist(), children_eos[index]))
                 index += 1
-            return [(node.struct, node.has_eos) for node in nodes]
+            return result
 
         # TODO - use numpy.split here for even faster batching
         results = []
         index = 0
-        for node, has_eos in zip(nodes, children_eos):
+        for node in nodes:
             if node.is_join():
-                results.append(-1)  # TODO - Check if this is correct
+                results.append((-1, True))
                 continue
 
             children_nodes = []
@@ -184,7 +185,7 @@ class AgentModel(nn.Module):
                 n.level = node.level - 1
                 n.parent = node
                 children_nodes.append(n)
-            results.append((self.full_decode(children_nodes), has_eos))
+            results.append((self.full_decode(children_nodes), children_eos[index]))
             index += 1
 
         return results

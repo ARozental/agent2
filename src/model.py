@@ -146,7 +146,10 @@ class AgentModel(nn.Module):
         assert len(set([node.level for node in nodes])) == 1  # All nodes must be on the same level
 
         agent_level = self.agent_levels[nodes[0].level]
-        node_vectors = torch.stack([node.vector for node in nodes if not node.is_join()]).to(Config.device)
+        node_vectors = [node.vector for node in nodes if not node.is_join()]
+        if len(node_vectors) == 0:  # If all of the nodes are joins
+            return [(-1, True) for _ in nodes]
+        node_vectors = torch.stack(node_vectors).to(Config.device)
         children_vectors, children_eos, _, _ = agent_level.vecs_to_children_vecs(node_vectors)
         children_eos = children_eos.tolist()
 

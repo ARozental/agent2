@@ -25,9 +25,10 @@ class AgentModel(nn.Module):
         eos_positions = local_char_embedding_tokens == Config.eos_token_id  # True => position to mask
         local_char_embedding_matrix = self.char_embedding_layer(local_char_embedding_tokens)
 
-        #first encoder call
+        # first encoder call
         word_embedding_matrix = self.agent_levels[0].compressor(
-            self.agent_levels[0].encoder(local_char_embedding_matrix,mask, eos_positions.float()),mask)  # [distinct_words_in_batch,word_vector_size]
+            self.agent_levels[0].encoder(local_char_embedding_matrix, mask, eos_positions.float()),
+            mask)  # [distinct_words_in_batch,word_vector_size]
 
         if Config.join_texts:
             special_vectors = torch.stack([
@@ -64,16 +65,19 @@ class AgentModel(nn.Module):
             # All the nodes in this level (not including join tokens if on lowest level)
             node_batch = [node for node in batch_tree.level_nodes[i] if i > 0 or not node.is_join()]
 
-            matrices, mask, eos_positions, join_positions, embedding_matrix, labels = self.agent_levels[i].get_children(node_batch,
-                                                                                                embedding_matrices[
-                                                                                                    i % 2])  # we only care about 0 and 1
+            matrices, mask, eos_positions, join_positions, embedding_matrix, labels = self.agent_levels[i].get_children(
+                node_batch,
+                embedding_matrices[
+                    i % 2])  # we only care about 0 and 1
             mlm_loss = calc_mlm_loss(self.agent_levels[i], matrices, mask, eos_positions, embedding_matrix, labels)
             coherence_loss = calc_coherence_loss(self.agent_levels[i], matrices, mask, eos_positions, embedding_matrix)
 
             # TODO - Check if this grabbing of vectors is correct
             vectors = torch.stack([node.vector for node in node_batch])
             decompressed = self.agent_levels[i].decompressor(vectors)
-            reconstruction_diff_loss, reconstruction_loss = calc_reconstruction_loss(self.agent_levels[i], matrices, decompressed, mask, eos_positions, embedding_matrix, labels)
+            reconstruction_diff_loss, reconstruction_loss = calc_reconstruction_loss(self.agent_levels[i], matrices,
+                                                                                     decompressed, mask, eos_positions,
+                                                                                     embedding_matrix, labels)
             eos_loss = calc_eos_loss(self.agent_levels[i], decompressed, eos_positions)
 
             if Config.join_texts and i >= 1:
@@ -137,34 +141,37 @@ class AgentModel(nn.Module):
 
         return output
 
-    # TODO - Optimize this to call node_to_children_vecs as a batch of nodes instead of singular node
     # todo: refactor it to not get embedding_matrices as a parameter (only the char matrix is needed and it belongs to self)
     def full_decode(self, nodes):
         assert len(set([node.level for node in nodes])) == 1  # All nodes must be on the same level
 
         agent_level = self.agent_levels[nodes[0].level]
         node_vectors = torch.stack([node.vector for node in nodes if not node.is_join()]).to(Config.device)
-        children_vectors, _, _ = agent_level.vecs_to_children_vecs(node_vectors)
+        children_vectors, children_eos, _, _ = agent_level.vecs_to_children_vecs(node_vectors)
+        children_eos = children_eos.tolist()
 
         if nodes[0].level == 0:
             index = 0
             # TODO - use numpy.split here for even faster batching
+            result = []
             for node in nodes:
                 if node.is_join():
+                    result.append((-1, True))
                     continue
 
                 output = children_vectors[index].unsqueeze(0)
                 output = torch.matmul(output, self.char_embedding_layer.weight.transpose(0, 1))
                 output = torch.argmax(output, dim=2).squeeze(0)
-                node.struct = output.tolist()
+                result.append((output.tolist(), children_eos[index]))
                 index += 1
-            return [node.struct for node in nodes]
+            return result
 
         # TODO - use numpy.split here for even faster batching
         results = []
         index = 0
         for node in nodes:
             if node.is_join():
+                results.append((-1, True))
                 continue
 
             children_nodes = []
@@ -178,7 +185,7 @@ class AgentModel(nn.Module):
                 n.level = node.level - 1
                 n.parent = node
                 children_nodes.append(n)
-            results.append(self.full_decode(children_nodes))
+            results.append((self.full_decode(children_nodes), children_eos[index]))
             index += 1
 
         return results

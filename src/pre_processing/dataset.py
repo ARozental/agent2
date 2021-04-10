@@ -1,7 +1,5 @@
-from src.pre_processing import TreeTokenizer
 from torch.utils.data import IterableDataset
 import torch
-import glob
 
 
 # If using workers then make each dataset worker only process a certain chunk
@@ -15,13 +13,8 @@ def worker_init_fn(worker_id):
 
 
 class Dataset(IterableDataset):
-    def __init__(self, folder, max_num=None):
-        self.data = glob.glob(folder)
-        if max_num is not None:
-            self.data = self.data[:max_num]
-
+    def __init__(self, **kwargs):
         self.init_tree_tokenizer()
-        TreeTokenizer.finalize()
 
     def init_tree_tokenizer(self):
         """
@@ -29,15 +22,8 @@ class Dataset(IterableDataset):
         """
         raise NotImplementedError
 
-    def _read_file(self, file):
-        with open(file, encoding='utf-8') as f:
-            data = f.read()
-        return data
-
     def __getitem__(self, index):
-        file = self.data[index]
-        return self._read_file(file)
+        raise NotImplementedError
 
     def __iter__(self):
-        for file in self.data:
-            yield self._read_file(file)
+        raise NotImplementedError

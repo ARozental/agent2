@@ -1,5 +1,5 @@
 from src.config import Config
-from src.datasets import BookDataset, DummyDataset
+from src.datasets import BookDataset, DummyDataset, WikiDataset
 from src.logger import Logger
 from src.pre_processing import TreeTokenizer, worker_init_fn
 from src.utils import seed_torch
@@ -20,6 +20,7 @@ PRINT_RECONSTRUCTED_TEXT = True
 def train():
     dataset = DummyDataset(max_num=2)
     # dataset = BookDataset(no_stats=True, max_num=2)
+    # dataset = WikiDataset(max_num=2)
 
     dataloader = DataLoader(
         dataset,
@@ -86,11 +87,10 @@ def train():
 
                 if PRINT_RECONSTRUCTED_TEXT:
                     nodes = batch.batch_root.children
-                    expected = [TreeTokenizer.deep_detokenize(node.struct, Config.agent_level) for node in nodes]
-
-                    reconstructed = [[model.full_decode(node) for node in batch.level_nodes[i][:5]] for i in
-                                     range(Config.agent_level + 1)]
-                    reconstructed = [[TreeTokenizer.deep_detokenize(node, i) for node in items] for i, items in
+                    expected = [TreeTokenizer.deep_detokenize(node.build_struct(return_eos=True)[0], Config.agent_level)
+                                for node in nodes]
+                    reconstructed = [model.full_decode(batch.level_nodes[i][:5]) for i in range(Config.agent_level + 1)]
+                    reconstructed = [[TreeTokenizer.deep_detokenize(node[0], i) for node in items] for i, items in
                                      enumerate(reconstructed)]
                     for i, text in enumerate(reconstructed):
                         print('Level', i, text)

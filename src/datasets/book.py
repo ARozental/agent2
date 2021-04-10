@@ -1,6 +1,5 @@
-from src.config import Config
 from src.pre_processing import Splitters, TreeTokenizer
-from src.pre_processing.dataset import Dataset
+from src.pre_processing.local_dataset import LocalDataset
 import os
 import re
 
@@ -16,7 +15,7 @@ def book_to_chapters(text):
     return [chapter for chapter in CHAPTER_REGEX.split(text) if len(chapter) > 0]
 
 
-class BookDataset(Dataset):
+class BookDataset(LocalDataset):
     # sequence lengths for all five books: [47, 72, 23, 200, 21]
     def __init__(self, no_stats=False, **kwargs):
         if no_stats:
@@ -32,12 +31,3 @@ class BookDataset(Dataset):
             chapter_to_paragraphs,
             book_to_chapters,
         ]
-
-    def _read_file(self, file):
-        data = super()._read_file(file)
-
-        # Strip if not doing chapter or book level
-        if Config.agent_level < Config.levels['CHAPTER']:
-            data = CHAPTER_REGEX.sub('', data)
-
-        return data

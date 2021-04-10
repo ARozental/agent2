@@ -18,9 +18,9 @@ PRINT_RECONSTRUCTED_TEXT = True
 
 # Need to wrap in a function for the child workers
 def train():
-    dataset = DummyDataset(max_num=2)
+    # dataset = DummyDataset(max_num=None)
     # dataset = BookDataset(no_stats=True, max_num=2)
-    # dataset = WikiDataset(max_num=2)
+    dataset = WikiDataset(max_num=None)
 
     dataloader = DataLoader(
         dataset,
@@ -74,7 +74,8 @@ def train():
                 main_loss.backward()
                 main_optimizer.step()
 
-            if epoch % LOG_EVERY == 0 and batch_num == 0:  # Only log on the first batch?
+            if (epoch % LOG_EVERY == 0 and batch_num == 0) or (batch_num % LOG_EVERY == 0 and batch_num > 0):  # Only log on the first batch?
+                print('Epoch', epoch,'Batch', batch_num )
                 model.eval()
 
                 # I believe that this needs to be called to make the vectors correspond with the updated weights
@@ -102,7 +103,7 @@ def train():
 
         current_time = time.time() - start_time
         all_times.append(current_time)
-        print('Epoch', epoch + 1, 'completed in', round(current_time, 3), 'average', round(np.mean(all_times), 3))
+        #print('Epoch', epoch + 1, 'completed in', round(current_time, 3), 'average', round(np.mean(all_times), 3))
 
 
 if __name__ == '__main__':

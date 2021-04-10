@@ -28,7 +28,7 @@ class Config:
         'BOOK': 4,
     }
 
-    agent_level = levels['PARAGRAPH']  # most complex vector agent can create 2=paragraph
+    agent_level = levels['SENTENCE']  # most complex vector agent can create 2=paragraph
 
     # Run configuration below (keeping device here makes it easier to use throughout all of the code)
     USE_CUDA = False

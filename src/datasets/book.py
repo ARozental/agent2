@@ -1,4 +1,3 @@
-from src.config import Config
 from src.pre_processing import Splitters, TreeTokenizer
 from src.pre_processing.local_dataset import LocalDataset
 import os
@@ -32,12 +31,3 @@ class BookDataset(LocalDataset):
             chapter_to_paragraphs,
             book_to_chapters,
         ]
-
-    def _read_file(self, file):
-        data = super()._read_file(file)
-
-        # Strip if not doing chapter or book level
-        if Config.agent_level < Config.levels['CHAPTER']:
-            data = CHAPTER_REGEX.sub('', data)
-
-        return data

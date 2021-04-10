@@ -32,14 +32,6 @@ class TreeTokenizer:
     separators = ['', ' ', '<s>', '<p>', '<c>']
 
     @classmethod
-    def finalize(cls):
-        """
-        Called by the Dataset class after the split_functions are set.
-        """
-        cls.split_functions = cls.split_functions[:Config.agent_level]  # Truncate down to the max agent level
-        cls.max_depth = len(cls.split_functions)
-
-    @classmethod
     def tokenize_word(cls, word):
         # "sheeבt" => [68, 57, 54, 54, 0, 69]
         # Add the EoS token here since it needs to be split later into its own word (if necessary based on word length)
@@ -145,8 +137,34 @@ class TreeTokenizer:
         return level_lengths
 
     @classmethod
+    def parse_extra_levels(cls, text):
+        """
+        The extra levels above Config.agent_level need to be processed to be broken down.
+
+        len() in the if statements makes sure that the split function even exists.
+        """
+        text = [text]  # Make it an array just in case
+
+        if Config.agent_level < Config.levels['BOOK'] <= len(cls.split_functions):
+            text = [chapter.strip() for book in text for chapter in
+                    cls.split_functions[Config.levels['BOOK'] - 1](book) if len(chapter.strip()) > 0]
+
+        if Config.agent_level < Config.levels['CHAPTER'] <= len(cls.split_functions):
+            text = [paragraph.strip() for chapter in text for paragraph in
+                    cls.split_functions[Config.levels['CHAPTER'] - 1](chapter) if len(paragraph.strip()) > 0]
+
+        if Config.agent_level < Config.levels['PARAGRAPH'] <= len(cls.split_functions):
+            text = [sent.strip() for paragraph in text for sent in
+                    cls.split_functions[Config.levels['PARAGRAPH'] - 1](paragraph) if len(sent.strip()) > 0]
+
+        return text
+
+    @classmethod
     def batch_texts_to_trees(cls, texts):  # todo: use level here to make ensure texts are in the right depth
         # input: ["I like big butts. I can not lie.","You other brothers can't deny"]
+
+        texts = [item.strip() for text in texts for item in cls.parse_extra_levels(text)]
+
         structs = [cls.text_to_tree_struct(text, level=Config.agent_level) for text in texts]
         batch_root = Node(level=Config.agent_level + 1)
         batch_root.id = 0

@@ -1,4 +1,3 @@
-from src.pre_processing import TreeTokenizer
 from torch.utils.data import IterableDataset
 import torch
 
@@ -16,7 +15,6 @@ def worker_init_fn(worker_id):
 class Dataset(IterableDataset):
     def __init__(self, **kwargs):
         self.init_tree_tokenizer()
-        TreeTokenizer.finalize()
 
     def init_tree_tokenizer(self):
         """

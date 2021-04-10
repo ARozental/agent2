@@ -1,14 +1,12 @@
-import re
-
 from src.pre_processing import Splitters, TreeTokenizer
 from src.pre_processing.dataset import Dataset
-from src.config import Config
 from datasets import load_dataset
 import os
+import re
 
 ARTICLE_HEADER = re.compile(r'_START_ARTICLE_\n.*\n')
 SECTION_HEADER = re.compile(r'_START_SECTION_\n.*\n')
-PARAGRAPH_REGEX = re.compile(r'_START_PARAGRAPH_\n')
+PARAGRAPH_REGEX = re.compile(r'(?:_START_PARAGRAPH_\n| _NEWLINE_)')
 
 
 def article_to_sections(text):
@@ -20,12 +18,18 @@ def section_to_paragraphs(text):
 
 
 class WikiDataset(Dataset):
-    def __init__(self, **kwargs):
+    """
+    Article = Book
+    Section = Chapter
+    """
+
+    def __init__(self, max_num=None, **kwargs):
         super().__init__(**kwargs)
 
         dir_path = os.path.dirname(os.path.realpath(__file__))
         tmp_folder = os.path.join(dir_path, '..', '..', 'tmp', 'huggingface')
         self.dataset = load_dataset('wiki40b', 'en', cache_dir=tmp_folder)
+        self.max_num = max_num
 
     def init_tree_tokenizer(self):
         TreeTokenizer.split_functions = [
@@ -37,25 +41,17 @@ class WikiDataset(Dataset):
 
     @staticmethod
     def _parse_article(article):
-        text = article['text']
-
-        # Strip article title
-        text = ARTICLE_HEADER.sub('', text)
-
-        # Remove section titles if not learning them (section == chapter)
-        if Config.agent_level < Config.levels['CHAPTER']:
-            text = SECTION_HEADER.sub('', text)
-
-        # Remove paragraphs if not learning them
-        if Config.agent_level < Config.levels['PARAGRAPH']:
-            text = PARAGRAPH_REGEX.sub('', text)
-
-        return text
+        return ARTICLE_HEADER.sub('', article['text']).strip()  # Strip article title
 
     def __getitem__(self, index):
         article = self.dataset['train'][index]
         return self._parse_article(article)
 
     def __iter__(self):
+        num = 0
         for article in self.dataset['train']:
+            if self.max_num is not None and num >= self.max_num:
+                break
+
             yield self._parse_article(article)
+            num += 1

@@ -20,7 +20,7 @@ PRINT_RECONSTRUCTED_TEXT = True
 def train():
     dataset = DummyDataset(max_num=2)
     # dataset = BookDataset(no_stats=True, max_num=2)
-    # dataset = WikiDataset()
+    # dataset = WikiDataset(max_num=2)
 
     dataloader = DataLoader(
         dataset,

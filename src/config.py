@@ -4,7 +4,7 @@ import torch
 class Config:
     sequence_lengths = [7, 9, 6, 3, 4]  # [10,12,6,20,20]
     # vector_sizes = [8, 10, 12, 14, 16, 18]  # [4,6,8,10] #letters,words,sentences,paragraphs,chapters,book
-    vector_sizes = [64, 32, 64, 128, 16, 18]  # [4,6,8,10] #letters,words,sentences,paragraphs,chapters,book
+    vector_sizes = [32, 48, 64, 96, 128, 156]  # [4,6,8,10] #letters,words,sentences,paragraphs,chapters,book
     num_heads = [2, 2, 2, 2, 2, 2]  # [2,3,4,5] #for transformers
     fnn_sizes = [8, 10, 12, 14, 16, 18]  # [2,3,4,5] #for fnn in transformers
     vocab_sizes = [80, 20, 10, 8, 8, 8]  # [1000,21,6,5

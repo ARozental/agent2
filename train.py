@@ -11,7 +11,7 @@ import time
 
 seed_torch(0)  # 0 learns 2 doesn't (before no cnn layer)
 
-LOG_EVERY = 10
+LOG_EVERY = 100
 GENERATE_TEXT = False
 PRINT_RECONSTRUCTED_TEXT = True
 

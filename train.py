@@ -49,7 +49,7 @@ def train():
         # print('Epoch', epoch + 1)
         start_time = time.time()
 
-        for batch in dataloader:
+        for batch_num, batch in enumerate(dataloader):
             model.train()
             main_optimizer.zero_grad()
 
@@ -74,7 +74,7 @@ def train():
                 main_loss.backward()
                 main_optimizer.step()
 
-            if epoch % LOG_EVERY == 0:
+            if epoch % LOG_EVERY == 0 and batch_num == 0:  # Only log on the first batch?
                 model.eval()
 
                 # I believe that this needs to be called to make the vectors correspond with the updated weights
@@ -100,10 +100,9 @@ def train():
                                 print('MATCHED')
                                 exit()
 
-                current_time = time.time() - start_time
-                all_times.append(current_time)
-                print('Epoch', epoch + 1, 'completed in', round(current_time, 3), 'average',
-                      round(np.mean(all_times), 3))
+        current_time = time.time() - start_time
+        all_times.append(current_time)
+        print('Epoch', epoch + 1, 'completed in', round(current_time, 3), 'average', round(np.mean(all_times), 3))
 
 
 if __name__ == '__main__':

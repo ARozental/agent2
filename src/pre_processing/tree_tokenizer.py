@@ -86,7 +86,7 @@ class TreeTokenizer:
                 new_struct.append(-1)
                 continue
 
-            if continue_part:
+            if continue_part and isinstance(new_struct[-1], list):
                 new_struct[-1] += part
             else:
                 new_struct.append(part)

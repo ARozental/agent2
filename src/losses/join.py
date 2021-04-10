@@ -10,6 +10,7 @@ def calc_join_loss(agent_level, decompressed, join_positions):
     dot = dot.sum(dim=-1, keepdim=True)
     cdot = agent_level.join_classifier(dot).squeeze(-1)
 
-    loss = bce_loss(cdot, join_positions).mean(-1)  # needed because of texts with full size and no EoS
+    # Convert to float to avoid a case where they are int's and the loss breaks
+    loss = bce_loss(cdot.float(), join_positions.float()).mean(-1)  # needed because of texts with full size and no EoS
 
     return loss

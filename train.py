@@ -53,7 +53,7 @@ def train():
             model.train()
             main_optimizer.zero_grad()
 
-            g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT, epoch=epoch)
+            g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT)
             Logger.log_losses(g_loss, disc_loss, main_loss, loss_object, step=epoch)
             Logger.log_l2_classifiers(model, step=epoch)
 

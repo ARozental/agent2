@@ -1,12 +1,13 @@
 Datasets:
-1. load data set from file: ["I like big butts. I can not lie.", "some other song"]
-2. set max level option when loading the dataset - example:
+1. load data set from file: ["I like big butts. I can not lie.", "some other song"] => done
+2. set max level option when loading the dataset - example: => done
     2 => ["I like big butts. I can not lie.", "some other song"]
     1 => ["I like big butts.", "I can not lie.", "some other song"]
-    0 => ["I", "like", "big", "butts.", "I", "can", "not", "lie.", "some", "other", song"]
-3. make a medium dataset from ../datasets/no_titles
-4. make wiki dataset?
-5. find out who to get a real dataset (all of Kindle with style and star rating)
+    0 => ["I", "like", "big", "butts.", "I", "can", "not", "lie.", "some", "other", song"] => done
+3. make a medium dataset from ../datasets/no_titles => done
+4. make wiki dataset => done
+5. have batch size for level instead of just level 4 batch size
+6. find out who to get a real dataset (all of Kindle with style and star rating)
 
 Transformer Model:
 1. use SwiGLU activation function: https://arxiv.org/pdf/2102.11972.pdf
@@ -20,15 +21,18 @@ Training:
 Refactoring:
 4. make code faster, avoid everyplace that exits the GPU
 5. use the same name for hidden_size/vector_size/embed_size
-6. refactor full_decode to be: full_decode(self,node) and merge with deep_detokenize; so it becomess Node to text function
+6. fix num_workers=1 we can only use 33% gpu now
+7. run with batch of batches (at least for the forward)
+8. make config an object again
 
 
 CURRENT TASKS:
-Datasets 1,2
-Transformer 1
+Datasets 5
 Tests 1
+
+Transformer 1
 AgentModel 1
-Refactoring 5,6
+Refactoring 5,6,7
 
 
 AgentModel:
@@ -42,3 +46,4 @@ AgentModel:
 
 Tests:
 1. tensor board
+2. track memory usage

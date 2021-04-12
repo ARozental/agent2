@@ -56,7 +56,7 @@ class AgentModel(nn.Module):
             self.agent_levels[i].realize_vectors(batch_tree.level_nodes[i])
         return word_embedding_matrix
 
-    def forward(self, batch_tree, with_debug=False, generate=None, epoch=0):
+    def forward(self, batch_tree, generate=False):
         word_embedding_matrix = self.set_text_vectors(batch_tree)
         embedding_matrices = {0: self.char_embedding_layer.weight, 1: word_embedding_matrix}
         total_g_loss, total_disc_loss, total_loss = 0, 0, 0

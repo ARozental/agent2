@@ -11,7 +11,8 @@ class Config:
     num_transformer_layers = [2, 2, 2, 2, 2, 2]  # [2,2,2,2]
     dtype = 'float32'
     mlm_rate = 0.15  # 0.15 like BERT
-    batch_size = 2  # todo: use it to create the actual dataset, it is also hardcoded there
+    batch_size = 2  # How many books/articles/etc per batch.
+    batch_sizes = [6, 1000, 1000, 1000, 1000]  # How many nodes to process at a time at each level
     drop_rate = 0.0
 
     pad_token_id = 1  # hard coded; will break logic if changed!!!

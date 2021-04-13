@@ -74,12 +74,10 @@ def train():
                 main_loss.backward()
                 main_optimizer.step()
 
-            if (epoch % LOG_EVERY == 0 and batch_num == 0) or (batch_num % LOG_EVERY == 0 and batch_num > 0):  # Only log on the first batch?
-                print('Epoch', epoch,'Batch', batch_num )
+            # Only log on the first batch
+            if (epoch % LOG_EVERY == 0 and batch_num == 0) or (batch_num % LOG_EVERY == 0 and batch_num > 0):
+                print('Epoch', epoch, 'Batch', batch_num)
                 model.eval()
-
-                # I believe that this needs to be called to make the vectors correspond with the updated weights
-                model.set_text_vectors(batch)
 
                 if GENERATE_TEXT:
                     generated = {i: model.generate_texts(i, 1)[0] for i in reversed(range(Config.agent_level + 1))}
@@ -103,7 +101,7 @@ def train():
 
         current_time = time.time() - start_time
         all_times.append(current_time)
-        #print('Epoch', epoch + 1, 'completed in', round(current_time, 3), 'average', round(np.mean(all_times), 3))
+        # print('Epoch', epoch + 1, 'completed in', round(current_time, 3), 'average', round(np.mean(all_times), 3))
 
 
 if __name__ == '__main__':

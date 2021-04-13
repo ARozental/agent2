@@ -48,6 +48,7 @@ def train():
 
     # Logger.setup()
     all_times = []
+    global_step = 0
     for epoch in range(10001):
         # print('Epoch', epoch + 1)
         # start_time = time.time()
@@ -57,8 +58,8 @@ def train():
             main_optimizer.zero_grad()
 
             g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT)
-            Logger.log_losses(g_loss, disc_loss, main_loss, loss_object, step=epoch)
-            Logger.log_l2_classifiers(model, step=epoch)
+            Logger.log_losses(g_loss, disc_loss, main_loss, loss_object, step=global_step)
+            Logger.log_l2_classifiers(model, step=global_step)
 
             if GENERATE_TEXT:
                 generator_optimizer.zero_grad()
@@ -85,7 +86,7 @@ def train():
                 if GENERATE_TEXT:
                     generated = {i: model.generate_texts(i, 1)[0] for i in reversed(range(Config.agent_level + 1))}
                     print(generated)
-                    Logger.log_text(generated, step=epoch)
+                    Logger.log_text(generated, step=global_step)
 
                 if PRINT_RECONSTRUCTED_TEXT:
                     nodes = batch.batch_root.children
@@ -96,7 +97,7 @@ def train():
                                      enumerate(reconstructed)]
                     for i, text in enumerate(reconstructed):
                         print('Level', i, text)
-                        Logger.log_reconstructed(text, i, step=epoch)
+                        Logger.log_reconstructed(text, i, step=global_step)
                         if i == len(reconstructed) - 1:
                             if text[0] == expected[0] and text[1] == expected[1]:
                                 print('MATCHED')
@@ -104,6 +105,8 @@ def train():
 
             if SAVE_EVERY is not None and batch_num > 0 and batch_num % SAVE_EVERY == 0:
                 torch.save(model.state_dict(), os.path.join('models', MODEL_FOLDER, str(epoch) + '.' + str(batch_num)))
+
+            global_step += 1
 
         # current_time = time.time() - start_time
         # all_times.append(current_time)

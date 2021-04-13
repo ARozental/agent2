@@ -47,6 +47,9 @@ class WikiDataset(Dataset):
     def _parse_article(article):
         return ARTICLE_HEADER.sub('', article['text']).strip()  # Strip article title
 
+    def __len__(self):
+        return len(self.data)
+
     def __getitem__(self, index):
         article = self.dataset['train'][index]
         return self._parse_article(article)

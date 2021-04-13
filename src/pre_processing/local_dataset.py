@@ -15,6 +15,9 @@ class LocalDataset(Dataset):
             data = f.read()
         return data
 
+    def __len__(self):
+        return len(self.data)
+
     def __getitem__(self, index):
         file = self.data[index]
         return self._read_file(file)

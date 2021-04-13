@@ -17,7 +17,7 @@ seed_torch(0)  # 0 learns 2 doesn't (before no cnn layer)
 def calculate():
     # dataset = DummyDataset(max_num=2)
     # dataset = BookDataset(no_stats=True, max_num=2)
-    dataset = WikiDataset(max_num=100000)
+    dataset = WikiDataset(max_num=50000)
 
     dataloader = DataLoader(
         dataset,
@@ -28,20 +28,24 @@ def calculate():
         # persistent_workers=True  # This is helpful when num_workers > 0
     )
 
+    num_batches = len(dataloader)
+    tenth = int(num_batches / 10)  # Print progress every 10%
+
     stats = {level: [] for level in range(Config.agent_level + 1)}
-    for batch in dataloader:
+    for step, batch in enumerate(dataloader):
         for level in range(Config.agent_level + 1):
             stats[level] += batch[level]
 
+        if step % tenth == 0 and step > 0:
+            print('Batch', step, 'of', num_batches)
+
     for level in range(Config.agent_level + 1):
+        print('')
+        print('')
+        print('-' * 10)
         print('Level', level)
         print(pd.Series(stats[level]).describe())
         print('95th percentile', np.percentile(stats[level], 95))
-
-        if level != Config.agent_level:
-            print('')
-            print('')
-            print('-' * 10)
 
 
 if __name__ == '__main__':

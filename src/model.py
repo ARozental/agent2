@@ -34,21 +34,16 @@ class AgentModel(nn.Module):
             self.agent_levels[0].encoder(local_char_embedding_matrix, mask, eos_positions.float()),
             mask)  # [distinct_words_in_batch,word_vector_size]
 
-        if Config.join_texts:
-            special_vectors = torch.stack([
+        special_vectors = torch.stack(
+            [
                 self.agent_levels[1].eos_vector,
                 self.agent_levels[1].pad_vector,
-                self.agent_levels[1].join_vector,
-            ])  # {0: eos, 1:pad, 2:join}
-            word_embedding_matrix = torch.cat([special_vectors, word_embedding_matrix], 0)
-            lookup_ids = torch.LongTensor([id_to_place[x.distinct_lookup_id] for x in node_batch]).to(Config.device) + 3
-        else:
-            special_vectors = torch.stack([
-                self.agent_levels[1].eos_vector,
-                self.agent_levels[1].pad_vector,
-            ])  # {0: eos, 1:pad}
-            word_embedding_matrix = torch.cat([special_vectors, word_embedding_matrix], 0)
-            lookup_ids = torch.LongTensor([id_to_place[x.distinct_lookup_id] for x in node_batch]).to(Config.device) + 2
+            ] +
+            ([self.agent_levels[1].join_vector] if Config.join_texts else [])
+        ).to(Config.device)  # {0: eos, 1:pad, 2:join}
+        word_embedding_matrix = torch.cat([special_vectors, word_embedding_matrix], 0)
+        lookup_ids = torch.LongTensor([id_to_place[x.distinct_lookup_id] for x in node_batch]).to(Config.device)
+        lookup_ids += 2 + int(Config.join_texts)
 
         all_word_vectors = torch.index_select(word_embedding_matrix, 0, lookup_ids)  # [words_in_batch,word_vector_size]
         [n.set_vector(v) for n, v in zip(node_batch, all_word_vectors)]

@@ -8,10 +8,13 @@ from torch.utils.data.dataloader import DataLoader
 import numpy as np
 import torch
 import time
+import os
 
 seed_torch(0)  # 0 learns 2 doesn't (before no cnn layer)
 
 LOG_EVERY = 100
+SAVE_EVERY = None  # None means never save, otherwise put an integer
+MODEL_FOLDER = ''  # Where inside of the "models" folder to place this current run
 GENERATE_TEXT = False
 PRINT_RECONSTRUCTED_TEXT = True
 
@@ -47,7 +50,7 @@ def train():
     all_times = []
     for epoch in range(10001):
         # print('Epoch', epoch + 1)
-        start_time = time.time()
+        # start_time = time.time()
 
         for batch_num, batch in enumerate(dataloader):
             model.train()
@@ -99,8 +102,11 @@ def train():
                                 print('MATCHED')
                                 exit()
 
-        current_time = time.time() - start_time
-        all_times.append(current_time)
+            if SAVE_EVERY is not None and batch_num > 0 and batch_num % SAVE_EVERY == 0:
+                torch.save(model.state_dict(), os.path.join('models', MODEL_FOLDER, str(epoch) + '.' + str(batch_num)))
+
+        # current_time = time.time() - start_time
+        # all_times.append(current_time)
         # print('Epoch', epoch + 1, 'completed in', round(current_time, 3), 'average', round(np.mean(all_times), 3))
 
 

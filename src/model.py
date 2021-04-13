@@ -71,7 +71,6 @@ class AgentModel(nn.Module):
                 coherence_loss = calc_coherence_loss(self.agent_levels[level_num], matrices, mask, eos_positions,
                                                      embedding_matrix)
 
-                # TODO - Check if this grabbing of vectors is correct
                 vectors = torch.stack([node.vector for node in node_batch])
                 decompressed = self.agent_levels[level_num].decompressor(vectors)
                 reconstruction_diff_loss, reconstruction_loss = calc_reconstruction_loss(self.agent_levels[level_num],

@@ -128,9 +128,12 @@ class AgentLevel(nn.Module):
             all_children_ids = [i for x in all_ids for i in x if i > 1]
             add_value = 2 + int(Config.join_texts)
             id_to_place = {child_id: i + add_value for i, child_id in enumerate(all_children_ids)}
+            id_to_place[0] = 0
+            id_to_place[1] = 1
+            if Config.join_texts:
+                id_to_place[2] = 2
 
-            def id_to_place2(i):
-                return i if i <= (add_value - 1) else id_to_place[i]
+            labels = torch.tensor([[id_to_place[i] for i in x] for x in all_ids]).to(Config.device)
 
             labels = torch.tensor([[id_to_place2(i) for i in x] for x in all_ids]).to(Config.device)
 

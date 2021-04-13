@@ -7,9 +7,7 @@ class Config:
     vector_sizes = [32, 48, 64, 96, 128, 156]  # [4,6,8,10] #letters,words,sentences,paragraphs,chapters,book
     num_heads = [2, 2, 2, 2, 2, 2]  # [2,3,4,5] #for transformers
     fnn_sizes = [8, 10, 12, 14, 16, 18]  # [2,3,4,5] #for fnn in transformers
-    vocab_sizes = [80, 20, 10, 8, 8, 8]  # [1000,21,6,5
     num_transformer_layers = [2, 2, 2, 2, 2, 2]  # [2,2,2,2]
-    dtype = 'float32'
     mlm_rate = 0.15  # 0.15 like BERT
     batch_size = 2  # How many books/articles/etc per batch.
     batch_sizes = [6, 1000, 1000, 1000, 1000]  # How many nodes to process at a time at each level

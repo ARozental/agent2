@@ -30,6 +30,10 @@ class WikiDataset(Dataset):
         tmp_folder = os.path.join(dir_path, '..', '..', 'tmp', 'huggingface')
         self.dataset = load_dataset('wiki40b', 'en', cache_dir=tmp_folder)
         self.max_num = max_num
+        if self.max_num is None:
+            self.data = list(range(len(self.dataset['train'])))
+        else:
+            self.data = list(range(self.max_num))
 
     def init_tree_tokenizer(self):
         TreeTokenizer.split_functions = [
@@ -48,10 +52,5 @@ class WikiDataset(Dataset):
         return self._parse_article(article)
 
     def __iter__(self):
-        num = 0
-        for article in self.dataset['train']:
-            if self.max_num is not None and num >= self.max_num:
-                break
-
-            yield self._parse_article(article)
-            num += 1
+        for index in self.data:
+            yield self._parse_article(self.dataset['train'][index])

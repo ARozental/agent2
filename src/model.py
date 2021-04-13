@@ -7,6 +7,7 @@ from src.losses.coherence import calc_coherence_loss
 from src.losses.reconstruction import calc_reconstruction_loss
 from src.losses.generation import calc_generation_loss
 from src.pre_processing import Node, TreeTokenizer
+from src.utils import iter_even_split
 import torch.nn as nn
 import torch
 
@@ -54,8 +55,7 @@ class AgentModel(nn.Module):
         for level_num in range(Config.agent_level + 1):
             # All the nodes in this level (not including join tokens if on lowest level)
             real_nodes = [node for node in batch_tree.level_nodes[level_num] if level_num > 0 or not node.is_join()]
-            for begin in range(0, len(real_nodes), Config.batch_sizes[level_num]):
-                node_batch = real_nodes[begin:begin + Config.batch_sizes[level_num]]
+            for batch_num, node_batch in enumerate(iter_even_split(real_nodes, Config.batch_sizes[level_num])):
 
                 if level_num == 0:
                     self.set_word_vectors(node_batch)
@@ -98,7 +98,7 @@ class AgentModel(nn.Module):
                     for label, value in losses.items():
                         loss_object[level_num][label] += value
 
-                if generate and begin == 0:  # Only run generate on the first batch of nodes
+                if generate and batch_num == 0:  # Only run generate on the first batch of nodes
                     g_loss, disc_loss = calc_generation_loss(self.agent_levels[level_num], vectors, matrices, mask)
                     loss_object[level_num]["g"] = g_loss.item()
                     loss_object[level_num]["disc"] = disc_loss.item()

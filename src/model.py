@@ -18,9 +18,13 @@ class AgentModel(nn.Module):
         self.agent_levels = nn.ModuleList([AgentLevel(i, num_letters) for i in range(Config.agent_level + 1)])
         self.char_embedding_layer = nn.Embedding(num_letters, Config.vector_sizes[0])
 
-    def set_word_vectors(self, batch_tree):
-        node_batch = batch_tree.level_nodes[0]
-        local_char_embedding_tokens = torch.LongTensor(batch_tree.distinct_word_embedding_tokens).to(Config.device)
+    def set_word_vectors(self, node_batch):
+        distinct_ids = list(dict.fromkeys([node.distinct_lookup_id for node in node_batch]))
+        id_to_tokens = {node.distinct_lookup_id: node.get_padded_word_tokens() for node in node_batch}
+
+        id_to_place = {node_id: i for i, node_id in enumerate(distinct_ids)}
+        distinct_word_embedding_tokens = [id_to_tokens[node_id] for node_id in distinct_ids]
+        local_char_embedding_tokens = torch.LongTensor(distinct_word_embedding_tokens).to(Config.device)
         mask = local_char_embedding_tokens == Config.pad_token_id  # True => position to mask
         eos_positions = local_char_embedding_tokens == Config.eos_token_id  # True => position to mask
         local_char_embedding_matrix = self.char_embedding_layer(local_char_embedding_tokens)
@@ -37,21 +41,21 @@ class AgentModel(nn.Module):
                 self.agent_levels[1].join_vector,
             ])  # {0: eos, 1:pad, 2:join}
             word_embedding_matrix = torch.cat([special_vectors, word_embedding_matrix], 0)
-            lookup_ids = torch.LongTensor([x.distinct_lookup_id for x in node_batch]).to(Config.device) + 3
+            lookup_ids = torch.LongTensor([id_to_place[x.distinct_lookup_id] for x in node_batch]).to(Config.device) + 3
         else:
             special_vectors = torch.stack([
                 self.agent_levels[1].eos_vector,
                 self.agent_levels[1].pad_vector,
             ])  # {0: eos, 1:pad}
             word_embedding_matrix = torch.cat([special_vectors, word_embedding_matrix], 0)
-            lookup_ids = torch.LongTensor([x.distinct_lookup_id for x in node_batch]).to(Config.device) + 2
+            lookup_ids = torch.LongTensor([id_to_place[x.distinct_lookup_id] for x in node_batch]).to(Config.device) + 2
 
         all_word_vectors = torch.index_select(word_embedding_matrix, 0, lookup_ids)  # [words_in_batch,word_vector_size]
         [n.set_vector(v) for n, v in zip(node_batch, all_word_vectors)]
         return word_embedding_matrix
 
     def set_text_vectors(self, batch_tree):
-        word_embedding_matrix = self.set_word_vectors(batch_tree)
+        word_embedding_matrix = self.set_word_vectors(batch_tree.level_nodes[0])
         for i in range(1, Config.agent_level + 1):
             self.agent_levels[i].realize_vectors(batch_tree.level_nodes[i])
         return word_embedding_matrix

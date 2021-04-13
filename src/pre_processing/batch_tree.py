@@ -33,7 +33,7 @@ class BatchTree:
             node.distinct_lookup_id = mapping[str(node.tokens)]
 
         # Get the words in order
-        self.distinct_word_embedding_tokens = [tokens_to_nodes[tokens] for tokens in unique_words]
+        # self.distinct_word_embedding_tokens = [tokens_to_nodes[tokens] for tokens in unique_words]
 
     def make_distinct_texts(self, lvl):
         # generalizes make_distinct_words

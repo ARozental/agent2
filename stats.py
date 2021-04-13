@@ -31,6 +31,7 @@ def calculate():
     num_batches = len(dataloader)
     tenth = int(num_batches / 10)  # Print progress every 10%
 
+    # TODO: Count number of unique characters and words
     stats = {level: [] for level in range(Config.agent_level + 1)}
     for step, batch in enumerate(dataloader):
         for level in range(Config.agent_level + 1):

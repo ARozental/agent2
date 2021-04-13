@@ -6,7 +6,7 @@ import re
 
 ARTICLE_HEADER = re.compile(r'_START_ARTICLE_\n.*\n')
 SECTION_HEADER = re.compile(r'_START_SECTION_\n.*\n')
-PARAGRAPH_REGEX = re.compile(r'(?:_START_PARAGRAPH_\n| _NEWLINE_)')
+PARAGRAPH_REGEX = re.compile(r'(?:_START_PARAGRAPH_\n?| ?_NEWLINE_)')
 
 
 def article_to_sections(text):

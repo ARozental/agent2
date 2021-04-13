@@ -47,14 +47,14 @@ class AgentLevel(nn.Module):
         # needed to make sure w1 can never be negative
         return F.elu(dot * self.join_classifier_w.abs()) + self.join_classifier_b
 
-    def get_children(self, node_batch, embedding_matrix=None):
+    def get_children(self, node_batch, char_embedding=None):
         max_length = Config.sequence_lengths[self.level]
 
         if self.level == 0:  # words => get token vectors
             lookup_ids = torch.LongTensor([node.get_padded_word_tokens() for node in node_batch]).to(Config.device)
             mask = lookup_ids == Config.pad_token_id
             eos_positions = (lookup_ids == Config.eos_token_id).float()
-            matrices = torch.index_select(embedding_matrix, 0, lookup_ids.view(-1))
+            matrices = torch.index_select(char_embedding, 0, lookup_ids.view(-1))
             matrices = matrices.view(
                 lookup_ids.size(0),
                 Config.sequence_lengths[self.level],
@@ -62,7 +62,7 @@ class AgentLevel(nn.Module):
             )
 
             # lookup_ids is also labels
-            return matrices, mask, eos_positions, None, embedding_matrix, lookup_ids
+            return matrices, mask, eos_positions, None, char_embedding, lookup_ids
         else:
             if self.level == 1:
                 id_name = 'distinct_lookup_id'

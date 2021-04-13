@@ -82,7 +82,7 @@ class AgentModel(nn.Module):
                 if Config.join_texts and level_num >= 1:
                     join_loss = calc_join_loss(self.agent_levels[level_num], decompressed, join_positions)
                 else:
-                    join_loss = torch.tensor([0.0] * matrices.size(0))
+                    join_loss = torch.tensor([0.0] * matrices.size(0)).to(Config.device)
 
                 losses = {
                     'm': mlm_loss.sum(),

@@ -45,5 +45,5 @@ AgentModel:
 
 
 Tests:
-1. tensor board
+1. tensor board - reconstructed next to real text for TB print
 2. track memory usage

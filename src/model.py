@@ -20,7 +20,9 @@ class AgentModel(nn.Module):
         self.agent_levels = nn.ModuleList([AgentLevel(i, num_letters) for i in range(Config.agent_level + 1)])
         self.char_embedding_layer = nn.Embedding(num_letters, Config.vector_sizes[0])
 
-        self.pndb = Pndb()
+        self.pndb = None
+        if (Config.use_pndb1 or Config.use_pndb2):
+          self.pndb = Pndb()
 
     def set_word_vectors(self, node_batch):
         distinct_ids = list(dict.fromkeys([node.distinct_lookup_id for node in node_batch]))

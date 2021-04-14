@@ -31,7 +31,7 @@ def train():
         collate_fn=TreeTokenizer.batch_texts_to_trees,
         worker_init_fn=worker_init_fn,
         num_workers=1,
-        # persistent_workers=True  # This is helpful when num_workers > 0
+        persistent_workers=True  # This is helpful when num_workers > 0
     )
 
     model = AgentModel()

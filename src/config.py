@@ -1,4 +1,6 @@
 import torch
+import json
+import sys
 
 
 class Config:
@@ -18,7 +20,7 @@ class Config:
     join_token_id = 3  # hard coded; will break logic if changed!!!
     join_texts = True
 
-    #pndb
+    # pndb
     use_pndb1 = True
     use_pndb2 = True
     pndb_questions = 16
@@ -37,3 +39,15 @@ class Config:
     # Run configuration below (keeping device here makes it easier to use throughout all of the code)
     USE_CUDA = True
     device = torch.device('cuda' if torch.cuda.is_available() and USE_CUDA else 'cpu')
+
+
+def load(filename):
+    with open('configs/' + filename + '.json') as f:
+        data = json.load(f)
+
+    for key, value in data.items():
+        setattr(Config, key, value)
+
+
+if len(sys.argv) > 1:
+    load(sys.argv[1])

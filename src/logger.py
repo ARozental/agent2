@@ -55,3 +55,11 @@ class Logger:
             return
 
         cls.writer.add_text('reconstructed/' + str(level), '  \n'.join(text), step)
+
+    @classmethod
+    def log_viz(cls, node, text, level, step):
+        import os
+        folder = os.path.join('..', 'viz')
+        print(node.mlm_loss)
+        return
+    #     print('viz', level, text)

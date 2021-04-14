@@ -12,7 +12,7 @@ import os
 
 seed_torch(0)  # 0 learns 2 doesn't (before no cnn layer)
 
-LOG_EVERY = 100
+LOG_EVERY = 10
 SAVE_EVERY = None  # None means never save, otherwise put an integer
 MODEL_FOLDER = ''  # Where inside of the "models" folder to place this current run
 GENERATE_TEXT = False
@@ -21,9 +21,9 @@ PRINT_RECONSTRUCTED_TEXT = True
 
 # Need to wrap in a function for the child workers
 def train():
-    # dataset = DummyDataset(max_num=None)
+    dataset = DummyDataset(max_num=2)
     # dataset = BookDataset(no_stats=True, max_num=2)
-    dataset = WikiDataset(max_num=None)
+    # dataset = WikiDataset(max_num=None)
 
     dataloader = DataLoader(
         dataset,
@@ -31,7 +31,7 @@ def train():
         collate_fn=TreeTokenizer.batch_texts_to_trees,
         worker_init_fn=worker_init_fn,
         num_workers=1,
-        # persistent_workers=True  # This is helpful when num_workers > 0
+        persistent_workers=True  # This is helpful when num_workers > 0
     )
 
     model = AgentModel()
@@ -57,7 +57,7 @@ def train():
             model.train()
             main_optimizer.zero_grad()
 
-            g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT)
+            g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT, debug=True)
             Logger.log_losses(g_loss, disc_loss, main_loss, loss_object, step=global_step)
             Logger.log_l2_classifiers(model, step=global_step)
 
@@ -98,6 +98,8 @@ def train():
                     for i, text in enumerate(reconstructed):
                         print('Level', i, text)
                         Logger.log_reconstructed(text, i, step=global_step)
+                        for j, item in enumerate(text):
+                            Logger.log_viz(batch.level_nodes[i][j], text[j], i, step=global_step)
                         if i == len(reconstructed) - 1:
                             if text[0] == expected[0] and text[1] == expected[1]:
                                 print('MATCHED')

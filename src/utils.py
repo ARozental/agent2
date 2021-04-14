@@ -69,4 +69,4 @@ def attention(q, k, v, d_k, mask=None, dropout=None):
   return output
 
 def md5(s):
-  return hashlib.md5(s.encode('utf-8')).hexdigest()
+  return hashlib.md5(s.encode('utf-8')).hexdigest()[0:5]

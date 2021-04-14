@@ -177,6 +177,27 @@ class TreeTokenizer:
         #   batch_tree.make_distinct_texts(i)
         return batch_tree
 
+    @classmethod
+    def compute_struct_stats(cls, struct, stats, level):
+        stats[level].append(len(struct))
+        if level == 0:
+            stats[level][-1] -= 1
+            return stats
+
+        for child in struct:
+            stats = cls.compute_struct_stats(child, stats, level - 1)
+        return stats
+
+    @classmethod
+    def compute_stats(cls, texts):
+        texts = [item.strip() for text in texts for item in cls.parse_extra_levels(text)]
+        structs = [cls.text_to_tree_struct(text, level=Config.agent_level) for text in texts]
+        stats_object = {level: [] for level in range(Config.agent_level + 1)}
+        for struct in structs:
+            stats_object = cls.compute_struct_stats(struct, stats_object, Config.agent_level)
+
+        return stats_object
+
 
 if __name__ == '__main__':
     # x = tt.tokenize_word("sheeבt")

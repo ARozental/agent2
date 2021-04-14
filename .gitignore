@@ -2,7 +2,12 @@
 /src/__pycache__
 /src/agent/__pycache__
 /src/losses/__pycache__
+
+models/*
+!models/.gitkeep # Keep the gitkeep
+
 runs/*
+!runs/.gitkeep # Keep the gitkeep
 
 tmp/*
 !tmp/.gitkeep # Keep the gitkeep

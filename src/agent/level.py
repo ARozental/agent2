@@ -47,14 +47,14 @@ class AgentLevel(nn.Module):
         # needed to make sure w1 can never be negative
         return F.elu(dot * self.join_classifier_w.abs()) + self.join_classifier_b
 
-    def get_children(self, node_batch, embedding_matrix=None):
+    def get_children(self, node_batch, char_embedding=None):
         max_length = Config.sequence_lengths[self.level]
 
         if self.level == 0:  # words => get token vectors
             lookup_ids = torch.LongTensor([node.get_padded_word_tokens() for node in node_batch]).to(Config.device)
             mask = lookup_ids == Config.pad_token_id
             eos_positions = (lookup_ids == Config.eos_token_id).float()
-            matrices = torch.index_select(embedding_matrix, 0, lookup_ids.view(-1))
+            matrices = torch.index_select(char_embedding, 0, lookup_ids.view(-1))
             matrices = matrices.view(
                 lookup_ids.size(0),
                 Config.sequence_lengths[self.level],
@@ -62,45 +62,19 @@ class AgentLevel(nn.Module):
             )
 
             # lookup_ids is also labels
-            return matrices, mask, eos_positions, None, embedding_matrix, lookup_ids
-        elif self.level == 1:  # sentences => get word vectors
-            masks = [[False] * (len(node.children) + 1) for node in node_batch]
-            eos_positions = [[0.0] * len(node.children) + [1.0] for node in node_batch]
-            join_positions = [[1 if child.is_join() else 0 for child in node.children] for node in node_batch]
-
-            masks = [item + [True] * (max_length - len(item)) for item in masks]
-            eos_positions = [item + [0.0] * (max_length - len(item)) for item in eos_positions]
-            join_positions = [item + [0.0] * (max_length - len(item)) for item in join_positions]
-
-            # These two arrays may be longer than the max_length because they assume that the EoS token exists
-            # But some sentences, etc don't have the EoS at all if they were split
-            masks = [item[:max_length] for item in masks]
-            eos_positions = [item[:max_length] for item in eos_positions]
-
-            mask = torch.tensor(masks).to(Config.device)
-            eos_positions = torch.tensor(eos_positions).to(Config.device)
-            join_positions = torch.tensor(join_positions).to(Config.device)
-
-            # +3 for pad, eos and join, also need to change the matrix here and also handle Join-Tokens
-            # TODO - todo: +2 if join is not in config
-            add_value = 2 + int(Config.join_texts)
-            lookup_ids = [[child.distinct_lookup_id + add_value for child in node.children] + [0] for node in node_batch]
-            lookup_ids = [(item + [1] * (max_length - len(item)))[:max_length] for item in lookup_ids]
-            lookup_ids = torch.LongTensor(lookup_ids).to(Config.device).view(-1)
-            matrices = torch.index_select(embedding_matrix, 0, lookup_ids)
-            matrices = matrices.view(
-                len(node_batch),
-                Config.sequence_lengths[1],
-                Config.vector_sizes[1]
-            )
-            labels = lookup_ids.view(len(node_batch), Config.sequence_lengths[1])
-
-            return matrices, mask, eos_positions, join_positions, embedding_matrix, labels
+            return matrices, mask, eos_positions, None, char_embedding, lookup_ids
         else:
+            if self.level == 1:
+                id_name = 'distinct_lookup_id'
+            else:
+                id_name = 'id'
+
+            add_value = 2 + int(Config.join_texts)
+
             masks = [[False] * (len(node.children) + 1) for node in node_batch]
             eos_positions = [[0.0] * len(node.children) + [1.0] for node in node_batch]
             join_positions = [[1 if child.is_join() else 0 for child in node.children] for node in node_batch]
-            all_ids = [[child.id for child in node.children] + [0] for node in node_batch]
+            all_ids = [[getattr(child, id_name) + add_value for child in node.children] + [0] for node in node_batch]
             matrices = [[child.vector for child in node.children] + [self.eos_vector] for node in node_batch]
 
             masks = [item + [True] * (max_length - len(item)) for item in masks]
@@ -124,21 +98,29 @@ class AgentLevel(nn.Module):
             # [sentences in node_batch, max words in sentence, word vec size]
             matrices = torch.stack(matrices).to(Config.device)
 
-            # 0 is saved for EoS, 1 is saved for pad (so start counting at 2)
-            all_children_ids = [i for x in all_ids for i in x if i > 1]
-            add_value = 2 + int(Config.join_texts)
+            # 0 for EoS, 1 for pad, 2 is for join (so start counting at 1 or 2)
+            all_children_ids = [i for x in all_ids for i in x if i > add_value - 1]
+            all_children_ids = list(dict.fromkeys(all_children_ids))
             id_to_place = {child_id: i + add_value for i, child_id in enumerate(all_children_ids)}
+            id_to_place[0] = 0
+            id_to_place[1] = 1
+            if Config.join_texts:
+                id_to_place[2] = 2
 
-            def id_to_place2(i):
-                return i if i <= (add_value - 1) else id_to_place[i]
+            labels = torch.tensor([[id_to_place[i] for i in x] for x in all_ids]).to(Config.device)
 
-            labels = torch.tensor([[id_to_place2(i) for i in x] for x in all_ids]).to(Config.device)
+            if self.level == 1:
+                id_to_vec = {getattr(child, id_name): child.vector for node in node_batch for child in node.children}
+                # Subtract add_value to get to the real id
+                child_vectors = [id_to_vec[child_id - add_value] for child_id in all_children_ids]
+            else:
+                child_vectors = [child.vector for child in all_children]
 
             embedding = torch.stack(
                 [self.eos_vector] +
                 [self.pad_vector] +
                 ([self.join_vector] if Config.join_texts else []) +
-                [child.vector for child in all_children]
+                child_vectors
             ).to(Config.device)
 
             return matrices, mask, eos_positions, join_positions, embedding, labels

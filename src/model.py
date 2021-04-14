@@ -7,6 +7,7 @@ from src.losses.coherence import calc_coherence_loss
 from src.losses.reconstruction import calc_reconstruction_loss
 from src.losses.generation import calc_generation_loss
 from src.pre_processing import Node, TreeTokenizer
+from src.utils import iter_even_split
 import torch.nn as nn
 import torch
 
@@ -18,9 +19,13 @@ class AgentModel(nn.Module):
         self.agent_levels = nn.ModuleList([AgentLevel(i, num_letters) for i in range(Config.agent_level + 1)])
         self.char_embedding_layer = nn.Embedding(num_letters, Config.vector_sizes[0])
 
-    def set_word_vectors(self, batch_tree):
-        node_batch = batch_tree.level_nodes[0]
-        local_char_embedding_tokens = torch.LongTensor(batch_tree.distinct_word_embedding_tokens).to(Config.device)
+    def set_word_vectors(self, node_batch):
+        distinct_ids = list(dict.fromkeys([node.distinct_lookup_id for node in node_batch]))
+        id_to_tokens = {node.distinct_lookup_id: node.get_padded_word_tokens() for node in node_batch}
+
+        id_to_place = {node_id: i for i, node_id in enumerate(distinct_ids)}
+        distinct_word_embedding_tokens = [id_to_tokens[node_id] for node_id in distinct_ids]
+        local_char_embedding_tokens = torch.LongTensor(distinct_word_embedding_tokens).to(Config.device)
         mask = local_char_embedding_tokens == Config.pad_token_id  # True => position to mask
         eos_positions = local_char_embedding_tokens == Config.eos_token_id  # True => position to mask
         local_char_embedding_matrix = self.char_embedding_layer(local_char_embedding_tokens)
@@ -30,98 +35,96 @@ class AgentModel(nn.Module):
             self.agent_levels[0].encoder(local_char_embedding_matrix, mask, eos_positions.float()),
             mask)  # [distinct_words_in_batch,word_vector_size]
 
-        if Config.join_texts:
-            special_vectors = torch.stack([
+        special_vectors = torch.stack(
+            [
                 self.agent_levels[1].eos_vector,
                 self.agent_levels[1].pad_vector,
-                self.agent_levels[1].join_vector,
-            ])  # {0: eos, 1:pad, 2:join}
-            word_embedding_matrix = torch.cat([special_vectors, word_embedding_matrix], 0)
-            lookup_ids = torch.LongTensor([x.distinct_lookup_id for x in node_batch]).to(Config.device) + 3
-        else:
-            special_vectors = torch.stack([
-                self.agent_levels[1].eos_vector,
-                self.agent_levels[1].pad_vector,
-            ])  # {0: eos, 1:pad}
-            word_embedding_matrix = torch.cat([special_vectors, word_embedding_matrix], 0)
-            lookup_ids = torch.LongTensor([x.distinct_lookup_id for x in node_batch]).to(Config.device) + 2
+            ] +
+            ([self.agent_levels[1].join_vector] if Config.join_texts else [])
+        ).to(Config.device)  # {0: eos, 1:pad, 2:join}
+        word_embedding_matrix = torch.cat([special_vectors, word_embedding_matrix], 0)
+        lookup_ids = torch.LongTensor([id_to_place[x.distinct_lookup_id] for x in node_batch]).to(Config.device)
+        lookup_ids += 2 + int(Config.join_texts)
 
         all_word_vectors = torch.index_select(word_embedding_matrix, 0, lookup_ids)  # [words_in_batch,word_vector_size]
         [n.set_vector(v) for n, v in zip(node_batch, all_word_vectors)]
-        return word_embedding_matrix
 
-    def set_text_vectors(self, batch_tree):
-        word_embedding_matrix = self.set_word_vectors(batch_tree)
-        for i in range(1, Config.agent_level + 1):
-            self.agent_levels[i].realize_vectors(batch_tree.level_nodes[i])
-        return word_embedding_matrix
-
-    def forward(self, batch_tree, with_debug=False, generate=None, epoch=0):
-        word_embedding_matrix = self.set_text_vectors(batch_tree)
-        embedding_matrices = {0: self.char_embedding_layer.weight, 1: word_embedding_matrix}
+    def forward(self, batch_tree, generate=False, debug=False):
         total_g_loss, total_disc_loss, total_loss = 0, 0, 0
         loss_object = {}
-        for i in range(Config.agent_level + 1):
+        for level_num in range(Config.agent_level + 1):
             # All the nodes in this level (not including join tokens if on lowest level)
-            node_batch = [node for node in batch_tree.level_nodes[i] if i > 0 or not node.is_join()]
+            real_nodes = [node for node in batch_tree.level_nodes[level_num] if level_num > 0 or not node.is_join()]
+            for batch_num, node_batch in enumerate(iter_even_split(real_nodes, Config.batch_sizes[level_num])):
 
-            matrices, mask, eos_positions, join_positions, embedding_matrix, labels = self.agent_levels[i].get_children(
-                node_batch,
-                embedding_matrices[
-                    i % 2])  # we only care about 0 and 1
-            mlm_loss = calc_mlm_loss(self.agent_levels[i], matrices, mask, eos_positions, embedding_matrix, labels)
-            coherence_loss = calc_coherence_loss(self.agent_levels[i], matrices, mask, eos_positions, embedding_matrix)
+                if level_num == 0:
+                    self.set_word_vectors(node_batch)
+                else:
+                    self.agent_levels[level_num].realize_vectors(node_batch)
 
-            # TODO - Check if this grabbing of vectors is correct
-            vectors = torch.stack([node.vector for node in node_batch])
-            decompressed = self.agent_levels[i].decompressor(vectors)
-            reconstruction_diff_loss, reconstruction_loss = calc_reconstruction_loss(self.agent_levels[i], matrices,
-                                                                                     decompressed, mask, eos_positions,
-                                                                                     embedding_matrix, labels)
-            eos_loss = calc_eos_loss(self.agent_levels[i], decompressed, eos_positions)
+                matrices, mask, eos_positions, join_positions, embedding_matrix, labels = self.agent_levels[
+                    level_num].get_children(
+                    node_batch,
+                    self.char_embedding_layer.weight)
+                mlm_loss = calc_mlm_loss(self.agent_levels[level_num], matrices, mask, eos_positions, embedding_matrix,
+                                         labels)
+                coherence_loss = calc_coherence_loss(self.agent_levels[level_num], matrices, mask, eos_positions,
+                                                     embedding_matrix)
 
-            if Config.join_texts and i >= 1:
-                join_loss = calc_join_loss(self.agent_levels[i], decompressed, join_positions)
-            else:
-                join_loss = torch.tensor([0.0] * matrices.size(0))
+                vectors = torch.stack([node.vector for node in node_batch])
+                decompressed = self.agent_levels[level_num].decompressor(vectors)
+                reconstruction_diff_loss, reconstruction_loss = calc_reconstruction_loss(self.agent_levels[level_num],
+                                                                                         matrices, decompressed, mask,
+                                                                                         eos_positions,
+                                                                                         embedding_matrix, labels)
+                eos_loss = calc_eos_loss(self.agent_levels[level_num], decompressed, eos_positions)
 
-            total_loss += (
-                    mlm_loss.mean() +
-                    coherence_loss.mean() +
-                    reconstruction_loss.mean() +
-                    eos_loss.mean() +
-                    join_loss.mean() +
-                    reconstruction_diff_loss.mean()
-            ).sum()
+                if Config.join_texts and level_num >= 1:
+                    join_loss = calc_join_loss(self.agent_levels[level_num], decompressed, join_positions)
+                else:
+                    join_loss = torch.tensor([0.0] * matrices.size(0)).to(Config.device)
 
-            loss_object[i] = {
-                'm': mlm_loss.mean().item(),
-                "c": coherence_loss.mean().item(),
-                "r": reconstruction_loss.mean().item(),
-                "e": eos_loss.mean().item(),
-                "j": join_loss.mean().item(),
-                "d": reconstruction_diff_loss.mean().item()
-            }
+                losses = {
+                    'm': mlm_loss.sum(),
+                    "c": coherence_loss.sum(),
+                    "r": reconstruction_loss.sum(),
+                    "e": eos_loss.sum(),
+                    "j": join_loss.sum(),
+                    "d": reconstruction_diff_loss.sum(),
+                }
+                if level_num not in loss_object:  # On the first node_batch
+                    loss_object[level_num] = losses
+                else:
+                    for label, value in losses.items():
+                        loss_object[level_num][label] += value
 
-            if generate:
-                g_loss, disc_loss = calc_generation_loss(self.agent_levels[i], vectors, matrices, mask)
-                loss_object[i]["g"] = g_loss.item()
-                loss_object[i]["disc"] = disc_loss.item()
-                total_g_loss += g_loss
-                total_disc_loss += disc_loss
+                if generate and batch_num == 0:  # Only run generate on the first batch of nodes
+                    g_loss, disc_loss = calc_generation_loss(self.agent_levels[level_num], vectors, matrices, mask)
+                    loss_object[level_num]["g"] = g_loss.item()
+                    loss_object[level_num]["disc"] = disc_loss.item()
+                    total_g_loss += g_loss
+                    total_disc_loss += disc_loss
 
-            # If the lengths are not equal then let's catch this
-            assert len(node_batch) == mlm_loss.size(0)
-            assert len(node_batch) == reconstruction_loss.size(0)
+                # If the lengths are not equal then let's catch this
+                # assert len(node_batch) == mlm_loss.size(0)
+                # assert len(node_batch) == reconstruction_loss.size(0)
 
-            [setattr(n, 'mlm_loss', l) for n, l in zip(node_batch, mlm_loss.tolist())]
-            [setattr(n, 'coherence_loss', l) for n, l in zip(node_batch, coherence_loss.tolist())]
-            [setattr(n, 'reconstruction_loss', l) for n, l in zip(node_batch, reconstruction_loss.tolist())]
-            [setattr(n, 'eos_loss', l) for n, l in zip(node_batch, eos_loss.tolist())]
-            [setattr(n, 'join_loss', l) for n, l in zip(node_batch, join_loss.tolist())]
-            [setattr(n, 'reconstruction_diff_loss', l) for n, l in zip(node_batch, reconstruction_diff_loss.tolist())]
+                if debug:
+                    for i, node in enumerate(node_batch):
+                        node.mlm_loss = mlm_loss[i]
+                        node.coherence_loss = coherence_loss[i]
+                        node.reconstruction_loss = reconstruction_loss[i]
+                        node.eos_loss = eos_loss[i]
+                        node.join_loss = join_loss[i]
+                        node.reconstruction_diff_loss = reconstruction_diff_loss[i]
 
-            embedding_matrices[i] = embedding_matrix
+            current_losses = []
+            for label, loss in loss_object[level_num].items():
+                if label not in ['g', 'disc']:
+                    loss /= len(real_nodes)
+                    current_losses.append(loss)
+                    loss_object[level_num][label] = loss.item()  # Pull out of the GPU for logging
+            total_loss += torch.stack(current_losses).to(Config.device).sum()
 
         return total_g_loss, total_disc_loss, total_loss, loss_object
 

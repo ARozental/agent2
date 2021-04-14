@@ -8,10 +8,13 @@ from torch.utils.data.dataloader import DataLoader
 import numpy as np
 import torch
 import time
+import os
 
 seed_torch(0)  # 0 learns 2 doesn't (before no cnn layer)
 
 LOG_EVERY = 100
+SAVE_EVERY = None  # None means never save, otherwise put an integer
+MODEL_FOLDER = ''  # Where inside of the "models" folder to place this current run
 GENERATE_TEXT = False
 PRINT_RECONSTRUCTED_TEXT = True
 
@@ -45,17 +48,18 @@ def train():
 
     # Logger.setup()
     all_times = []
+    global_step = 0
     for epoch in range(10001):
         # print('Epoch', epoch + 1)
-        start_time = time.time()
+        # start_time = time.time()
 
         for batch_num, batch in enumerate(dataloader):
             model.train()
             main_optimizer.zero_grad()
 
-            g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT, epoch=epoch)
-            Logger.log_losses(g_loss, disc_loss, main_loss, loss_object, step=epoch)
-            Logger.log_l2_classifiers(model, step=epoch)
+            g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT)
+            Logger.log_losses(g_loss, disc_loss, main_loss, loss_object, step=global_step)
+            Logger.log_l2_classifiers(model, step=global_step)
 
             if GENERATE_TEXT:
                 generator_optimizer.zero_grad()
@@ -74,17 +78,15 @@ def train():
                 main_loss.backward()
                 main_optimizer.step()
 
-            if (epoch % LOG_EVERY == 0 and batch_num == 0) or (batch_num % LOG_EVERY == 0 and batch_num > 0):  # Only log on the first batch?
-                print('Epoch', epoch,'Batch', batch_num )
+            # Only log on the first batch
+            if (epoch % LOG_EVERY == 0 and batch_num == 0) or (batch_num % LOG_EVERY == 0 and batch_num > 0):
+                print('Epoch', epoch, 'Batch', batch_num)
                 model.eval()
-
-                # I believe that this needs to be called to make the vectors correspond with the updated weights
-                model.set_text_vectors(batch)
 
                 if GENERATE_TEXT:
                     generated = {i: model.generate_texts(i, 1)[0] for i in reversed(range(Config.agent_level + 1))}
                     print(generated)
-                    Logger.log_text(generated, step=epoch)
+                    Logger.log_text(generated, step=global_step)
 
                 if PRINT_RECONSTRUCTED_TEXT:
                     nodes = batch.batch_root.children
@@ -95,15 +97,20 @@ def train():
                                      enumerate(reconstructed)]
                     for i, text in enumerate(reconstructed):
                         print('Level', i, text)
-                        Logger.log_reconstructed(text, i, step=epoch)
+                        Logger.log_reconstructed(text, i, step=global_step)
                         if i == len(reconstructed) - 1:
                             if text[0] == expected[0] and text[1] == expected[1]:
                                 print('MATCHED')
                                 exit()
 
-        current_time = time.time() - start_time
-        all_times.append(current_time)
-        #print('Epoch', epoch + 1, 'completed in', round(current_time, 3), 'average', round(np.mean(all_times), 3))
+            if SAVE_EVERY is not None and batch_num > 0 and batch_num % SAVE_EVERY == 0:
+                torch.save(model.state_dict(), os.path.join('models', MODEL_FOLDER, str(epoch) + '.' + str(batch_num)))
+
+            global_step += 1
+
+        # current_time = time.time() - start_time
+        # all_times.append(current_time)
+        # print('Epoch', epoch + 1, 'completed in', round(current_time, 3), 'average', round(np.mean(all_times), 3))
 
 
 if __name__ == '__main__':

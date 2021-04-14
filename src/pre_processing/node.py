@@ -11,7 +11,7 @@ def get_unique_id():
 
 
 class Node:
-    def __init__(self, level=2, tokens=None, has_eos=True, children=None):
+    def __init__(self, level=2, tokens=None, has_eos=True, children=None,root_md5=None):
         if children is None:
             children = []
 
@@ -25,7 +25,7 @@ class Node:
         self.coherence_loss = None
         self.reconstruction_loss = None
         self.reconstruction_diff_loss = None
-
+        self.root_md5 = root_md5
         self.has_eos = has_eos
 
     def is_join(self):
@@ -49,7 +49,7 @@ class Node:
         for i, child in enumerate(node.children[1:]):
             if len(new_children[-1].children) + 1 + len(child.children) < max_length:
                 # tokens = -1 because when join is on we will add 3 (3 special tokens)
-                new_children[-1].children.append(Node(level=child.level - 1, tokens=-1))  # TODO: WHY minus one level?
+                new_children[-1].children.append(Node(level=child.level - 1, tokens=-1, root_md5=node.root_md5))  # TODO: WHY minus one level?
                 new_children[-1].children += child.children
             else:
                 new_children.append(child)
@@ -64,7 +64,7 @@ class Node:
                 continue
 
             parts = [word.tokens[i:i + max_length] for i in range(0, len(word.tokens), max_length)]
-            parts = [Node(level=word.level, tokens=part, has_eos=i == len(parts) - 1) for i, part in enumerate(parts)]
+            parts = [Node(level=word.level, tokens=part, has_eos=i == len(parts) - 1, root_md5=self.root_md5) for i, part in enumerate(parts)]
             new_words.extend(parts)
         self.children = new_words
 
@@ -94,26 +94,30 @@ class Node:
                 # current_use = current[:last_eos_index + 1]
                 # current = current[last_eos_index + 1:]
 
-                result.append(Node(level=node.level, children=current, has_eos=False))
+                result.append(Node(level=node.level, children=current, has_eos=False, root_md5=node.root_md5))
                 current = []
 
         if len(current) > 0:
-            result.append(Node(level=node.level, children=current, has_eos=False))
+            result.append(Node(level=node.level, children=current, has_eos=False, root_md5=node.root_md5))
         result[-1].has_eos = True
 
         return result
 
-    def expand_struct(self, struct):
+    def expand_struct(self, struct,children_md5s=False):
         if self.level == 0:  # Word
             self.tokens = struct
             self.id = get_unique_id()
             return
 
         self.children = []
-        for part in struct:
+        for i,part in enumerate(struct):
             node = Node(level=self.level - 1)
             node.expand_struct(part)
             self.children.append(node)
+            if children_md5s:
+              node.root_md5 = children_md5s[i]
+            else:
+              node.root_md5 = self.root_md5
 
         if self.level == 1:
             self.split_words()

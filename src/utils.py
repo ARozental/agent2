@@ -6,6 +6,7 @@ import os
 import torch.nn as nn
 import math
 import torch.nn.functional as F
+import hashlib
 
 def seed_torch(seed=777):
     random.seed(seed)
@@ -46,17 +47,19 @@ def iter_even_split(items, batch_size):
         yield [items.__next__() for _ in range(length)]
 
 
-def attention(q, k, v, d_k, mask=None, dropout=None):
-  scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(d_k)
-  # print("s",scores)
-  # print("mask",mask)
+def split_nodes_to_batches(nodes,max_batch_size):
 
+  return []
+
+
+def attention(q, k, v, d_k, mask=None, dropout=None):
+  """ for pndb only"""
+  scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(d_k)
   if mask is not None:
     mask = mask.unsqueeze(1)
     scores = scores.masked_fill(mask == True, -1e9)
 
   scores = F.softmax(scores, dim=-1)
-  # print("scores", scores)
 
   if dropout is not None:
     scores = dropout(scores)
@@ -64,3 +67,6 @@ def attention(q, k, v, d_k, mask=None, dropout=None):
   output = torch.matmul(scores, v)
 
   return output
+
+def md5(s):
+  return hashlib.md5(s.encode('utf-8')).hexdigest()

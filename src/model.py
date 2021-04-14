@@ -83,12 +83,12 @@ class AgentModel(nn.Module):
 
                 #### PNDB tests
                 if level_num == 1 and (Config.use_pndb1 or Config.use_pndb2):
-                  A1 = self.pndb.create_A_matrix(matrices, mask)
+                  A1,A2 = None,None
+                  if Config.use_pndb1:
+                    A1 = self.pndb.create_A_matrix(matrices, mask)
                   if Config.use_pndb2:
                     post_encoder = self.agent_levels[level_num].encoder(matrices, mask, eos_positions)
                     A2 = self.pndb.create_A2_matrix(post_encoder, mask)
-                  else:
-                    A2=None
 
                   reconstruction_diff_loss, reconstruction_loss = calc_reconstruction_loss_with_pndb(self.agent_levels[level_num],
                                                                                            matrices, decompressed, mask,

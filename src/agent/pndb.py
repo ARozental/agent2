@@ -16,7 +16,7 @@ class Pndb(nn.Module):
         encoder_layers = EncoderLayer(Config.vector_sizes[level], Config.num_heads[level],Config.vector_sizes[level], Config.drop_rate,activation="gelu") # change to swiglu
         self.pndb_transformer_encoder = TransformerEncoder(encoder_layers, Config.num_transformer_layers[level]) #not sure we need it...
 
-        self.num_questions = 7
+        self.num_questions = Config.pndb_questions
         self.questions = nn.Parameter(torch.rand([self.num_questions, Config.vector_sizes[level]], requires_grad=True)) #global Q matrix
         self.questions2 = nn.Parameter(torch.rand([self.num_questions, Config.vector_sizes[level]], requires_grad=True)) #global Q matrix
 

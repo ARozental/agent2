@@ -29,6 +29,7 @@ Refactoring:
 CURRENT TASKS:
 Datasets 5
 Tests 1
+clip sofxmax for EoS and Join classifier at 99.99% certainty
 
 Transformer 1
 AgentModel 1
@@ -47,3 +48,7 @@ AgentModel:
 Tests:
 1. tensor board - reconstructed next to real text for TB print
 2. track memory usage
+
+
+WTF:
+reconstructed text:   William Knollys <unk>15 October 1694</unk>

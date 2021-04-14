@@ -18,6 +18,11 @@ class Config:
     join_token_id = 3  # hard coded; will break logic if changed!!!
     join_texts = True
 
+    #pndb
+    use_pndb1 = True
+    use_pndb2 = True
+    pndb_questions = 16
+
     # An easy way to remember the indices of each level
     levels = {
         'WORD': 0,

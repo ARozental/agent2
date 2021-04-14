@@ -3,7 +3,9 @@ import math
 import random
 import torch
 import os
-
+import torch.nn as nn
+import math
+import torch.nn.functional as F
 
 def seed_torch(seed=777):
     random.seed(seed)
@@ -42,3 +44,23 @@ def iter_even_split(items, batch_size):
     for x_i in range(baskets):
         length = ceiling if x_i < stepdown else floor
         yield [items.__next__() for _ in range(length)]
+
+
+def attention(q, k, v, d_k, mask=None, dropout=None):
+  scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(d_k)
+  # print("s",scores)
+  # print("mask",mask)
+
+  if mask is not None:
+    mask = mask.unsqueeze(1)
+    scores = scores.masked_fill(mask == True, -1e9)
+
+  scores = F.softmax(scores, dim=-1)
+  # print("scores", scores)
+
+  if dropout is not None:
+    scores = dropout(scores)
+
+  output = torch.matmul(scores, v)
+
+  return output

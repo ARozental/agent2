@@ -41,11 +41,11 @@ class AgentLevel(nn.Module):
 
     def eos_classifier1(self, dot):
         # needed to make sure w1 can never be negative
-        return F.elu(dot * self.classifier1w.abs()) + self.classifier1b
+        return (F.elu(dot * self.classifier1w.abs()) + self.classifier1b).clamp(0, 0.9999)
 
     def join_classifier(self, dot):
         # needed to make sure w1 can never be negative
-        return F.elu(dot * self.join_classifier_w.abs()) + self.join_classifier_b
+        return (F.elu(dot * self.join_classifier_w.abs()) + self.join_classifier_b).clamp(0, 0.9999)
 
     def get_children(self, node_batch, char_embedding=None):
         max_length = Config.sequence_lengths[self.level]

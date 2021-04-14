@@ -1,8 +1,8 @@
 config:
-    sequence_lengths = [16, 16]
-    vector_sizes = [32, 48]
-    num_heads = [2, 2]
-    fnn_sizes = [8, 10]
+    sequence_lengths = [16, 16, 6, 3, 4]
+    vector_sizes = [32, 48, 64, 96, 128, 156]
+    num_heads = [2, 2, 2, 2, 2, 2]
+    fnn_sizes = [8, 10, 12, 14, 16, 18]
     batch = 64 sentences
 
 level 0 learns well from the start, except Coherence

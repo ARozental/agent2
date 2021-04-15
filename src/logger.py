@@ -1,10 +1,13 @@
+from src.pre_processing import TreeTokenizer
 from src.config import Config
 
 from torch.utils.tensorboard import SummaryWriter
+import pandas as pd
 
 
 class Logger:
     writer = None
+    viz = pd.DataFrame()
     loss_name_mapping = {
         'm': 'mlm',
         'c': 'coherence',
@@ -61,3 +64,24 @@ class Logger:
             return
 
         cls.writer.add_text('reconstructed/' + str(level), '  \n'.join(text), step)
+
+    @classmethod
+    def log_viz(cls, node, text, level, step):
+        if Config.viz_file is None:
+            return
+
+        real_text = TreeTokenizer.deep_detokenize(node.build_struct(True)[0], node.level)
+        Logger.viz = Logger.viz.append(pd.DataFrame({
+            'text': [real_text],
+            'pred': [text],
+            'level': [level],
+            'step': [step],
+            'mlm': node.mlm_loss.item(),
+            'coherence': node.coherence_loss.item(),
+            'eos': node.eos_loss.item(),
+            'join': node.join_loss.item(),
+            'recon': node.reconstruction_loss.item(),
+            'recon_diff': node.reconstruction_diff_loss.item(),
+        }), ignore_index=True)
+
+        Logger.viz.to_csv(Config.viz_file, index=False)

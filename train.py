@@ -57,7 +57,13 @@ def train():
             model.train()
             main_optimizer.zero_grad()
 
-            g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT)
+            will_reconstruct = PRINT_RECONSTRUCTED_TEXT and (
+                    (epoch % Config.log_every == 0 and batch_num == 0) or
+                    (batch_num % Config.log_every == 0 and batch_num > 0)
+            )
+
+            g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT,
+                                                                      debug=will_reconstruct)
             Logger.log_losses(g_loss, disc_loss, main_loss, loss_object, step=global_step)
             Logger.log_l2_classifiers(model, step=global_step)
 
@@ -100,6 +106,8 @@ def train():
                     for i, text in enumerate(reconstructed):
                         print('Level', i, text)
                         Logger.log_reconstructed(text, i, step=global_step)
+                        for j, item in enumerate(text):
+                            Logger.log_viz(batch.level_nodes[i][j], text[j], i, step=global_step)
                         if i == len(reconstructed) - 1:
                             if text[0] == expected[0] and text[1] == expected[1]:
                                 print('MATCHED')

@@ -3,7 +3,6 @@ from src.config import Config
 
 from torch.utils.tensorboard import SummaryWriter
 import pandas as pd
-import os
 
 
 class Logger:
@@ -68,6 +67,9 @@ class Logger:
 
     @classmethod
     def log_viz(cls, node, text, level, step):
+        if Config.viz_file is None:
+            return
+
         real_text = TreeTokenizer.deep_detokenize(node.build_struct(True)[0], node.level)
         Logger.viz = Logger.viz.append(pd.DataFrame({
             'text': [real_text],
@@ -82,4 +84,4 @@ class Logger:
             'recon_diff': node.reconstruction_diff_loss.item(),
         }), ignore_index=True)
 
-        Logger.viz.to_csv(os.path.join('viz', 'results.csv'), index=False)
+        Logger.viz.to_csv(Config.viz_file, index=False)

@@ -57,7 +57,13 @@ def train():
             model.train()
             main_optimizer.zero_grad()
 
-            g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT, debug=True)
+            will_reconstruct = PRINT_RECONSTRUCTED_TEXT and (
+                    (epoch % Config.log_every == 0 and batch_num == 0) or
+                    (batch_num % Config.log_every == 0 and batch_num > 0)
+            )
+
+            g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT,
+                                                                      debug=will_reconstruct)
             Logger.log_losses(g_loss, disc_loss, main_loss, loss_object, step=global_step)
             Logger.log_l2_classifiers(model, step=global_step)
 

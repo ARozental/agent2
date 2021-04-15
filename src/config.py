@@ -36,6 +36,7 @@ class Config:
     save_every = None  # Save the model every x epochs/batches; None never saves
     model_folder = "test"  # Where inside of the "models" folder to save the model to
     exp_folder = None  # Folder name in "runs" to log into. None defaults to tensorboard default
+    viz_file = None  # CSV file where to save viz results in
 
     # An easy way to remember the indices of each level
     levels = {

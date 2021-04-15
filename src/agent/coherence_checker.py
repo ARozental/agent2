@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch
-
+from src.config import Config
 
 class CoherenceChecker(nn.Module):
     def __init__(self, embed_size):
@@ -13,6 +13,6 @@ class CoherenceChecker(nn.Module):
     def forward(self, x):
         x = torch.tanh(self.d1(x))
         x = torch.tanh(self.d2(x))
-        x = torch.sigmoid(self.out(x))
+        x = torch.sigmoid(self.out(x)) * Config.max_coherence_noise
 
         return x

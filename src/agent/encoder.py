@@ -7,7 +7,7 @@ class Encoder(nn.Module):
     def __init__(self, level):
         super().__init__()
         self.pos_encoder = PositionalEncoding(Config.vector_sizes[level], Config.drop_rate)
-        encoder_layers = EncoderLayer(Config.vector_sizes[level], Config.num_heads[level], Config.vector_sizes[level],
+        encoder_layers = EncoderLayer(Config.vector_sizes[level], Config.num_heads[level], Config.fnn_sizes[level],
                                       Config.drop_rate, activation="gelu")  # change to swiglu
         self.transformer_encoder = TransformerEncoder(encoder_layers, Config.num_transformer_layers[level])
 

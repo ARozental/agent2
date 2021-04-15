@@ -4,7 +4,7 @@ import sys
 
 
 class Config:
-    sequence_lengths = [2, 16, 6, 3, 4]  # [10,12,6,20,20]
+    sequence_lengths = [16, 16, 6, 3, 4]  # [10,12,6,20,20]
     # vector_sizes = [8, 10, 12, 14, 16, 18]  # [4,6,8,10] #letters,words,sentences,paragraphs,chapters,book
     vector_sizes = [32, 64, 96, 96, 128, 156]  # [4,6,8,10] #letters,words,sentences,paragraphs,chapters,book
     num_heads = [4, 8, 2, 2, 2, 2]  # [2,3,4,5] #for transformers

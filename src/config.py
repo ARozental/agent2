@@ -29,7 +29,11 @@ class Config:
     # max_eos_loss = 7.0 #doesn't fix anything on its own
     grad_clip_value = 1.0
 
-    model_folder = "test"  # Where inside of the "models" folder to place this current run
+    log_experiment = False  # Log into tensorboard?
+    log_every = 100  # Log the reconstructed text every x epochs/batches
+    save_every = None  # Save the model every x epochs/batches; None never saves
+    model_folder = "test"  # Where inside of the "models" folder to save the model to
+    exp_folder = None  # Folder name in "runs" to log into. None defaults to tensorboard default
 
     # An easy way to remember the indices of each level
     levels = {
@@ -45,6 +49,7 @@ class Config:
     # Run configuration below (keeping device here makes it easier to use throughout all of the code)
     use_cuda = True
     gpu_num = 0
+    device = None  # Will be set in setup()
 
     @staticmethod
     def setup():

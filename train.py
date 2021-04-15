@@ -12,8 +12,6 @@ import os
 
 seed_torch(0)  # 0 learns 2 doesn't (before no cnn layer)
 
-LOG_EVERY = 100
-SAVE_EVERY = None  # None means never save, otherwise put an integer
 MODEL_FOLDER = os.path.join('models', Config.model_folder)
 if not os.path.exists(MODEL_FOLDER):
     os.makedirs(MODEL_FOLDER)
@@ -48,7 +46,7 @@ def train():
     generator_optimizer = torch.optim.Adam(generator_params, 0.002)
     discriminator_optimizer = torch.optim.Adam(discriminator_params, 0.002)
 
-    # Logger.setup()
+    Logger.setup()
     all_times = []
     global_step = 0
     for epoch in range(10001):
@@ -82,8 +80,8 @@ def train():
                 main_loss.backward()
                 main_optimizer.step()
 
-            # Only log on the first batch
-            if (epoch % LOG_EVERY == 0 and batch_num == 0) or (batch_num % LOG_EVERY == 0 and batch_num > 0):
+            if (epoch % Config.log_every == 0 and batch_num == 0) or \
+                    (batch_num % Config.log_every == 0 and batch_num > 0):
                 print('Epoch', epoch, 'Batch', batch_num)
                 model.eval()
 
@@ -107,7 +105,7 @@ def train():
                                 print('MATCHED')
                                 exit()
 
-            if SAVE_EVERY is not None and batch_num > 0 and batch_num % SAVE_EVERY == 0:
+            if Config.save_every is not None and batch_num > 0 and batch_num % Config.save_every == 0:
                 torch.save(model.state_dict(), os.path.join(MODEL_FOLDER, str(epoch) + '.' + str(batch_num)))
 
             global_step += 1

@@ -24,12 +24,13 @@ Refactoring:
 6. fix num_workers=1 we can only use 33% gpu now
 7. run with batch of batches (at least for the forward)
 8. make config an object again
+9. have a way to override config from terminal (run train.py with params)
 
 
 CURRENT TASKS:
 Datasets 5
 Tests 1
-clip sofxmax for EoS and Join classifier at 99.99% certainty
+Refactoring 9
 
 Transformer 1
 AgentModel 1

@@ -12,26 +12,26 @@ import os
 
 seed_torch(0)  # 0 learns 2 doesn't (before no cnn layer)
 
-LOG_EVERY = 10
-SAVE_EVERY = None  # None means never save, otherwise put an integer
-MODEL_FOLDER = ''  # Where inside of the "models" folder to place this current run
+MODEL_FOLDER = os.path.join('models', Config.model_folder)
+if not os.path.exists(MODEL_FOLDER):
+    os.makedirs(MODEL_FOLDER)
 GENERATE_TEXT = False
 PRINT_RECONSTRUCTED_TEXT = True
 
 
 # Need to wrap in a function for the child workers
 def train():
-    dataset = DummyDataset(max_num=2)
+    # dataset = DummyDataset(max_num=None)
     # dataset = BookDataset(no_stats=True, max_num=2)
-    # dataset = WikiDataset(max_num=None)
+    dataset = WikiDataset(max_num=None)
 
     dataloader = DataLoader(
         dataset,
         batch_size=Config.batch_size,
         collate_fn=TreeTokenizer.batch_texts_to_trees,
         worker_init_fn=worker_init_fn,
-        num_workers=0,
-        # persistent_workers=True  # This is helpful when num_workers > 0
+        num_workers=1,
+        persistent_workers=True  # This is helpful when num_workers > 0
     )
 
     model = AgentModel()
@@ -46,7 +46,7 @@ def train():
     generator_optimizer = torch.optim.Adam(generator_params, 0.002)
     discriminator_optimizer = torch.optim.Adam(discriminator_params, 0.002)
 
-    # Logger.setup()
+    Logger.setup()
     all_times = []
     global_step = 0
     for epoch in range(10001):
@@ -71,15 +71,17 @@ def train():
                 [setattr(p, "requires_grad", False) for p in discriminator_params]
                 (g_loss - disc_loss * 0.2).backward()  # disc loss won't go down even when this is commented => BUG
                 [setattr(p, "requires_grad", True) for p in main_params + discriminator_params]
+                torch.nn.utils.clip_grad_norm_(model.parameters(), Config.grad_clip_value)
                 main_optimizer.step()
                 discriminator_optimizer.step()
                 generator_optimizer.step()
             else:
+                torch.nn.utils.clip_grad_value_(main_params, Config.grad_clip_value)
                 main_loss.backward()
                 main_optimizer.step()
 
-            # Only log on the first batch
-            if (epoch % LOG_EVERY == 0 and batch_num == 0) or (batch_num % LOG_EVERY == 0 and batch_num > 0):
+            if (epoch % Config.log_every == 0 and batch_num == 0) or \
+                    (batch_num % Config.log_every == 0 and batch_num > 0):
                 print('Epoch', epoch, 'Batch', batch_num)
                 model.eval()
 
@@ -105,8 +107,8 @@ def train():
                                 print('MATCHED')
                                 exit()
 
-            if SAVE_EVERY is not None and batch_num > 0 and batch_num % SAVE_EVERY == 0:
-                torch.save(model.state_dict(), os.path.join('models', MODEL_FOLDER, str(epoch) + '.' + str(batch_num)))
+            if Config.save_every is not None and batch_num > 0 and batch_num % Config.save_every == 0:
+                torch.save(model.state_dict(), os.path.join(MODEL_FOLDER, str(epoch) + '.' + str(batch_num)))
 
             global_step += 1
 

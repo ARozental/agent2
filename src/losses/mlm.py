@@ -8,14 +8,14 @@ def calc_mlm_loss(agent_level, matrices, mask, eos_positions, embeddings, labels
     batch, seq_length, vec_size = matrices.shape
 
     # 1 => keep original 0, calc mlm,Config.mlm_rate
-    keep_positions = (torch.rand(batch, seq_length, 1).to(Config.device) + 1 - 0.5).floor()
+    keep_positions = (torch.rand(batch, seq_length, 1).to(Config.device) + Config.mlm_rate).floor()
     mlm_positions = 1 - keep_positions
 
     # 1 => replace with <mask>
     mask_positions = (torch.rand(batch, seq_length, 1).to(Config.device) + 0.8).floor() * mlm_positions
 
     # 1 => replace with original, 0 replace with random
-    special_mlm_positions = torch.rand(batch, seq_length, 1).to(Config.device)
+    special_mlm_positions = (torch.rand(batch, seq_length, 1).to(Config.device) + 0.5).floor()
     random_replace_positions = mlm_positions * (1 - mask_positions) * (1 - special_mlm_positions)
     replace_with_original_positions = mlm_positions * (1 - mask_positions) * special_mlm_positions
 

@@ -4,12 +4,13 @@ from src.losses.eos import calc_eos_loss
 from src.losses.join import calc_join_loss
 from src.losses.mlm import calc_mlm_loss
 from src.losses.coherence import calc_coherence_loss
-from src.losses.reconstruction import calc_reconstruction_loss
+from src.losses.reconstruction import calc_reconstruction_loss, calc_reconstruction_loss_with_pndb
 from src.losses.generation import calc_generation_loss
 from src.pre_processing import Node, TreeTokenizer
 from src.utils import iter_even_split
 import torch.nn as nn
 import torch
+from src.agent.pndb import Pndb
 
 
 class AgentModel(nn.Module):
@@ -18,6 +19,10 @@ class AgentModel(nn.Module):
         num_letters = len(TreeTokenizer.letter_tokenizer.keys())
         self.agent_levels = nn.ModuleList([AgentLevel(i, num_letters) for i in range(Config.agent_level + 1)])
         self.char_embedding_layer = nn.Embedding(num_letters, Config.vector_sizes[0])
+
+        self.pndb = None
+        if (Config.use_pndb1 or Config.use_pndb2):
+          self.pndb = Pndb()
 
     def set_word_vectors(self, node_batch):
         distinct_ids = list(dict.fromkeys([node.distinct_lookup_id for node in node_batch]))
@@ -55,8 +60,10 @@ class AgentModel(nn.Module):
         for level_num in range(Config.agent_level + 1):
             # All the nodes in this level (not including join tokens if on lowest level)
             real_nodes = [node for node in batch_tree.level_nodes[level_num] if level_num > 0 or not node.is_join()]
-            for batch_num, node_batch in enumerate(iter_even_split(real_nodes, Config.batch_sizes[level_num])):
 
+            #todo: pndb_map = {md5 => tensor}
+
+            for batch_num, node_batch in enumerate(iter_even_split(real_nodes, Config.batch_sizes[level_num])):
                 if level_num == 0:
                     self.set_word_vectors(node_batch)
                 else:
@@ -73,10 +80,26 @@ class AgentModel(nn.Module):
 
                 vectors = torch.stack([node.vector for node in node_batch])
                 decompressed = self.agent_levels[level_num].decompressor(vectors)
-                reconstruction_diff_loss, reconstruction_loss = calc_reconstruction_loss(self.agent_levels[level_num],
+
+                #### PNDB tests
+                if level_num == 1 and (Config.use_pndb1 or Config.use_pndb2):
+                  A1,A2 = None,None
+                  if Config.use_pndb1:
+                    A1 = self.pndb.create_A_matrix(matrices, mask)
+                  if Config.use_pndb2:
+                    post_encoder = self.agent_levels[level_num].encoder(matrices, mask, eos_positions)
+                    A2 = self.pndb.create_A2_matrix(post_encoder, mask)
+
+                  reconstruction_diff_loss, reconstruction_loss = calc_reconstruction_loss_with_pndb(self.agent_levels[level_num],
+                                                                                           matrices, decompressed, mask,
+                                                                                           eos_positions,
+                                                                                           embedding_matrix, labels,self.pndb,A1,A2)
+                else:
+                  reconstruction_diff_loss, reconstruction_loss = calc_reconstruction_loss(self.agent_levels[level_num],
                                                                                          matrices, decompressed, mask,
                                                                                          eos_positions,
                                                                                          embedding_matrix, labels)
+
                 eos_loss = calc_eos_loss(self.agent_levels[level_num], decompressed, eos_positions)
 
                 if Config.join_texts and level_num >= 1:

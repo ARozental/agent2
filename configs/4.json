@@ -1,0 +1,20 @@
+{
+  "model_folder": "wiki.64sent.pndb2",
+  "exp_folder": "runs/wiki.64sent.pndb2",
+  "sequence_lengths": [16, 16, 6, 3, 4],
+  "vector_sizes": [32, 64, 128, 96, 128, 156],
+  "num_heads": [4, 8, 2, 2, 2, 2],
+  "fnn_sizes": [32, 64, 128, 14, 16, 18],
+  "num_transformer_layers":  [4, 6, 2, 2, 2, 2],
+  "batch_size": 2,
+  "batch_sizes": [3000, 3000, 1000, 1000, 1000],
+  "drop_rate": 0.0,
+  "join_texts": true,
+  "use_pndb1": false,
+  "use_pndb2": true,
+  "agent_level": 1,
+  "log_experiment": true,
+  "log_every": 2000,
+  "save_every": 10000,
+  "gpu_num": 1
+}

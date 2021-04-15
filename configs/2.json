@@ -1,5 +1,5 @@
 {
-  "model_folder": "wiki.64sent.join.batch2.exp2",
+  "model_folder": "wiki.64sent.join.batch2.coherence5.exp2",
   "sequence_lengths": [16, 16, 6, 3, 4],
   "vector_sizes": [32, 64, 128, 96, 128, 156],
   "num_heads": [6, 6, 2, 2, 2, 2],

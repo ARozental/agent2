@@ -13,6 +13,7 @@
   "use_pndb1": false,
   "use_pndb2": true,
   "agent_level": 1,
+  "log_experiment": true,
   "log_every": 2000,
   "save_every": 10000,
   "gpu_num": 1

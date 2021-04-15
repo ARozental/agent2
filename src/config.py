@@ -6,9 +6,9 @@ import sys
 class Config:
     sequence_lengths = [16, 16, 6, 3, 4]  # [10,12,6,20,20]
     # vector_sizes = [8, 10, 12, 14, 16, 18]  # [4,6,8,10] #letters,words,sentences,paragraphs,chapters,book
-    vector_sizes = [32, 48, 64, 96, 128, 156]  # [4,6,8,10] #letters,words,sentences,paragraphs,chapters,book
-    num_heads = [2, 2, 2, 2, 2, 2]  # [2,3,4,5] #for transformers
-    fnn_sizes = [8, 10, 12, 14, 16, 18]  # [2,3,4,5] #for fnn in transformers
+    vector_sizes = [32, 48, 96, 96, 128, 156]  # [4,6,8,10] #letters,words,sentences,paragraphs,chapters,book
+    num_heads = [2, 6, 2, 2, 2, 2]  # [2,3,4,5] #for transformers
+    fnn_sizes = vector_sizes #[8, 10, 12, 14, 16, 18]  # [2,3,4,5] #for fnn in transformers
     num_transformer_layers = [2, 2, 2, 2, 2, 2]  # [2,2,2,2]
     mlm_rate = 0.15  # 0.15 like BERT
     batch_size = 2  # How many books/articles/etc per batch.
@@ -29,7 +29,7 @@ class Config:
     #max_eos_loss = 7.0 #doesn't fix anything on its own
     grad_clip_value = 1.0
 
-    model_folder = None  # Where inside of the "models" folder to place this current run
+    model_folder = "test"  # Where inside of the "models" folder to place this current run
 
     # An easy way to remember the indices of each level
     levels = {

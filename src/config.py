@@ -8,7 +8,7 @@ class Config:
     # vector_sizes = [8, 10, 12, 14, 16, 18]  # [4,6,8,10] #letters,words,sentences,paragraphs,chapters,book
     vector_sizes = [32, 48, 96, 96, 128, 156]  # [4,6,8,10] #letters,words,sentences,paragraphs,chapters,book
     num_heads = [2, 6, 2, 2, 2, 2]  # [2,3,4,5] #for transformers
-    fnn_sizes = vector_sizes #[8, 10, 12, 14, 16, 18]  # [2,3,4,5] #for fnn in transformers
+    fnn_sizes = vector_sizes  # [8, 10, 12, 14, 16, 18]  # [2,3,4,5] #for fnn in transformers
     num_transformer_layers = [2, 2, 2, 2, 2, 2]  # [2,2,2,2]
     mlm_rate = 0.15  # 0.15 like BERT
     batch_size = 2  # How many books/articles/etc per batch.
@@ -25,8 +25,8 @@ class Config:
     use_pndb2 = False
     pndb_questions = 16
 
-    #smoothing
-    #max_eos_loss = 7.0 #doesn't fix anything on its own
+    # smoothing
+    # max_eos_loss = 7.0 #doesn't fix anything on its own
     grad_clip_value = 1.0
 
     model_folder = "test"  # Where inside of the "models" folder to place this current run
@@ -43,8 +43,12 @@ class Config:
     agent_level = levels['SENTENCE']  # most complex vector agent can create 2=paragraph
 
     # Run configuration below (keeping device here makes it easier to use throughout all of the code)
-    USE_CUDA = True
-    device = torch.device('cuda' if torch.cuda.is_available() and USE_CUDA else 'cpu')
+    use_cuda = True
+    gpu_num = 0
+    if use_cuda and torch.cuda.is_available():
+        device = torch.device('cuda', gpu_num)
+    else:
+        device = torch.device('cpu')
 
 
 def load(filename):

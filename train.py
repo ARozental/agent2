@@ -21,9 +21,9 @@ PRINT_RECONSTRUCTED_TEXT = True
 
 # Need to wrap in a function for the child workers
 def train():
-    dataset = DummyDataset(max_num=None)
+    # dataset = DummyDataset(max_num=None)
     # dataset = BookDataset(no_stats=True, max_num=2)
-    # dataset = WikiDataset(max_num=None)
+    dataset = WikiDataset(max_num=None)
 
     dataloader = DataLoader(
         dataset,

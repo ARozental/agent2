@@ -24,7 +24,8 @@ class Config:
     pndb_questions = 16
 
     #smoothing
-    max_eos_loss = 7.0
+    #max_eos_loss = 7.0 #doesn't fix anything on its own
+    grad_clip_value = 1.0
 
     # An easy way to remember the indices of each level
     levels = {

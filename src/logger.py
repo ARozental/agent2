@@ -69,6 +69,11 @@ class Logger:
             'level': [level],
             'step': [step],
             'mlm': node.mlm_loss.item(),
+            'coherence': node.coherence_loss.item(),
+            'eos': node.eos_loss.item(),
+            'join': node.join_loss.item(),
+            'recon': node.reconstruction_loss.item(),
+            'recon_diff': node.reconstruction_diff_loss.item(),
         }), ignore_index=True)
 
         Logger.viz.to_csv(os.path.join('viz', 'results.csv'), index=False)

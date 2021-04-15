@@ -1,8 +1,12 @@
+from src.pre_processing import TreeTokenizer
 from torch.utils.tensorboard import SummaryWriter
+import pandas as pd
+import os
 
 
 class Logger:
     writer = None
+    viz = pd.DataFrame()
     loss_name_mapping = {
         'm': 'mlm',
         'c': 'coherence',
@@ -58,8 +62,13 @@ class Logger:
 
     @classmethod
     def log_viz(cls, node, text, level, step):
-        import os
-        folder = os.path.join('..', 'viz')
-        print(node.mlm_loss)
-        return
-    #     print('viz', level, text)
+        real_text = TreeTokenizer.deep_detokenize(node.build_struct(True)[0], node.level)
+        Logger.viz = Logger.viz.append(pd.DataFrame({
+            'text': [real_text],
+            'pred': [text],
+            'level': [level],
+            'step': [step],
+            'mlm': node.mlm_loss.item(),
+        }), ignore_index=True)
+
+        Logger.viz.to_csv(os.path.join('viz', 'results.csv'), index=False)

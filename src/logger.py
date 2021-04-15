@@ -41,6 +41,9 @@ class Logger:
             cls.writer.add_scalar('l2/weight/' + str(i), level.classifier1w, step)
             cls.writer.add_scalar('l2/bias/' + str(i), level.classifier1b, step)
 
+            cls.writer.add_scalar('l2/join/weight/' + str(i), level.join_classifier_w, step)
+            cls.writer.add_scalar('l2/join/bias/' + str(i), level.join_classifier_b, step)
+
     @classmethod
     def log_text(cls, generated, step):
         if cls.writer is None:

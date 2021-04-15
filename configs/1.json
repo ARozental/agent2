@@ -1,4 +1,5 @@
 {
+  "model_folder": "wiki.64sent.join.batch2.seq_length16-16.vec_sizes32-48.nheads2-2.fnn8-10",
   "sequence_lengths": [16, 16, 6, 3, 4],
   "vector_sizes": [32, 48, 64, 96, 128, 156],
   "num_heads": [2, 2, 2, 2, 2, 2],

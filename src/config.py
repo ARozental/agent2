@@ -25,8 +25,10 @@ class Config:
     use_pndb2 = False
     pndb_questions = 16
 
-    #smoothing
+    # smoothing
     max_eos_loss = 7.0
+
+    model_folder = None  # Where inside of the "models" folder to place this current run
 
     # An easy way to remember the indices of each level
     levels = {

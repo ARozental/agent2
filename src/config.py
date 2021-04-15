@@ -22,8 +22,11 @@ class Config:
 
     # pndb
     use_pndb1 = True
-    use_pndb2 = True
+    use_pndb2 = False
     pndb_questions = 16
+
+    #smoothing
+    max_eos_loss = 7.0
 
     # An easy way to remember the indices of each level
     levels = {

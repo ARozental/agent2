@@ -14,7 +14,9 @@ seed_torch(0)  # 0 learns 2 doesn't (before no cnn layer)
 
 LOG_EVERY = 100
 SAVE_EVERY = None  # None means never save, otherwise put an integer
-MODEL_FOLDER = ''  # Where inside of the "models" folder to place this current run
+MODEL_FOLDER = os.path.join('models', Config.model_folder)
+if not os.path.exists(MODEL_FOLDER):
+    os.makedirs(MODEL_FOLDER)
 GENERATE_TEXT = False
 PRINT_RECONSTRUCTED_TEXT = True
 
@@ -106,7 +108,7 @@ def train():
                                 exit()
 
             if SAVE_EVERY is not None and batch_num > 0 and batch_num % SAVE_EVERY == 0:
-                torch.save(model.state_dict(), os.path.join('models', MODEL_FOLDER, str(epoch) + '.' + str(batch_num)))
+                torch.save(model.state_dict(), os.path.join(MODEL_FOLDER, str(epoch) + '.' + str(batch_num)))
 
             global_step += 1
 

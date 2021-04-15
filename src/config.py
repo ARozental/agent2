@@ -19,7 +19,7 @@ class Config:
     join_texts = True
 
     #pndb
-    use_pndb1 = False
+    use_pndb1 = True
     use_pndb2 = False
     pndb_questions = 16
 

@@ -23,7 +23,6 @@ def calc_mlm_loss(agent_level, matrices, mask, eos_positions, embeddings, labels
 
     # todo: make sure the pad token is not here, also no join for levels 0 and 1
     random_indexes = torch.fmod(torch.randperm(batch * seq_length).to(Config.device), embeddings.shape[0])
-    print(random_indexes)
     random_vec_replacements = torch.index_select(embeddings, 0, random_indexes).view(batch, seq_length, vec_size)
 
     pre_encoder = keep_positions * matrices + mask_positions * mask_vec_replacements

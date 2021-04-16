@@ -6,7 +6,7 @@
   "vector_sizes": [32, 64, 128, 96, 128, 156],
   "num_heads": [4, 8, 2, 2, 2, 2],
   "fnn_sizes": [32, 64, 128, 14, 16, 18],
-  "[4, 6, 2, 2, 2, 2],
+  "num_transformer_layers":  [4, 6, 2, 2, 2, 2],
   "batch_size": 2,
   "batch_sizes": [3000, 3000, 1000, 1000, 1000],
   "drop_rate": 0.0,

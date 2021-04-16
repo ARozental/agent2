@@ -2,7 +2,6 @@ config:
     sequence_lengths = [16, 16, 6, 3, 4]
     vector_sizes = [32, 48, 64, 96, 128, 156]
     num_heads = [2, 2, 2, 2, 2, 2]
-    fnn_sizes = [8, 10, 12, 14, 16, 18]
     batch = 64 sentences
 
 
@@ -14,3 +13,32 @@ at 200k steps words are reconstructed right; MLM 0 and 1 are stuck
 
 
 ------------------------------------------------------------------------------------------------------------------------
+4 pndb experiments level1
+config:
+    sequence_lengths = [16, 16, 6, 3, 4]
+    vector_sizes = [32, 64, 128, 96, 128, 156]
+    num_heads = [4, 8, 2, 2, 2, 2]
+    batch = 64 sentences
+    num_transformer_layers = [4, 6, 2, 2, 2, 2]
+
+GPU util: 7403MiB / 11018MiB |     83%      (2 models per GPU)
+
+Coherence bug fixed, it learns now. coherence/0 => 0.01 and stays there; probably an very low grad issue (increase)
+
+MLM bug fixed task is harder now ; also rate is 0.15 from 0.5 in last experiment.
+
+2 of the models (no pndb, pndb1) almost exploded and came back. lost 100K worth of learning (todo1 might improve it)
+
+reconstruction/0 (at batch 140k) learns much slower compared to the last versiob that had bugs in MLM and coherence (why???)
+potential reasons:
+1. MLM at 0.15 doesn't do enough to help
+2. buggy MLM did something good???
+3. weights that are effected by coherence now learn slower (not likely)
+
+
+conclusions (todos):
+1. divide reconstruction and MLM by log(len(embedding)) that way they have the same scale for each level
+2. have MLM diff?
+3. make sure MLM_diff and reconstruction_diff are much smaller than MLM and reconstruction (divide by ???)
+4. coherence should be bigger (or other stuff smaller)
+5/(0). have an experiment to check the slower reconstruction reason

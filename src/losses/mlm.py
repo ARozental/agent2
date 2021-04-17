@@ -2,14 +2,22 @@ import torch
 import torch.nn.functional as F
 from src.config import Config
 
+def make_keep_positions():
+
+  return 7
 
 def calc_mlm_loss(agent_level, matrices, mask, eos_positions, embeddings, labels):
     # matrices,mask,labels => [batch,seq_length,vec_size], embeddings => [seq_length,vec_size]
     batch, seq_length, vec_size = matrices.shape
 
-    # 1 => keep original 0, calc mlm,Config.mlm_rate
-    keep_positions = (torch.rand(batch, seq_length, 1).to(Config.device) + Config.mlm_rate).floor()
-    mlm_positions = 1 - keep_positions
+    #Choose 1 to mask MLM
+    real_positions = (1 - mask.float())
+    mlm_positions = (torch.nn.functional.one_hot(torch.max((torch.rand(batch, seq_length).to(Config.device) * real_positions),dim=-1).indices, seq_length)).unsqueeze(-1)
+    keep_positions = 1 - mlm_positions
+
+    # Prob MLM;   1 => keep original 0, calc mlm,Config.mlm_rate
+    # keep_positions = (torch.rand(batch, seq_length, 1).to(Config.device) + Config.mlm_rate).floor()
+    # mlm_positions = 1 - keep_positions
 
     # 1 => replace with <mask>
     mask_positions = (torch.rand(batch, seq_length, 1).to(Config.device) + 0.8).floor() * mlm_positions
@@ -41,5 +49,8 @@ def calc_mlm_loss(agent_level, matrices, mask, eos_positions, embeddings, labels
         ignore_index=Config.pad_token_id,
         reduction='none'  # Gives mlm loss from each of [batch,words]
     ).mean(-1)
+
+    #todo?? have mlm_diff here?
+    mlm_losses = mlm_losses * (4.4 / embeddings.shape[0]) #4.4 is ln(len(char_embedding)) == ln(81)
 
     return mlm_losses

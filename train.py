@@ -89,6 +89,7 @@ def train():
             if (epoch % Config.log_every == 0 and batch_num == 0) or \
                     (batch_num % Config.log_every == 0 and batch_num > 0):
                 print('Epoch', epoch, 'Batch', batch_num)
+                #print(loss_object)
                 model.eval()
 
                 if GENERATE_TEXT:

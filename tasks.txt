@@ -49,6 +49,7 @@ AgentModel:
 Tests:
 1. tensor board - reconstructed next to real text for TB print
 2. track memory usage
+3. track model norm (maybe per component if it gets out of hand)
 
 
 WTF:

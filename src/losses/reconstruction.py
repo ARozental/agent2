@@ -51,4 +51,8 @@ def calc_reconstruction_loss_with_pndb(agent_level, matrices, decompressed, mask
     ignore_index=Config.pad_token_id,
     reduction='none'  # Gives mlm loss from each of [batch, words]
   ).mean(-1)
+
+  reconstruction_losses = reconstruction_losses * (4.4 / embeddings.shape[0])  # 4.4 is ln(len(char_embedding)) == ln(81)
+  reconstruction_diff = reconstruction_diff / 100
+
   return reconstruction_diff, reconstruction_losses

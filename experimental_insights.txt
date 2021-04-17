@@ -36,9 +36,12 @@ potential reasons:
 3. weights that are effected by coherence now learn slower (not likely)
 
 
+*batch 200k: reconstruction/0 doubles but reconstruction_diff/0 doesn't change (supports todos 3)
+
 conclusions (todos):
 1. divide reconstruction and MLM by log(len(embedding)) that way they have the same scale for each level
 2. have MLM diff?
-3. make sure MLM_diff and reconstruction_diff are much smaller than MLM and reconstruction (divide by ???)
+3. make sure MLM_diff and reconstruction_diff are much smaller than MLM and reconstruction (divide by 100 ???)
 4. coherence should be bigger (or other stuff smaller)
 5/(0). have an experiment to check the slower reconstruction reason
+6. hide 1 MLM???

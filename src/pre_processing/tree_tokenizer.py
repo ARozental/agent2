@@ -166,8 +166,8 @@ class TreeTokenizer:
         #print("l1", len(texts))
         texts_md5s = [[item.strip(),md5(text)] for text in texts for item in cls.parse_extra_levels(text)]
 
-        texts = [x[0] for x in texts_md5s[:64]]
-        md5s = [x[1] for x in texts_md5s[:64]]
+        texts = [x[0] for x in texts_md5s[:Config.mini_batch_size]] #todo: fix that mini batch size thingy
+        md5s = [x[1] for x in texts_md5s[:Config.mini_batch_size]]
 
         #texts = [item.strip() for text in texts for item in cls.parse_extra_levels(text)]
         structs = [cls.text_to_tree_struct(text, level=Config.agent_level) for text in texts]

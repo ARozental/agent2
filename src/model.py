@@ -21,8 +21,8 @@ class AgentModel(nn.Module):
         self.char_embedding_layer = nn.Embedding(num_letters, Config.vector_sizes[0])
 
         self.pndb = None
-        if (Config.use_pndb1 or Config.use_pndb2):
-          self.pndb = Pndb()
+        if Config.use_pndb1 is not None or Config.use_pndb2 is not None:
+            self.pndb = Pndb()
 
     def set_word_vectors(self, node_batch):
         distinct_ids = list(dict.fromkeys([node.distinct_lookup_id for node in node_batch]))
@@ -61,7 +61,7 @@ class AgentModel(nn.Module):
             # All the nodes in this level (not including join tokens if on lowest level)
             real_nodes = [node for node in batch_tree.level_nodes[level_num] if level_num > 0 or not node.is_join()]
 
-            #todo: pndb_map = {md5 => tensor}
+            # todo: pndb_map = {md5 => tensor}
 
             for batch_num, node_batch in enumerate(iter_even_split(real_nodes, Config.batch_sizes[level_num])):
                 if level_num == 0:
@@ -82,23 +82,25 @@ class AgentModel(nn.Module):
                 decompressed = self.agent_levels[level_num].decompressor(vectors)
 
                 #### PNDB tests
-                if level_num == 1 and (Config.use_pndb1 or Config.use_pndb2):
-                  A1,A2 = None,None
-                  if Config.use_pndb1:
-                    A1 = self.pndb.create_A_matrix(matrices, mask)
-                  if Config.use_pndb2:
-                    post_encoder = self.agent_levels[level_num].encoder(matrices, mask, eos_positions)
-                    A2 = self.pndb.create_A2_matrix(post_encoder, mask)
+                if level_num == 1 and (Config.use_pndb1 is not None or Config.use_pndb2 is not None):
+                    A1, A2 = None, None
+                    if Config.use_pndb1 is not None:
+                        A1 = self.pndb.create_A_matrix(matrices, mask)
+                    if Config.use_pndb2 is not None:
+                        post_encoder = self.agent_levels[level_num].encoder(matrices, mask, eos_positions)
+                        A2 = self.pndb.create_A2_matrix(post_encoder, mask)
 
-                  reconstruction_diff_loss, reconstruction_loss = calc_reconstruction_loss_with_pndb(self.agent_levels[level_num],
-                                                                                           matrices, decompressed, mask,
-                                                                                           eos_positions,
-                                                                                           embedding_matrix, labels,self.pndb,A1,A2)
+                    reconstruction_diff_loss, reconstruction_loss = calc_reconstruction_loss_with_pndb(
+                        self.agent_levels[level_num],
+                        matrices, decompressed, mask,
+                        eos_positions,
+                        embedding_matrix, labels, self.pndb, A1, A2)
                 else:
-                  reconstruction_diff_loss, reconstruction_loss = calc_reconstruction_loss(self.agent_levels[level_num],
-                                                                                         matrices, decompressed, mask,
-                                                                                         eos_positions,
-                                                                                         embedding_matrix, labels)
+                    reconstruction_diff_loss, reconstruction_loss = calc_reconstruction_loss(
+                        self.agent_levels[level_num],
+                        matrices, decompressed, mask,
+                        eos_positions,
+                        embedding_matrix, labels)
 
                 eos_loss = calc_eos_loss(self.agent_levels[level_num], decompressed, eos_positions)
 

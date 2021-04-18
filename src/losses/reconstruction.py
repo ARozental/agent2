@@ -29,7 +29,7 @@ def calc_reconstruction_loss(agent_level, matrices, decompressed, mask, eos_posi
 def calc_reconstruction_loss_with_pndb(agent_level, matrices, decompressed, mask, eos_positions, embeddings, labels,pndb,A1,A2):
   # matrices, mask, labels => [batch,seq_length,vec_size]
   if Config.use_pndb2:
-    decompressed = pndb.get_data_from_A_matrix(A2,decompressed)
+    decompressed = pndb.get_data_from_A2_matrix(A2,decompressed)
 
   post_decoder = agent_level.decoder(decompressed, mask, eos_positions)  # [batch, seq_length, vec_size]
   if Config.use_pndb1:

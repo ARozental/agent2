@@ -16,20 +16,22 @@ class Pndb(nn.Module):
         self.pndb_transformer_encoder = TransformerEncoder(encoder_layers, Config.num_transformer_layers[
             level])  # not sure we need it...
 
-        self.questions = nn.Parameter(
-            torch.rand([Config.use_pndb1, Config.vector_sizes[level]], requires_grad=True))  # global Q matrix
-        self.questions2 = nn.Parameter(
-            torch.rand([Config.use_pndb2, Config.vector_sizes[level]], requires_grad=True))  # global Q matrix
+        if Config.use_pndb1 is not None:
+            self.questions = nn.Parameter(
+                torch.rand([Config.use_pndb1, Config.vector_sizes[level]], requires_grad=True))  # global Q matrix
+            self.to_k = nn.Linear(Config.vector_sizes[level], Config.vector_sizes[level])
+            # self.to_v = nn.Linear(Config.vector_sizes[level], Config.vector_sizes[level]) #should it be the identity matrix??
+            self.ignore1 = nn.Linear(Config.vector_sizes[level], 1)
+            self.update11 = nn.Linear(Config.vector_sizes[level], 1)
 
-        self.to_k = nn.Linear(Config.vector_sizes[level], Config.vector_sizes[level])
-        self.to_k2 = nn.Linear(Config.vector_sizes[level], Config.vector_sizes[level])
-        # self.to_v = nn.Linear(Config.vector_sizes[level], Config.vector_sizes[level]) #should it be the identity matrix??
-        self.to_v2 = nn.Linear(Config.vector_sizes[level],
-                               Config.vector_sizes[level])  # should it be the identity matrix??
-        self.ignore1 = nn.Linear(Config.vector_sizes[level], 1)
-        self.ignore2 = nn.Linear(Config.vector_sizes[level], 1)
+        if Config.use_pndb2 is not None:
+            self.questions2 = nn.Parameter(
+                torch.rand([Config.use_pndb2, Config.vector_sizes[level]], requires_grad=True))  # global Q matrix
+            self.to_k2 = nn.Linear(Config.vector_sizes[level], Config.vector_sizes[level])
+            self.to_v2 = nn.Linear(Config.vector_sizes[level],
+                                   Config.vector_sizes[level])  # should it be the identity matrix??
+            self.ignore2 = nn.Linear(Config.vector_sizes[level], 1)
 
-        self.update11 = nn.Linear(Config.vector_sizes[level], 1)
         self.update12 = nn.Linear(Config.vector_sizes[level], 1)
         self.b1 = nn.Parameter(torch.rand(1, requires_grad=True))
 

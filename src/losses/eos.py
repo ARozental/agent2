@@ -22,7 +22,7 @@ def calc_eos_loss(agent_level, decompressed, eos_positions):
     loss2 = mce_loss(cdot, eos_labels) * torch.sign(torch.count_nonzero(eos_positions, dim=1))
 
     total_loss = loss1 + loss2
-    total_loss = torch.min(torch.stack([(total_loss/total_loss)*Config.max_typo_loss,total_loss],dim=0),dim=0)[0] #can't explode on typo
+    #total_loss = torch.min(torch.stack([(total_loss/total_loss)*Config.max_typo_loss,total_loss],dim=0),dim=0)[0] #can't explode on typo
 
 
     return total_loss

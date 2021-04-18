@@ -25,7 +25,7 @@ def calc_reconstruction_loss(agent_level, matrices, decompressed, mask, eos_posi
     ).mean(-1)
 
     reconstruction_losses = reconstruction_losses * (4.4 / math.log(embeddings.shape[0]))  # 4.4 is ln(len(char_embedding)) == ln(81)
-    reconstruction_losses = torch.min(torch.stack([(reconstruction_losses/reconstruction_losses)*Config.max_typo_loss,reconstruction_losses],dim=0),dim=0)[0] #can't explode on typo
+    #reconstruction_losses = torch.min(torch.stack([(reconstruction_losses/reconstruction_losses)*Config.max_typo_loss,reconstruction_losses],dim=0),dim=0)[0] #can't explode on typo
     reconstruction_diff = reconstruction_diff / 100
 
     return reconstruction_diff, reconstruction_losses
@@ -58,7 +58,7 @@ def calc_reconstruction_loss_with_pndb(agent_level, matrices, decompressed, mask
   ).mean(-1)
 
   reconstruction_losses = reconstruction_losses * (4.4 / math.log(embeddings.shape[0]))  # 4.4 is ln(len(char_embedding)) == ln(81)
-  reconstruction_losses = torch.min(torch.stack([(reconstruction_losses / reconstruction_losses) * Config.max_typo_loss, reconstruction_losses], dim=0),dim=0)[0]  # can't explode on typo
+  #reconstruction_losses = torch.min(torch.stack([(reconstruction_losses / reconstruction_losses) * Config.max_typo_loss, reconstruction_losses], dim=0),dim=0)[0]  # can't explode on typo
   reconstruction_diff = reconstruction_diff / 100
 
   return reconstruction_diff, reconstruction_losses

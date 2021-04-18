@@ -1,6 +1,6 @@
 {
-  "model_folder": "wiki.64sent.pndb1.v2",
-  "exp_folder": "runs/wiki.64sent.pndb1.v2",
+  "model_folder": "wiki.64sent.pndb1.v3",
+  "exp_folder": "runs/wiki.64sent.pndb1.v3",
   "viz_file": "../viz/models/wiki.64sent.pndb1.v2.csv",
   "sequence_lengths": [16, 16, 6, 3, 4],
   "vector_sizes": [32, 64, 128, 96, 128, 156],

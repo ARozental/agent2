@@ -23,6 +23,9 @@ class Pndb(nn.Module):
             # self.to_v = nn.Linear(Config.vector_sizes[level], Config.vector_sizes[level]) #should it be the identity matrix??
             self.ignore1 = nn.Linear(Config.vector_sizes[level], 1)
             self.update11 = nn.Linear(Config.vector_sizes[level], 1)
+            self.update12 = nn.Linear(Config.vector_sizes[level], 1)
+            self.b1 = nn.Parameter(torch.rand(1, requires_grad=True))
+            self.to_output_k = nn.Linear(Config.vector_sizes[level], Config.vector_sizes[level])
 
         if Config.use_pndb2 is not None:
             self.questions2 = nn.Parameter(
@@ -31,11 +34,11 @@ class Pndb(nn.Module):
             self.to_v2 = nn.Linear(Config.vector_sizes[level],
                                    Config.vector_sizes[level])  # should it be the identity matrix??
             self.ignore2 = nn.Linear(Config.vector_sizes[level], 1)
+            self.update21 = nn.Linear(Config.vector_sizes[level], 1)
+            self.update22 = nn.Linear(Config.vector_sizes[level], 1)
 
-        self.update12 = nn.Linear(Config.vector_sizes[level], 1)
-        self.b1 = nn.Parameter(torch.rand(1, requires_grad=True))
-
-        self.to_output_k = nn.Linear(Config.vector_sizes[level], Config.vector_sizes[level])
+            self.b2 = nn.Parameter(torch.rand(1, requires_grad=True))
+            self.to_output_k2 = nn.Linear(Config.vector_sizes[level], Config.vector_sizes[level])
 
     def ignore_gate(self, x, g):
         return torch.sigmoid(g(x))
@@ -59,13 +62,14 @@ class Pndb(nn.Module):
         A = A.mean(0)
         return A
 
-    def get_data_from_A_matrix(self, A, post_decoder_matrices, pndb_type):
+    def get_data_from_A_matrix(self, A, post_decoder_matrices):
         k = self.to_output_k(post_decoder_matrices)
-        if pndb_type == 1:
-            A2 = attention(k, self.questions, A, Config.use_pndb1)  # [batch,seq_length,hidden]
-        elif pndb_type == 2:
-            A2 = attention(k, self.questions2, A, Config.use_pndb2)  # [batch,seq_length,hidden]
-        else:
-            assert ValueError('Invalid pndb_type')
+        A2 = attention(k, self.questions, A, Config.use_pndb1)  # [batch,seq_length,hidden]
         gate_values = self.update_gate(post_decoder_matrices, A2, self.update11, self.update12, self.b1)
+        return post_decoder_matrices + A2 * gate_values
+
+    def get_data_from_A2_matrix(self, A, post_decoder_matrices):
+        k = self.to_output_k2(post_decoder_matrices)
+        A2 = attention(k, self.questions2, A, Config.use_pndb2)  # [batch,seq_length,hidden]
+        gate_values = self.update_gate(post_decoder_matrices, A2, self.update21, self.update22, self.b2)
         return post_decoder_matrices + A2 * gate_values

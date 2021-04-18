@@ -1,6 +1,7 @@
 import torch
 import torch.nn.functional as F
 from src.config import Config
+import math
 
 def make_keep_positions():
 
@@ -51,6 +52,6 @@ def calc_mlm_loss(agent_level, matrices, mask, eos_positions, embeddings, labels
     ).mean(-1)
 
     #todo?? have mlm_diff here?
-    mlm_losses = mlm_losses * (4.4 / embeddings.shape[0]) #4.4 is ln(len(char_embedding)) == ln(81)
+    mlm_losses = mlm_losses * (4.4 / math.log(embeddings.shape[0])) #4.4 is ln(len(char_embedding)) == ln(81)
 
     return mlm_losses

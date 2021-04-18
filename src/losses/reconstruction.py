@@ -1,7 +1,7 @@
 from src.config import Config
 import torch.nn.functional as F
 import torch
-
+import math
 
 def calc_reconstruction_loss(agent_level, matrices, decompressed, mask, eos_positions, embeddings, labels):
     # matrices, mask, labels => [batch,seq_length,vec_size]
@@ -52,7 +52,7 @@ def calc_reconstruction_loss_with_pndb(agent_level, matrices, decompressed, mask
     reduction='none'  # Gives mlm loss from each of [batch, words]
   ).mean(-1)
 
-  reconstruction_losses = reconstruction_losses * (4.4 / torch.log(embeddings.shape[0]))  # 4.4 is ln(len(char_embedding)) == ln(81)
+  reconstruction_losses = reconstruction_losses * (4.4 / math.log(embeddings.shape[0]))  # 4.4 is ln(len(char_embedding)) == ln(81)
   reconstruction_diff = reconstruction_diff / 100
 
   return reconstruction_diff, reconstruction_losses

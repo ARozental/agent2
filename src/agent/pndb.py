@@ -60,8 +60,12 @@ class Pndb(nn.Module):
         return A
 
     def get_data_from_A_matrix(self, A, post_decoder_matrices, pndb_type):
-        num_questions = Config.use_pndb1 if pndb_type == 1 else Config.use_pndb2
         k = self.to_output_k(post_decoder_matrices)
-        A2 = attention(k, self.questions, A, num_questions)  # [batch,seq_length,hidden]
+        if pndb_type == 1:
+            A2 = attention(k, self.questions, A, Config.use_pndb1)  # [batch,seq_length,hidden]
+        elif pndb_type == 2:
+            A2 = attention(k, self.questions2, A, Config.use_pndb2)  # [batch,seq_length,hidden]
+        else:
+            assert ValueError('Invalid pndb_type')
         gate_values = self.update_gate(post_decoder_matrices, A2, self.update11, self.update12, self.b1)
         return post_decoder_matrices + A2 * gate_values

@@ -1,7 +1,7 @@
 {
-  "model_folder": "wiki.64sent.pndb_both",
-  "exp_folder": "runs/wiki.64sent.pndb_both",
-  "viz_file": "../viz/models/wiki.64sent.pndb_both.csv",
+  "model_folder": "wiki.64sent.pndb_both.v2",
+  "exp_folder": "runs/wiki.64sent.pndb_both.v2",
+  "viz_file": "../viz/models/wiki.64sent.pndb_both.v2.csv",
   "sequence_lengths": [16, 16, 6, 3, 4],
   "vector_sizes": [32, 64, 128, 96, 128, 156],
   "num_heads": [4, 8, 2, 2, 2, 2],

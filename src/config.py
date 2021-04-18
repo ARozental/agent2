@@ -27,7 +27,7 @@ class Config:
     use_pndb2 = None
 
     # smoothing
-    max_typo_loss = 7.0
+    max_typo_loss = 10.0
     grad_clip_value = 5.0
 
     log_experiment = False  # Log into tensorboard?

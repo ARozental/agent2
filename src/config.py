@@ -28,7 +28,7 @@ class Config:
 
     # smoothing
     max_typo_loss = 7.0
-    grad_clip_value = 1.0
+    grad_clip_value = 5.0
 
     log_experiment = False  # Log into tensorboard?
     log_every = 100  # Log the reconstructed text every x epochs/batches

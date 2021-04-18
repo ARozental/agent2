@@ -27,7 +27,7 @@ class Config:
     use_pndb2 = None
 
     # smoothing
-    # max_eos_loss = 7.0 #doesn't fix anything on its own
+    max_typo_loss = 7.0
     grad_clip_value = 1.0
 
     log_experiment = False  # Log into tensorboard?

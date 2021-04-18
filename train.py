@@ -77,7 +77,7 @@ def train():
                 [setattr(p, "requires_grad", False) for p in discriminator_params]
                 (g_loss - disc_loss * 0.2).backward()  # disc loss won't go down even when this is commented => BUG
                 [setattr(p, "requires_grad", True) for p in main_params + discriminator_params]
-                torch.nn.utils.clip_grad_norm_(model.parameters(), Config.grad_clip_value)
+                #torch.nn.utils.clip_grad_norm_(model.parameters(), Config.grad_clip_value)    #=> removed when added max_typo_loss, see if still works
                 main_optimizer.step()
                 discriminator_optimizer.step()
                 generator_optimizer.step()

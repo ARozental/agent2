@@ -45,3 +45,16 @@ conclusions (todos):
 4. coherence should be bigger (or other stuff smaller)
 5/(0). have an experiment to check the slower reconstruction reason
 6. hide 1 MLM???
+
+
+------------------------------------------------------------------------------------------------------------------------
+exp v2
+
+needed reconstruction/0 = 0.05
+needed reconstruction/1 < 3.0
+
+conclusions (todos):
+1. bring back the max EoS loss - change it to max type loss - (remove clipping??) check if explodes
+2. fix reconstruction loss 0 => done
+3. move texts = [x[0] for x in texts_md5s[:64]] to config
+4. make something smaller (words or char transformer layers probably; save on space)?

@@ -53,5 +53,7 @@ def calc_mlm_loss(agent_level, matrices, mask, eos_positions, embeddings, labels
 
     #todo?? have mlm_diff here?
     mlm_losses = mlm_losses * (4.4 / math.log(embeddings.shape[0])) #4.4 is ln(len(char_embedding)) == ln(81)
+    mlm_losses = torch.min(torch.stack([(mlm_losses/mlm_losses)*Config.max_typo_loss,mlm_losses],dim=0),dim=0)[0] #can't explode on typo
+
 
     return mlm_losses

@@ -17,6 +17,8 @@ Training:
 1. create batches of controllable (set from config) memory footprint from all Tree nodes for each level:
 2. have a loss object multiplier and (maybe) an apply loss function like in the TF code => after medium dataset
 3. find a set of sane hyper parameters
+4. have a remove outlayer function => given a list of losses (all level N nodes MLM for example) check if the top one > 20* mean_without_top
+5. limit weights for classifiers<20 ???
 
 Refactoring:
 4. make code faster, avoid everyplace that exits the GPU
@@ -31,6 +33,7 @@ CURRENT TASKS:
 Datasets 5
 Tests 1
 Refactoring 9
+Training 4
 
 Transformer 1
 AgentModel 1

@@ -38,7 +38,7 @@ Also add a dense layer before save and load???????
 
 
 ---------------------
-Adam learns 3 times faster than Adagrad
+Adagrad with a large batch size learns well but very slowly; might never get to the Adam results but started learn level 1
  
 
 

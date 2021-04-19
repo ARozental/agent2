@@ -13,7 +13,7 @@ class Config:
     mlm_rate = 0.15  # 0.15 like BERT
     batch_size = 8  # How many books/articles/etc per batch.
     batch_sizes = [4096, 4096, 1024, 1000, 1000]  # How many nodes to process at a time at each level
-    mini_batch_size = 256
+    mini_batch_size = 64
 
     drop_rate = 0.0
 

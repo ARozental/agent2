@@ -42,9 +42,9 @@ def train():
     generator_params = [param for name, param in model.named_parameters() if "generator" in name]
     discriminator_params = [param for name, param in model.named_parameters() if "discriminator" in name]
 
-    main_optimizer = torch.optim.Adam(main_params, 0.001)
-    generator_optimizer = torch.optim.Adam(generator_params, 0.001)
-    discriminator_optimizer = torch.optim.Adam(discriminator_params, 0.001)
+    main_optimizer = torch.optim.AdamW(main_params, 0.001)
+    generator_optimizer = torch.optim.AdamW(generator_params, 0.001)
+    discriminator_optimizer = torch.optim.AdamW(discriminator_params, 0.001)
 
     Logger.setup()
     all_times = []

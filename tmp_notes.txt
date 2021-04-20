@@ -39,6 +39,6 @@ Also add a dense layer before save and load???????
 
 ---------------------
 Adagrad with a large batch size learns well but very slowly; might never get to the Adam results but started learn level 1
- 
+Adam with big size and low lr works great => it seems Adagrad can NEVER get to Adam results
 
 

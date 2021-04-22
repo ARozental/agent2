@@ -1,0 +1,22 @@
+{
+  "model_folder": "wiki.64sent.fat_reconstruction",
+  "exp_folder": "runs/wiki.64sent.fat_reconstruction",
+  "viz_file": "../viz/models/wiki.64sent.fat_reconstruction.csv",
+  "sequence_lengths": [16, 16, 6, 3, 4],
+  "vector_sizes": [32, 64, 128, 96, 128, 156],
+  "num_heads": [4, 8, 2, 2, 2, 2],
+  "fnn_sizes": [32, 64, 128, 14, 16, 18],
+  "num_transformer_layers":  [4, 6, 2, 2, 2, 2],
+  "batch_size": 8,
+  "batch_sizes": [3000, 3000, 1000, 1000, 1000],
+  "mini_batch_size": 256,
+  "drop_rate": 0.0,
+  "join_texts": true,
+  "use_pndb1": null,
+  "use_pndb2": null,
+  "agent_level": 1,
+  "log_experiment": true,
+  "log_every": 2000,
+  "save_every": 10000,
+  "gpu_num": 1
+}

@@ -2,6 +2,7 @@ from src.config import Config
 import torch.nn.functional as F
 import torch
 import math
+from src.losses.coherence import calc_coherence_loss
 
 def calc_reconstruction_loss(agent_level, matrices, decompressed, mask, eos_positions, embeddings, labels):
     # matrices, mask, labels => [batch,seq_length,vec_size]
@@ -26,11 +27,12 @@ def calc_reconstruction_loss(agent_level, matrices, decompressed, mask, eos_posi
 
     reconstruction_losses = reconstruction_losses * (4.4 / math.log(embeddings.shape[0]))  # 4.4 is ln(len(char_embedding)) == ln(81)
     #reconstruction_losses = torch.min(torch.stack([(reconstruction_losses/reconstruction_losses)*Config.max_typo_loss,reconstruction_losses],dim=0),dim=0)[0] #can't explode on typo
-    reconstruction_diff = reconstruction_diff / 100
+    reconstruction_diff = (reconstruction_diff * (4.4 / math.log(embeddings.shape[0]))) / 100
+    rc_loss = calc_coherence_loss(agent_level, post_decoder, mask, eos_positions, embeddings) * 0.1
+    return reconstruction_diff, reconstruction_losses, rc_loss
 
-    return reconstruction_diff, reconstruction_losses
 
-
+#todo have rc here later
 def calc_reconstruction_loss_with_pndb(agent_level, matrices, decompressed, mask, eos_positions, embeddings, labels,pndb,A1,A2):
   # matrices, mask, labels => [batch,seq_length,vec_size]
   if Config.use_pndb2:
@@ -59,6 +61,6 @@ def calc_reconstruction_loss_with_pndb(agent_level, matrices, decompressed, mask
 
   reconstruction_losses = reconstruction_losses * (4.4 / math.log(embeddings.shape[0]))  # 4.4 is ln(len(char_embedding)) == ln(81)
   #reconstruction_losses = torch.min(torch.stack([(reconstruction_losses / reconstruction_losses) * Config.max_typo_loss, reconstruction_losses], dim=0),dim=0)[0]  # can't explode on typo
-  reconstruction_diff = reconstruction_diff / 100
-
-  return reconstruction_diff, reconstruction_losses
+  reconstruction_diff = (reconstruction_diff * (4.4 / math.log(embeddings.shape[0]))) / 100
+  rc_loss = calc_coherence_loss(agent_level, post_decoder, mask, eos_positions, embeddings) * 0.1
+  return reconstruction_diff, reconstruction_losses, rc_loss

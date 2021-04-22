@@ -42,3 +42,7 @@ Adagrad with a large batch size learns well but very slowly; might never get to 
 Adam with big size and low lr works great => it seems Adagrad can NEVER get to Adam results
 
 
+maybe reconstruction can't generate good words because it is not deep enough
+maybe reconstruction won't generate good words; give it reconstruction-coherence loss and backprop only on reconstruction weights
+
+

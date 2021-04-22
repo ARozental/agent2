@@ -25,6 +25,7 @@ class Node:
         self.coherence_loss = None
         self.reconstruction_loss = None
         self.reconstruction_diff_loss = None
+        self.rc_loss = None
         self.root_md5 = root_md5
         self.has_eos = has_eos
 

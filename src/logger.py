@@ -82,6 +82,7 @@ class Logger:
             'join': node.join_loss.item(),
             'recon': node.reconstruction_loss.item(),
             'recon_diff': node.reconstruction_diff_loss.item(),
+            'rc': node.rc_loss.item(),
         }), ignore_index=True)
 
         Logger.viz.to_csv(Config.viz_file, index=False)

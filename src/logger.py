@@ -16,6 +16,9 @@ class Logger:
         'j': 'join',
         'd': 'reconstruction_diff',
         'rc': 'reconstruction_coherence',
+        're': 'reconstruction_eos',
+        'rj': 'reconstruction_join',
+        'rm': 'reconstruction_mlm',
         'g': 'generator',
         'disc': 'discriminator',
     }
@@ -84,6 +87,9 @@ class Logger:
             'recon': node.reconstruction_loss.item(),
             'recon_diff': node.reconstruction_diff_loss.item(),
             'rc': node.rc_loss.item(),
+            're': node.re_loss.item(),
+            'rj': node.rj_loss.item(),
+            'rm': node.rm_loss.item(),
         }), ignore_index=True)
 
         Logger.viz.to_csv(Config.viz_file, index=False)

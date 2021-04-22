@@ -90,13 +90,13 @@ class AgentModel(nn.Module):
                         post_encoder = self.agent_levels[level_num].encoder(matrices, mask, eos_positions)
                         A2 = self.pndb.create_A2_matrix(post_encoder, mask)
 
-                    reconstruction_diff_loss, reconstruction_loss = calc_reconstruction_loss_with_pndb(
+                    reconstruction_diff_loss, reconstruction_loss, rc_loss = calc_reconstruction_loss_with_pndb(
                         self.agent_levels[level_num],
                         matrices, decompressed, mask,
                         eos_positions,
                         embedding_matrix, labels, self.pndb, A1, A2)
                 else:
-                    reconstruction_diff_loss, reconstruction_loss = calc_reconstruction_loss(
+                    reconstruction_diff_loss, reconstruction_loss, rc_loss = calc_reconstruction_loss(
                         self.agent_levels[level_num],
                         matrices, decompressed, mask,
                         eos_positions,
@@ -116,6 +116,7 @@ class AgentModel(nn.Module):
                     "e": eos_loss.sum(),
                     "j": join_loss.sum(),
                     "d": reconstruction_diff_loss.sum(),
+                    "rc": rc_loss.sum(),
                 }
                 if level_num not in loss_object:  # On the first node_batch
                     loss_object[level_num] = losses
@@ -142,6 +143,7 @@ class AgentModel(nn.Module):
                         node.eos_loss = eos_loss[i]
                         node.join_loss = join_loss[i]
                         node.reconstruction_diff_loss = reconstruction_diff_loss[i]
+                        node.rc_loss = rc_loss[i]
 
             current_losses = []
             for label, loss in loss_object[level_num].items():

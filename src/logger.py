@@ -15,6 +15,7 @@ class Logger:
         'e': 'eos',
         'j': 'join',
         'd': 'reconstruction_diff',
+        'rc': 'reconstruction_coherence',
         'g': 'generator',
         'disc': 'discriminator',
     }

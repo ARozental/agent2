@@ -1,3 +1,4 @@
+from src.checkpoints import Checkpoints
 from src.config import Config
 from src.datasets import BookDataset, DummyDataset, WikiDataset
 from src.logger import Logger
@@ -8,13 +9,9 @@ from torch.utils.data.dataloader import DataLoader
 import numpy as np
 import torch
 import time
-import os
 
 seed_torch(0)  # 0 learns 2 doesn't (before no cnn layer)
 
-MODEL_FOLDER = os.path.join('models', Config.model_folder)
-if not os.path.exists(MODEL_FOLDER):
-    os.makedirs(MODEL_FOLDER)
 GENERATE_TEXT = False
 PRINT_RECONSTRUCTED_TEXT = True
 
@@ -47,6 +44,7 @@ def train():
     discriminator_optimizer = torch.optim.AdamW(discriminator_params, 0.001)
 
     Logger.setup()
+    Checkpoints.setup()
     all_times = []
     global_step = 0
     for epoch in range(10001):
@@ -115,9 +113,7 @@ def train():
                                 print('MATCHED')
                                 exit()
 
-            if Config.save_every is not None and batch_num > 0 and batch_num % Config.save_every == 0:
-                torch.save(model.state_dict(), os.path.join(MODEL_FOLDER, str(epoch) + '.' + str(batch_num)))
-
+            Checkpoints.save(global_step, model)
             global_step += 1
 
         # current_time = time.time() - start_time

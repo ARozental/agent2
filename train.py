@@ -9,6 +9,7 @@ import numpy as np
 import torch
 import time
 import os
+import madgrad #is it any good?
 
 seed_torch(0)  # 0 learns 2 doesn't (before no cnn layer)
 
@@ -42,7 +43,8 @@ def train():
     generator_params = [param for name, param in model.named_parameters() if "generator" in name]
     discriminator_params = [param for name, param in model.named_parameters() if "discriminator" in name]
 
-    main_optimizer = torch.optim.AdamW(main_params, 0.0005)
+    #main_optimizer = torch.optim.AdamW(main_params, 0.0005)
+    main_optimizer =  madgrad.MADGRAD(main_params,lr=0.01) #0.01 is the default
     generator_optimizer = torch.optim.AdamW(generator_params, 0.001)
     discriminator_optimizer = torch.optim.AdamW(discriminator_params, 0.001)
 

@@ -58,3 +58,9 @@ conclusions (todos):
 2. fix reconstruction loss 0 => done
 3. move texts = [x[0] for x in texts_md5s[:64]] to config
 4. make something smaller (words or char transformer layers probably; save on space)?
+------------------------------------------------------------------------------------------------------------------------
+reconstruction losses:
+AdamW 0.001 seems best now
+reconstruction losses help everything but EoS1 which oscillates; *=3 for reconstruction-EoS doesn't help
+run stops at 40.8K batches of max size = 8*256
+size does matter => bigger is better

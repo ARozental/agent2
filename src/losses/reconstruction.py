@@ -75,7 +75,7 @@ def calc_reconstruction_loss_with_pndb(agent_level, matrices, decompressed, mask
   #reconstruction_losses = torch.min(torch.stack([(reconstruction_losses / reconstruction_losses) * Config.max_typo_loss, reconstruction_losses], dim=0),dim=0)[0]  # can't explode on typo
   reconstruction_diff = (reconstruction_diff * (4.4 / math.log(embeddings.shape[0]))) / 100
   rc_loss = calc_coherence_loss(agent_level, post_decoder, mask, eos_positions, embeddings)
-  re_loss = calc_eos_loss(agent_level, post_decoder, eos_positions)
+  re_loss = calc_eos_loss(agent_level, post_decoder, eos_positions) * 0.3 #Y U so oscillate
   rm_loss = calc_mlm_loss(agent_level, matrices, mask, eos_positions, embeddings, labels)
 
   if Config.join_texts and agent_level.level > 0:

@@ -29,11 +29,12 @@ Refactoring:
 9. have a way to override config from terminal (run train.py with params)
 10. make loss tensors to loss_object and remove total_loss; break loss object in train file so we can have: (an apply loss function before + apply some of the losses only to some of the weights)
 11. apply rc_loss only to same level reconstruction model??
+12. init weight location regex
 
 CURRENT TASKS:
 Datasets 5
 Tests 1
-Refactoring 9
+Refactoring 9,10,12
 Training 4
 
 Transformer 1

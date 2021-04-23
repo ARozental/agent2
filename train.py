@@ -89,7 +89,7 @@ def train():
             if (epoch % Config.log_every == 0 and batch_num == 0) or \
                     (batch_num % Config.log_every == 0 and batch_num > 0):
                 print('Epoch', epoch, 'Batch', batch_num)
-                #print(loss_object)
+                # print(loss_object)
                 model.eval()
 
                 if GENERATE_TEXT:
@@ -109,8 +109,9 @@ def train():
                         Logger.log_reconstructed(text, i, step=global_step)
                         for j, item in enumerate(text):
                             Logger.log_viz(batch.level_nodes[i][j], text[j], i, step=global_step)
-                        if i == len(reconstructed) - 1:
-                            if text[0] == expected[0] and text[1] == expected[1]:
+                        if i == len(reconstructed) - 1:  # Upper most level
+                            are_equal = [t == e for t, e in zip(text, expected)]
+                            if False not in are_equal:
                                 print('MATCHED')
                                 exit()
 

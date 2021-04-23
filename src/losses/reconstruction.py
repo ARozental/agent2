@@ -79,7 +79,7 @@ def calc_reconstruction_loss_with_pndb(agent_level, matrices, decompressed, mask
   rm_loss = calc_mlm_loss(agent_level, matrices, mask, eos_positions, embeddings, labels)
 
   if Config.join_texts and agent_level.level > 0:
-    rj_loss = calc_join_loss(agent_level, post_decoder, join_positions)
+    rj_loss = calc_join_loss(agent_level, post_decoder, join_positions) * 0.3
   else:
     rj_loss = torch.tensor([0.0] * matrices.size(0)).to(Config.device)
 

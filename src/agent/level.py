@@ -20,6 +20,8 @@ class AgentLevel(nn.Module):
         self.discriminator = Discriminator(Config.vector_sizes[level + 1])
         self.cnn_discriminator = CnnDiscriminator(Config.vector_sizes[level], Config.sequence_lengths[level])
 
+        self.LayerNorm = nn.LayerNorm(Config.vector_sizes[level])
+
         if self.level == 0:
             self.token_bias = nn.Parameter(torch.zeros(num_letters, requires_grad=True))
         else:

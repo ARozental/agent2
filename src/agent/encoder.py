@@ -1,7 +1,7 @@
 from src.transformer import PositionalEncoding, EncoderLayer, TransformerEncoder
 import torch.nn as nn
 from src.config import Config
-
+from src.utils import gelu_new
 
 class Encoder(nn.Module):
     def __init__(self, level):
@@ -9,6 +9,7 @@ class Encoder(nn.Module):
         self.pos_encoder = PositionalEncoding(Config.vector_sizes[level], Config.drop_rate)
         encoder_layers = EncoderLayer(Config.vector_sizes[level], Config.num_heads[level], Config.fnn_sizes[level],
                                       Config.drop_rate, activation="gelu")  # change to swiglu
+        encoder_layers.activation = gelu_new
         self.transformer_encoder = TransformerEncoder(encoder_layers, Config.num_transformer_layers[level])
 
     def forward(self, src, mask, eos_positions):

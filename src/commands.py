@@ -19,9 +19,9 @@ class Commands:
 
         args = parser.parse_args()
 
-        Config.gpu_num = args.gpu
         if args.config is not None:
             Commands.load_config(args.config)
+        Config.gpu_num = args.gpu
 
     @staticmethod
     def load_config(filename):

@@ -5,7 +5,8 @@ import os
 
 
 class Checkpoints:
-    MODEL_FOLDER = os.path.join('models', Config.model_folder)
+    MODELS = os.path.join('models')
+    MODEL_FOLDER = os.path.join(MODELS, Config.model_folder)
 
     @classmethod
     def setup(cls):
@@ -35,16 +36,24 @@ class Checkpoints:
             json.dump(config, f)
 
     @classmethod
-    def save(cls, step, model):
+    def save(cls, model, epoch, step):
         if Config.save_every is None:
             return
 
         if step > 0 and step % Config.save_every == 0:
-            torch.save(model.state_dict(), os.path.join(cls.MODEL_FOLDER, str(step)))
+            torch.save(model.state_dict(), os.path.join(cls.MODEL_FOLDER, str(epoch) + '.' + str(step)))
 
     @classmethod
-    def load(cls):
-        # TODO - load model weights
+    def load(cls, model):
+        if Config.use_checkpoint is None:
+            return
 
-        # TODO - resume at dataset
-        raise NotImplementedError
+        file = os.path.join(cls.MODELS, Config.use_checkpoint)
+        if not os.path.exists(file):
+            raise ValueError('The corresponding model folder for loading a checkpoint does not exist.')
+
+        model.load_state_dict(torch.load(file))  # Load model weights
+
+        # Calculate stopping point of checkpoint (Epoch is position 0 but can ignore it)
+        step = int(Config.use_checkpoint.split('.')[1]) + 1
+        Config.skip_batches = (Config.skip_batches or 0) + step

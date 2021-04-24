@@ -47,19 +47,24 @@ def train():
 
     Logger.setup()
     Checkpoints.setup()
+    Checkpoints.load(model)
     all_times = []
     global_step = 0
     for epoch in range(10001):
         # print('Epoch', epoch + 1)
         # start_time = time.time()
 
-        for batch_num, batch in enumerate(dataloader):
+        for step, batch in enumerate(dataloader):
+            # This is not the most efficient, but needs to be done to not skip these examples in future epochs
+            if Config.skip_batches is not None and (epoch == 0 and step < Config.skip_batches):
+                continue
+
             model.train()
             main_optimizer.zero_grad()
 
             will_reconstruct = PRINT_RECONSTRUCTED_TEXT and (
-                    (epoch % Config.log_every == 0 and batch_num == 0) or
-                    (batch_num % Config.log_every == 0 and batch_num > 0)
+                    (epoch % Config.log_every == 0 and step == 0) or
+                    (step % Config.log_every == 0 and step > 0)
             )
 
             g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT,
@@ -86,9 +91,8 @@ def train():
                 main_loss.backward()
                 main_optimizer.step()
 
-            if (epoch % Config.log_every == 0 and batch_num == 0) or \
-                    (batch_num % Config.log_every == 0 and batch_num > 0):
-                print('Epoch', epoch, 'Batch', batch_num)
+            if (epoch % Config.log_every == 0 and step == 0) or (step % Config.log_every == 0 and step > 0):
+                print('Epoch', epoch, 'Batch', step)
                 # print(loss_object)
                 model.eval()
 
@@ -115,7 +119,7 @@ def train():
                                 print('MATCHED')
                                 exit()
 
-            Checkpoints.save(global_step, model)
+            Checkpoints.save(model, epoch, step)
             global_step += 1
 
         # current_time = time.time() - start_time

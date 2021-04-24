@@ -22,6 +22,7 @@ class Node:
         self.vector = None
         self.distinct_lookup_id = None
         self.mlm_loss = None
+        self.mlm_diff_loss = None
         self.coherence_loss = None
         self.reconstruction_loss = None
         self.reconstruction_diff_loss = None
@@ -29,6 +30,7 @@ class Node:
         self.re_loss = None
         self.rj_loss = None
         self.rm_loss = None
+        self.rm_diff_loss = None
         self.root_md5 = root_md5
         self.has_eos = has_eos
 

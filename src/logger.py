@@ -10,6 +10,7 @@ class Logger:
     viz = pd.DataFrame()
     loss_name_mapping = {
         'm': 'mlm',
+        'md': 'mlm_diff',
         'c': 'coherence',
         'r': 'reconstruction',
         'e': 'eos',
@@ -19,6 +20,7 @@ class Logger:
         're': 'reconstruction_eos',
         'rj': 'reconstruction_join',
         'rm': 'reconstruction_mlm',
+        'rmd': 'reconstruction_diff_mlm',
         'g': 'generator',
         'disc': 'discriminator',
     }
@@ -81,6 +83,7 @@ class Logger:
             'level': [level],
             'step': [step],
             'mlm': node.mlm_loss.item(),
+            'mlm_diff': node.mlm_diff_loss.item(),
             'coherence': node.coherence_loss.item(),
             'eos': node.eos_loss.item(),
             'join': node.join_loss.item(),
@@ -90,6 +93,7 @@ class Logger:
             're': node.re_loss.item(),
             'rj': node.rj_loss.item(),
             'rm': node.rm_loss.item(),
+            'rm_diff': node.rm_diff_loss.item(),
         }), ignore_index=True)
 
         Logger.viz.to_csv(Config.viz_file, index=False)

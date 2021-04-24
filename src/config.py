@@ -32,6 +32,9 @@ class Config:
     # max_typo_loss = 10.0
     grad_clip_value = 0.99
 
+    skip_batches = None  # How many batches to skip (additional on top of the checkpoint)
+    use_checkpoint = None  # Load saved model and dataset step from a checkpoint
+
     log_experiment = False  # Log into tensorboard?
     log_every = 100  # Log the reconstructed text every x epochs/batches
     save_every = None  # Save the model every x epochs/batches; None never saves
@@ -56,21 +59,8 @@ class Config:
     device = None  # Will be set in setup()
 
     @staticmethod
-    def setup():
+    def setup_device():
         if Config.use_cuda and torch.cuda.is_available():
             Config.device = torch.device('cuda', Config.gpu_num)
         else:
             Config.device = torch.device('cpu')
-
-
-def load(filename):
-    with open('configs/' + filename + '.json') as f:
-        data = json.load(f)
-
-    for key, value in data.items():
-        setattr(Config, key, value)
-
-
-if len(sys.argv) > 1:
-    load(sys.argv[1])
-Config.setup()  # Setup the GPU afterwards

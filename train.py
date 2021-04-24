@@ -1,3 +1,5 @@
+from src.checkpoints import Checkpoints
+from src.commands import Commands
 from src.config import Config
 from src.datasets import BookDataset, DummyDataset, WikiDataset
 from src.logger import Logger
@@ -8,16 +10,15 @@ from torch.utils.data.dataloader import DataLoader
 import numpy as np
 import torch
 import time
-import os
-import madgrad #is it any good?
+import madgrad  # is it any good?
 
 seed_torch(0)  # 0 learns 2 doesn't (before no cnn layer)
 
-MODEL_FOLDER = os.path.join('models', Config.model_folder)
-if not os.path.exists(MODEL_FOLDER):
-    os.makedirs(MODEL_FOLDER)
 GENERATE_TEXT = False
 PRINT_RECONSTRUCTED_TEXT = True
+
+Commands.parse_arguments()
+Config.setup_device()
 
 
 # Need to wrap in a function for the child workers
@@ -43,25 +44,31 @@ def train():
     generator_params = [param for name, param in model.named_parameters() if "generator" in name]
     discriminator_params = [param for name, param in model.named_parameters() if "discriminator" in name]
 
-    #main_optimizer = torch.optim.AdamW(main_params, 0.0005)
-    main_optimizer =  madgrad.MADGRAD(main_params,lr=0.001,momentum=0.8) #0.01 is the default
+    # main_optimizer = torch.optim.AdamW(main_params, 0.0005)
+    main_optimizer = madgrad.MADGRAD(main_params, lr=0.001, momentum=0.8)  # 0.01 is the default
     generator_optimizer = torch.optim.AdamW(generator_params, 0.001)
     discriminator_optimizer = torch.optim.AdamW(discriminator_params, 0.001)
 
     Logger.setup()
+    Checkpoints.setup()
+    Checkpoints.load(model)
     all_times = []
     global_step = 0
     for epoch in range(10001):
         # print('Epoch', epoch + 1)
         # start_time = time.time()
 
-        for batch_num, batch in enumerate(dataloader):
+        for step, batch in enumerate(dataloader):
+            # This is not the most efficient, but needs to be done to not skip these examples in future epochs
+            if Config.skip_batches is not None and (epoch == 0 and step < Config.skip_batches):
+                continue
+
             model.train()
             main_optimizer.zero_grad()
 
             will_reconstruct = PRINT_RECONSTRUCTED_TEXT and (
-                    (epoch % Config.log_every == 0 and batch_num == 0) or
-                    (batch_num % Config.log_every == 0 and batch_num > 0)
+                    (epoch % Config.log_every == 0 and step == 0) or
+                    (step % Config.log_every == 0 and step > 0)
             )
 
             g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT,
@@ -88,10 +95,9 @@ def train():
                 main_loss.backward()
                 main_optimizer.step()
 
-            if (epoch % Config.log_every == 0 and batch_num == 0) or \
-                    (batch_num % Config.log_every == 0 and batch_num > 0):
-                print('Epoch', epoch, 'Batch', batch_num)
-                #print(loss_object)
+            if (epoch % Config.log_every == 0 and step == 0) or (step % Config.log_every == 0 and step > 0):
+                print('Epoch', epoch, 'Batch', step)
+                # print(loss_object)
                 model.eval()
 
                 if GENERATE_TEXT:
@@ -111,14 +117,13 @@ def train():
                         Logger.log_reconstructed(text, i, step=global_step)
                         for j, item in enumerate(text):
                             Logger.log_viz(batch.level_nodes[i][j], text[j], i, step=global_step)
-                        if i == len(reconstructed) - 1:
-                            if text[0] == expected[0] and text[1] == expected[1]:
+                        if i == len(reconstructed) - 1:  # Upper most level
+                            are_equal = [t == e for t, e in zip(text, expected)]
+                            if False not in are_equal:
                                 print('MATCHED')
                                 exit()
 
-            if Config.save_every is not None and batch_num > 0 and batch_num % Config.save_every == 0:
-                torch.save(model.state_dict(), os.path.join(MODEL_FOLDER, str(epoch) + '.' + str(batch_num)))
-
+            Checkpoints.save(model, epoch, step)
             global_step += 1
 
         # current_time = time.time() - start_time

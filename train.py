@@ -1,4 +1,5 @@
 from src.checkpoints import Checkpoints
+from src.commands import Commands
 from src.config import Config
 from src.datasets import BookDataset, DummyDataset, WikiDataset
 from src.logger import Logger
@@ -15,6 +16,9 @@ seed_torch(0)  # 0 learns 2 doesn't (before no cnn layer)
 
 GENERATE_TEXT = False
 PRINT_RECONSTRUCTED_TEXT = True
+
+Commands.parse_arguments()
+Config.setup_device()
 
 
 # Need to wrap in a function for the child workers

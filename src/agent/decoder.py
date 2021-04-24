@@ -2,6 +2,7 @@ from src.transformer import PositionalEncoding, EncoderLayer, TransformerEncoder
 from src.config import Config
 import torch.nn as nn
 import torch
+from src.utils import gelu_new
 
 
 class Decoder(nn.Module):
@@ -11,6 +12,7 @@ class Decoder(nn.Module):
         self.pos_encoder = PositionalEncoding(Config.vector_sizes[level], Config.drop_rate)  # should it be always 0?
         encoder_layers = EncoderLayer(Config.vector_sizes[level], Config.num_heads[level], Config.fnn_sizes[level],
                                       Config.drop_rate, activation="gelu")  # change to swiglu
+        encoder_layers.activation = gelu_new
         self.transformer_encoder = TransformerEncoder(encoder_layers, Config.num_transformer_layers[level])
 
 

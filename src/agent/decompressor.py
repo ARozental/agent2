@@ -13,6 +13,8 @@ class Decompressor(nn.Module):
         self.out_projection = nn.Linear(Config.vector_sizes[level + 1], Config.vector_sizes[level])  # use proj_size
         self.dropout = nn.Dropout(Config.drop_rate)
 
+        self.LayerNorm = nn.LayerNorm(Config.vector_sizes[level + 1])
+
     def forward(self, x):
         # Source: https://pytorch.org/docs/stable/generated/torch.nn.LSTM.html
         # h0.size=c0.size = (num_layers * num_directions, batch, hidden_size)        #x: seq_len, batch, input_size
@@ -29,6 +31,7 @@ class Decompressor(nn.Module):
             last_input = output
 
         seq = torch.cat(seq, 0).transpose(0, 1)  # [batch,max_length,top_text_vec_size]
+        seq = self.LayerNorm(seq)
         seq = self.out_projection(self.dropout(seq))
         return seq  # [batch,max_length,vec_size]
 

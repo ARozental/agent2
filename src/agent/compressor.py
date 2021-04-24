@@ -13,6 +13,8 @@ class Compressor(nn.Module):
             batch_first=True,
         )
 
+        self.LayerNorm = nn.LayerNorm(Config.vector_sizes[level+1])
+
     def forward(self, x, mask):
         lengths = (1 - mask.long()).sum(-1)
         places = (lengths - 1)

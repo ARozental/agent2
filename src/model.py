@@ -73,7 +73,7 @@ class AgentModel(nn.Module):
                     level_num].get_children(
                     node_batch,
                     self.char_embedding_layer.weight)
-                mlm_loss = calc_mlm_loss(self.agent_levels[level_num], matrices, mask, eos_positions, embedding_matrix,
+                mlm_loss,mlm_diff_loss = calc_mlm_loss(self.agent_levels[level_num], matrices, mask, eos_positions, embedding_matrix,
                                          labels)
                 coherence_loss = calc_coherence_loss(self.agent_levels[level_num], matrices, mask, eos_positions,
                                                      embedding_matrix)
@@ -90,14 +90,14 @@ class AgentModel(nn.Module):
                         post_encoder = self.agent_levels[level_num].encoder(matrices, mask, eos_positions)
                         A2 = self.pndb.create_A2_matrix(post_encoder, mask)
 
-                    reconstruction_diff_loss, reconstruction_loss, rc_loss, re_loss, rj_loss, rm_loss = calc_reconstruction_loss_with_pndb(
+                    reconstruction_diff_loss, reconstruction_loss, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss = calc_reconstruction_loss_with_pndb(
                         self.agent_levels[level_num],
                         matrices, decompressed, mask,
                         eos_positions,
                         join_positions,
                         embedding_matrix, labels, self.pndb, A1, A2)
                 else:
-                    reconstruction_diff_loss, reconstruction_loss, rc_loss, re_loss, rj_loss, rm_loss = calc_reconstruction_loss(
+                    reconstruction_diff_loss, reconstruction_loss, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss = calc_reconstruction_loss(
                         self.agent_levels[level_num],
                         matrices, decompressed, mask,
                         eos_positions,
@@ -113,6 +113,7 @@ class AgentModel(nn.Module):
 
                 losses = {
                     'm': mlm_loss.sum(),
+                    'md': mlm_diff_loss.sum(),
                     "c": coherence_loss.sum(),
                     "r": reconstruction_loss.sum(),
                     "e": eos_loss.sum(),
@@ -122,6 +123,7 @@ class AgentModel(nn.Module):
                     "re": re_loss.sum(),
                     "rj": rj_loss.sum(),
                     "rm": rm_loss.sum(),
+                    "rmd": rm_diff_loss.sum(),
                 }
                 if level_num not in loss_object:  # On the first node_batch
                     loss_object[level_num] = losses
@@ -143,6 +145,7 @@ class AgentModel(nn.Module):
                 if debug:
                     for i, node in enumerate(node_batch):
                         node.mlm_loss = mlm_loss[i]
+                        node.mlm_diff_loss = mlm_diff_loss[i]
                         node.coherence_loss = coherence_loss[i]
                         node.reconstruction_loss = reconstruction_loss[i]
                         node.eos_loss = eos_loss[i]
@@ -152,6 +155,7 @@ class AgentModel(nn.Module):
                         node.re_loss = re_loss[i]
                         node.rj_loss = rj_loss[i]
                         node.rm_loss = rm_loss[i]
+                        node.rm_diff_loss = rm_diff_loss[i]
 
             current_losses = []
             for label, loss in loss_object[level_num].items():

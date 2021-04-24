@@ -3,9 +3,6 @@ import torch.nn.functional as F
 from src.config import Config
 import math
 
-def make_keep_positions():
-
-  return 7
 
 def calc_mlm_loss(agent_level, matrices, mask, eos_positions, embeddings, labels):
     # matrices,mask,labels => [batch,seq_length,vec_size], embeddings => [seq_length,vec_size]
@@ -44,16 +41,56 @@ def calc_mlm_loss(agent_level, matrices, mask, eos_positions, embeddings, labels
     if agent_level.level == 0:
         logits = logits + agent_level.token_bias
 
+
     mlm_losses = F.cross_entropy(
         logits.transpose(1, 2),
         labels,
         ignore_index=Config.pad_token_id,
         reduction='none'  # Gives mlm loss from each of [batch,words]
-    ).mean(-1)
+    )
+    # mlm_losses = mlm_losses.mean(-1) => this is a bug, as we count average all positions for the loss (even not selected ones
+    mlm_losses = (mlm_losses*real_positions*mlm_positions.squeeze(-1)).sum(-1) #this fix is only valid in the choose 1 MLM position version otherwise replace "sum" with mean_on_non_zeros
 
     #todo?? have mlm_diff here?
     mlm_losses = mlm_losses * (4.4 / math.log(embeddings.shape[0])) #4.4 is ln(len(char_embedding)) == ln(81)
     #mlm_losses = torch.min(torch.stack([(mlm_losses/mlm_losses)*Config.max_typo_loss,mlm_losses],dim=0),dim=0)[0] #can't explode on typo
 
+    #mlm_diff
+    real_positions = real_positions.unsqueeze(-1)
+    mlm_diff = (((matrices - transformed) * real_positions).norm(dim=[1, 2]))
+    mlm_diff = mlm_diff / ((matrices * real_positions).norm(dim=[1, 2]))
+    mlm_diff = (mlm_diff * (4.4 / math.log(embeddings.shape[0]))) / 100
 
-    return mlm_losses
+    return mlm_losses, mlm_diff
+
+
+def calc_clear_mlm_loss(agent_level, matrices, mask, eos_positions, embeddings, labels):
+  batch, seq_length, vec_size = matrices.shape
+
+  real_positions = (1 - mask.float())
+
+  post_encoder = agent_level.encoder(matrices, mask, eos_positions)
+  transformed = agent_level.encoder_transform(post_encoder)
+  logits = torch.matmul(transformed, torch.transpose(embeddings, 0, 1))  # [batch,max_length,embedding_size)
+
+  if agent_level.level == 0:
+    logits = logits + agent_level.token_bias
+
+  mlm_losses = F.cross_entropy(
+    logits.transpose(1, 2),
+    labels,
+    ignore_index=Config.pad_token_id,
+    reduction='none'  # Gives mlm loss from each of [batch,words]
+  ).mean(-1)
+
+  # todo?? have mlm_diff here?
+  mlm_losses = mlm_losses * (4.4 / math.log(embeddings.shape[0]))  # 4.4 is ln(len(char_embedding)) == ln(81)
+  # mlm_losses = torch.min(torch.stack([(mlm_losses/mlm_losses)*Config.max_typo_loss,mlm_losses],dim=0),dim=0)[0] #can't explode on typo
+
+  # mlm_diff
+  real_positions = real_positions.unsqueeze(-1)
+  mlm_diff = (((matrices - transformed) * real_positions).norm(dim=[1, 2]))
+  mlm_diff = mlm_diff / ((matrices * real_positions).norm(dim=[1, 2]))
+  mlm_diff = (mlm_diff * (4.4 / math.log(embeddings.shape[0]))) / 100
+
+  return mlm_losses, mlm_diff

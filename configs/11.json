@@ -1,7 +1,7 @@
 {
-  "model_folder": "wiki.64sent.madgrad_0005_08",
-  "exp_folder": "runs/wiki.64sent.madgrad_0005_08",
-  "viz_file": "../viz/models/wiki.64sent.madgrad_001_08.csv",
+  "model_folder": "wiki.64sent.madgrad_0001",
+  "exp_folder": "runs/wiki.64sent.madgrad_0001",
+  "viz_file": "../viz/models/wiki.64sent.madgrad_0001.csv",
   "sequence_lengths": [16, 16, 6, 3, 4],
   "vector_sizes": [32, 64, 128, 96, 128, 156],
   "num_heads": [4, 8, 2, 2, 2, 2],
@@ -18,5 +18,7 @@
   "log_experiment": true,
   "log_every": 2000,
   "save_every": 10000,
+  "lr": 0.0001,
+  "momentum": 0.9,
   "gpu_num": 0
 }

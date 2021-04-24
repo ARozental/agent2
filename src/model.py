@@ -158,7 +158,8 @@ class AgentModel(nn.Module):
                 if label not in ['g', 'disc']:
                     loss /= len(real_nodes)
                     current_losses.append(loss)
-                    loss_object[level_num][label] = loss.item()  # Pull out of the GPU for logging
+                    loss_object[level_num][label] = loss  # Keep loss_object as a tensor for custom backwards
+                    # loss_object[level_num][label] = loss.item()  # Pull out of the GPU for logging
             total_loss += torch.stack(current_losses).to(Config.device).sum()
 
         return total_g_loss, total_disc_loss, total_loss, loss_object

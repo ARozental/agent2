@@ -31,6 +31,7 @@ class Config:
     # smoothing
     # max_typo_loss = 10.0
     grad_clip_value = 0.99
+    optimizer = "Adam"
     lr = 0.0001
     momentum = 0.9
 

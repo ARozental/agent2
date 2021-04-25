@@ -76,7 +76,7 @@ def calc_reconstruction_loss_with_pndb(agent_level, matrices, decompressed, mask
   reconstruction_diff = (reconstruction_diff * (4.4 / math.log(embeddings.shape[0]))) / 100
   rc_loss = calc_coherence_loss(agent_level, post_decoder, mask, eos_positions, embeddings)
   re_loss = calc_eos_loss(agent_level, post_decoder, eos_positions) * 0.3 #Y U so oscillate
-  rm_loss, rm_diff_loss = calc_clear_mlm_loss(agent_level, post_decoder, mask, eos_positions, embeddings, labels)
+  rm_loss, rm_diff_loss = calc_clear_mlm_loss(agent_level, post_decoder, mask, eos_positions, embeddings, labels) #no mask keep the decoded vectors and predict originals by encoding
 
   if Config.join_texts and agent_level.level > 0:
     rj_loss = calc_join_loss(agent_level, post_decoder, join_positions) * 0.3

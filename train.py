@@ -23,9 +23,9 @@ Config.setup_device()
 
 # Need to wrap in a function for the child workers
 def train():
-    # dataset = DummyDataset(max_num=None)
+    dataset = DummyDataset(max_num=None)
     # dataset = BookDataset(no_stats=True, max_num=2)
-    dataset = WikiDataset(max_num=None)
+    # dataset = WikiDataset(max_num=None)
 
     dataloader = DataLoader(
         dataset,
@@ -44,7 +44,6 @@ def train():
     generator_params = [param for name, param in model.named_parameters() if "generator" in name]
     discriminator_params = [param for name, param in model.named_parameters() if "discriminator" in name]
 
-    # main_optimizer = torch.optim.AdamW(main_params, 0.0005)
     if Config.optimizer == "Adam":
         main_optimizer = torch.optim.AdamW(main_params, Config.lr)
     else:

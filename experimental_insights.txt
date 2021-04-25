@@ -64,3 +64,13 @@ AdamW 0.001 seems best now
 reconstruction losses help everything but EoS1 which oscillates; *=3 for reconstruction-EoS doesn't help
 run stops at 40.8K batches of max size = 8*256
 size does matter => bigger is better
+------------------------------------------------------------------------------------------------------------------------
+fixed 2 bugs in MLM (+layer norm and new act)
+
+does reconstruction_mlm forces the model to "leak" the word lebal on close words? does it help or hinder reconstruction?
+1. it gives reconstruction an incentive to not be perfect (leaking words to make rmlm easy)
+2. it gives reconstruction a constreint to provide something that would react the same to the encoder
+3. (2) is not as powerful as reconstruction_diff (to know the exact right vectors) but much much safer
+
+layer norm and new act => at least one of them helped before bug fix, not sure now; nothing is certain now...
+no idea if rmlm and/or mlm_diff help or harm after the fix, need more experiments ;( => much more gpus

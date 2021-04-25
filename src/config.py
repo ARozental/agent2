@@ -67,3 +67,23 @@ class Config:
             Config.device = torch.device('cuda', Config.gpu_num)
         else:
             Config.device = torch.device('cpu')
+
+
+
+def loss_object_to_loss(obj):
+  loss = 0.0
+  for l in obj.keys():
+    loss += obj[l]['m']  * 1.0
+    loss += obj[l]['md'] * 0.1
+    loss += obj[l]['c']  * 1.0
+    loss += obj[l]['r']  * 1.0
+    loss += obj[l]['d']  * 0.1
+    loss += obj[l]['e']  * 1.0
+    loss += obj[l]['j']  * 1.0
+    loss += obj[l]['rc'] * 1.0
+    loss += obj[l]['re'] * 0.3
+    loss += obj[l]['rj'] * 0.3
+    loss += obj[l]['rm'] * 0.3
+    loss += obj[l]['rmd']* 0.03 #off from config
+  return loss
+

@@ -39,7 +39,7 @@ class AgentLevel(nn.Module):
         self.eos_vector = nn.Parameter(torch.rand(Config.vector_sizes[level], requires_grad=True))
         self.join_vector = nn.Parameter(torch.rand(Config.vector_sizes[level], requires_grad=True))
         self.mask_vector = nn.Parameter(torch.rand(Config.vector_sizes[level], requires_grad=True))
-        self.pad_vector = nn.Parameter(torch.zeros(Config.vector_sizes[level], requires_grad=True))  # True for debug
+        self.pad_vector = nn.Parameter(torch.zeros(Config.vector_sizes[level]), requires_grad=False)
 
     def eos_classifier1(self, dot):
         # needed to make sure w1 can never be negative

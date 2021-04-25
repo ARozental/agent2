@@ -1,6 +1,6 @@
 from src.checkpoints import Checkpoints
 from src.commands import Commands
-from src.config import Config
+from src.config import Config, loss_object_to_loss
 from src.datasets import BookDataset, DummyDataset, WikiDataset
 from src.logger import Logger
 from src.pre_processing import TreeTokenizer, worker_init_fn
@@ -78,6 +78,8 @@ def train():
                                                                       debug=will_reconstruct)
             Logger.log_losses(g_loss, disc_loss, main_loss, loss_object, step=global_step)
             Logger.log_l2_classifiers(model, step=global_step)
+
+            main_loss = loss_object_to_loss(loss_object)
 
             if GENERATE_TEXT:
                 generator_optimizer.zero_grad()

@@ -3,7 +3,6 @@ import torch.nn.functional as F
 from src.config import Config
 import math
 
-
 def calc_mlm_loss_original(agent_level, matrices, mask, eos_positions, embeddings, labels):
     # matrices,mask,labels => [batch,seq_length,vec_size], embeddings => [seq_length,vec_size]
     # to use when calc_clear_mlm_loss is not active, has a "same word" component
@@ -61,7 +60,7 @@ def calc_mlm_loss_original(agent_level, matrices, mask, eos_positions, embedding
     real_positions = real_positions.unsqueeze(-1)
     mlm_diff = (((matrices - transformed) * real_positions).norm(dim=[1, 2]))
     mlm_diff = mlm_diff / ((matrices * real_positions).norm(dim=[1, 2]))
-    mlm_diff = (mlm_diff * (4.4 / math.log(embeddings.shape[0]))) / 100
+    mlm_diff = (mlm_diff * (4.4 / math.log(embeddings.shape[0]))) #/ 100
 
     return mlm_losses, mlm_diff
 
@@ -122,7 +121,7 @@ def calc_mlm_loss(agent_level, matrices, mask, eos_positions, embeddings, labels
   real_positions = real_positions.unsqueeze(-1)
   mlm_diff = (((matrices - transformed) * real_positions).norm(dim=[1, 2]))
   mlm_diff = mlm_diff / ((matrices * real_positions).norm(dim=[1, 2]))
-  mlm_diff = (mlm_diff * (4.4 / math.log(embeddings.shape[0]))) / 100
+  mlm_diff = (mlm_diff * (4.4 / math.log(embeddings.shape[0]))) #/ 100
 
   return mlm_losses, mlm_diff
 
@@ -151,9 +150,12 @@ def calc_clear_mlm_loss(agent_level, matrices, mask, eos_positions, embeddings, 
   # mlm_losses = torch.min(torch.stack([(mlm_losses/mlm_losses)*Config.max_typo_loss,mlm_losses],dim=0),dim=0)[0] #can't explode on typo
 
   # mlm_diff
-  real_positions = real_positions.unsqueeze(-1)
-  mlm_diff = (((matrices - transformed) * real_positions).norm(dim=[1, 2]))
-  mlm_diff = mlm_diff / ((matrices * real_positions).norm(dim=[1, 2]))
-  mlm_diff = (mlm_diff * (4.4 / math.log(embeddings.shape[0]))) / 100
+  # real_positions = real_positions.unsqueeze(-1)
+  # mlm_diff = (((matrices - transformed) * real_positions).norm(dim=[1, 2]))
+  # mlm_diff = mlm_diff / ((matrices * real_positions).norm(dim=[1, 2]))
+  # mlm_diff = (mlm_diff * (4.4 / math.log(embeddings.shape[0]))) / 100
+
+  #no mmlm_diff
+  mlm_diff = torch.zeros(batch)
 
   return mlm_losses, mlm_diff

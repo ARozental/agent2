@@ -79,10 +79,10 @@ def loss_object_to_loss(obj):
     loss += obj[l]['r']  * 1.0
     loss += obj[l]['d']  * 0.1
     loss += obj[l]['e']  * 1.0
-    loss += obj[l]['j']  * 1.0
+    loss += obj[l]['j']  * 0.5
     loss += obj[l]['rc'] * 1.0
-    loss += obj[l]['re'] * 0.3
-    loss += obj[l]['rj'] * 0.3
+    loss += obj[l]['re'] * 0.05
+    loss += obj[l]['rj'] * 0.02
     loss += obj[l]['rm'] * 0.3
     loss += obj[l]['rmd']* 0.03 #off from config
   return loss

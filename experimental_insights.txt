@@ -75,3 +75,4 @@ does reconstruction_mlm forces the model to "leak" the word lebal on close words
 layer norm and new act => at least one of them helped before bug fix, not sure now; nothing is certain now...
 no idea if rmlm and/or mlm_diff help or harm after the fix, need more experiments ;( => much more gpus
 ------------------------------------------------------------------------------------------------------------------------
+re loss should be lower or only effect the reconstruction weights => it kills regular eos loss

@@ -61,8 +61,8 @@ def calc_reconstruction_loss_with_pndb(agent_level, matrices, decompressed, mask
   reconstruction_diff = (((matrices - post_decoder) * real_positions).norm(dim=[1, 2]))
   reconstruction_diff = reconstruction_diff / ((matrices * real_positions).norm(dim=[1, 2]))
 
-  #if agent_level.level == 0:
-  logits = logits + agent_level.token_bias
+  if agent_level.level == 0:
+    logits = logits + agent_level.token_bias
 
   reconstruction_losses = F.cross_entropy(
     logits.transpose(1, 2),

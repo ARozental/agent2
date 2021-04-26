@@ -66,7 +66,7 @@ def train():
             if Config.skip_batches is not None and (epoch == 0 and step < Config.skip_batches):
                 global_step += 1
                 continue
-            if step>50700 and step<50900: #todo: delete later 
+            if step>50800 and step<50850: #todo: delete later
                 continue
 
             model.train()

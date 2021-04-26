@@ -45,10 +45,10 @@ def train():
     discriminator_params = [param for name, param in model.named_parameters() if "discriminator" in name]
 
     if Config.optimizer == "Adam":
-      main_optimizer = torch.optim.AdamW(main_params, Config.lr)
+        main_optimizer = torch.optim.AdamW(main_params, Config.lr)
     else:
-      main_optimizer = madgrad.MADGRAD(main_params, lr=Config.lr, momentum=Config.momentum)  # 0.01,0.9 is the default
-    #main_optimizer = torch.optim.AdamW(main_params, 0.001) #todo: for dummy only
+        main_optimizer = madgrad.MADGRAD(main_params, lr=Config.lr, momentum=Config.momentum)  # 0.01,0.9 is the default
+    # main_optimizer = torch.optim.AdamW(main_params, 0.001) #todo: for dummy only
     generator_optimizer = torch.optim.AdamW(generator_params, 0.001)
     discriminator_optimizer = torch.optim.AdamW(discriminator_params, 0.001)
 

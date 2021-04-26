@@ -64,6 +64,7 @@ def train():
         for step, batch in enumerate(dataloader):
             # This is not the most efficient, but needs to be done to not skip these examples in future epochs
             if Config.skip_batches is not None and (epoch == 0 and step < Config.skip_batches):
+                global_step += 1
                 continue
 
             model.train()

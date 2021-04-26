@@ -6,10 +6,11 @@ import os
 
 class Checkpoints:
     MODELS = os.path.join('models')
-    MODEL_FOLDER = os.path.join(MODELS, Config.model_folder)
+    MODEL_FOLDER = None
 
     @classmethod
     def setup(cls):
+        cls.MODEL_FOLDER = os.path.join(cls.MODELS, Config.model_folder)
         if Config.save_every is None:
             return
 

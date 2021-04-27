@@ -32,7 +32,7 @@ class Config:
     # max_typo_loss = 10.0
     grad_clip_value = 0.99
     optimizer = "Adam"
-    lr = 0.0001
+    lr = 0.0005
     momentum = 0.9
 
     skip_batches = None  # How many batches to skip (additional on top of the checkpoint)
@@ -70,7 +70,7 @@ class Config:
 
 
 
-def loss_object_to_loss(obj):
+def loss_object_to_main_loss(obj):
   loss = 0.0
   for l in obj.keys():
     loss += obj[l]['m']  * 1.0
@@ -78,12 +78,16 @@ def loss_object_to_loss(obj):
     loss += obj[l]['c']  * 1.0
     loss += obj[l]['r']  * 1.0
     loss += obj[l]['d']  * 0.1
-    loss += obj[l]['e']  * 1.0
-    loss += obj[l]['j']  * 0.5
-    loss += obj[l]['rc'] * 1.0
-    loss += obj[l]['re'] * 0.05
-    loss += obj[l]['rj'] * 0.02
+    loss += obj[l]['e']  * 0.1
+    loss += obj[l]['j']  * 0.1
     loss += obj[l]['rm'] * 0.3
-    loss += obj[l]['rmd']* 0.03 #off from config
   return loss
 
+def loss_object_to_reconstruction_weights_loss(obj):
+  loss = 0.0
+  for l in obj.keys():
+    loss += obj[l]['rc'] * 5.0
+    loss += obj[l]['re'] * 0.1
+    loss += obj[l]['rj'] * 0.1
+    loss += obj[l]['rmd']* 0.0 #off from config
+  return loss

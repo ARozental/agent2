@@ -4,8 +4,8 @@ import torch
 import math
 from src.losses.eos import calc_eos_loss
 from src.losses.join import calc_join_loss
-from src.losses.mlm import calc_mlm_loss, calc_clear_mlm_loss
-from src.losses.coherence import calc_coherence_loss
+from src.losses.mlm import calc_rmlm_loss
+from src.losses.coherence import calc_rc_loss
 
 def calc_reconstruction_loss(agent_level, matrices, decompressed, mask, eos_positions,join_positions, embeddings, labels):
     # matrices, mask, labels => [batch,seq_length,vec_size]
@@ -32,9 +32,12 @@ def calc_reconstruction_loss(agent_level, matrices, decompressed, mask, eos_posi
     #reconstruction_losses = torch.min(torch.stack([(reconstruction_losses/reconstruction_losses)*Config.max_typo_loss,reconstruction_losses],dim=0),dim=0)[0] #can't explode on typo
     reconstruction_diff = (reconstruction_diff * (4.4 / math.log(embeddings.shape[0])))
 
-    rc_loss = calc_coherence_loss(agent_level, post_decoder, mask, eos_positions, embeddings)
     re_loss = calc_eos_loss(agent_level, post_decoder, eos_positions)
-    rm_loss,rm_diff_loss = calc_mlm_loss(agent_level, post_decoder, mask, eos_positions, embeddings,labels)
+
+    reencoded_matrices = agent_level.encoder(post_decoder, mask, eos_positions)
+    rm_loss, rm_diff_loss = calc_rmlm_loss(agent_level, reencoded_matrices, mask, eos_positions, embeddings,labels)
+    rc_loss = calc_rc_loss(agent_level, reencoded_matrices, mask, eos_positions, embeddings)
+
 
     if Config.join_texts and agent_level.level >0:
       rj_loss = calc_join_loss(agent_level, post_decoder, join_positions)
@@ -74,9 +77,11 @@ def calc_reconstruction_loss_with_pndb(agent_level, matrices, decompressed, mask
   reconstruction_losses = reconstruction_losses * (4.4 / math.log(embeddings.shape[0]))  # 4.4 is ln(len(char_embedding)) == ln(81)
   #reconstruction_losses = torch.min(torch.stack([(reconstruction_losses / reconstruction_losses) * Config.max_typo_loss, reconstruction_losses], dim=0),dim=0)[0]  # can't explode on typo
   reconstruction_diff = (reconstruction_diff * (4.4 / math.log(embeddings.shape[0])))
-  rc_loss = calc_coherence_loss(agent_level, post_decoder, mask, eos_positions, embeddings)
   re_loss = calc_eos_loss(agent_level, post_decoder, eos_positions)
-  rm_loss, rm_diff_loss = calc_clear_mlm_loss(agent_level, post_decoder, mask, eos_positions, embeddings, labels) #no mask keep the decoded vectors and predict originals by encoding
+
+  reencoded_matrices = agent_level.encoder(post_decoder, mask, eos_positions)
+  rm_loss, rm_diff_loss = calc_rmlm_loss(agent_level, reencoded_matrices, mask, eos_positions, embeddings, labels) #no mask keep the decoded vectors and predict originals by encoding
+  rc_loss = calc_rc_loss(agent_level, reencoded_matrices, mask, eos_positions, embeddings)
 
   if Config.join_texts and agent_level.level > 0:
     rj_loss = calc_join_loss(agent_level, post_decoder, join_positions)

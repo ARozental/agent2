@@ -76,3 +76,6 @@ layer norm and new act => at least one of them helped before bug fix, not sure n
 no idea if rmlm and/or mlm_diff help or harm after the fix, need more experiments ;( => much more gpus
 ------------------------------------------------------------------------------------------------------------------------
 re loss should be lower or only effect the reconstruction weights => it kills regular eos loss
+small explosion after 37k even with lr=0.0001; didn't happen
+
+reconstruction1 is too low but still have bad words

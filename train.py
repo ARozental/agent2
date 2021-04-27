@@ -1,6 +1,6 @@
 from src.checkpoints import Checkpoints
 from src.commands import Commands
-from src.config import Config, loss_object_to_loss
+from src.config import Config, loss_object_to_main_loss, loss_object_to_reconstruction_weights_loss
 from src.datasets import BookDataset, DummyDataset, WikiDataset
 from src.logger import Logger
 from src.pre_processing import TreeTokenizer, worker_init_fn
@@ -43,12 +43,13 @@ def train():
                    ("discriminator" not in name) and ("generator" not in name)]
     generator_params = [param for name, param in model.named_parameters() if "generator" in name]
     discriminator_params = [param for name, param in model.named_parameters() if "discriminator" in name]
+    reconstruction_params = [param for name, param in model.named_parameters() if (("decompressor" in name) or ("decoder" in name))]
 
     if Config.optimizer == "Adam":
         main_optimizer = torch.optim.AdamW(main_params, Config.lr)
     else:
         main_optimizer = madgrad.MADGRAD(main_params, lr=Config.lr, momentum=Config.momentum)  # 0.01,0.9 is the default
-    # main_optimizer = torch.optim.AdamW(main_params, 0.001) #todo: for dummy only
+    main_optimizer = torch.optim.AdamW(main_params, 0.001) #todo: for dummy only
     generator_optimizer = torch.optim.AdamW(generator_params, 0.001)
     discriminator_optimizer = torch.optim.AdamW(discriminator_params, 0.001)
 
@@ -82,7 +83,8 @@ def train():
             Logger.log_losses(g_loss, disc_loss, main_loss, loss_object, step=global_step)
             Logger.log_l2_classifiers(model, step=global_step)
 
-            main_loss = loss_object_to_loss(loss_object)
+            main_loss = loss_object_to_main_loss(loss_object)
+            r_loss = loss_object_to_reconstruction_weights_loss(loss_object)
 
             if GENERATE_TEXT:
                 generator_optimizer.zero_grad()
@@ -99,8 +101,12 @@ def train():
                 discriminator_optimizer.step()
                 generator_optimizer.step()
             else:
-                torch.nn.utils.clip_grad_value_(main_params, Config.grad_clip_value)
+                [setattr(p, "requires_grad", False) for p in main_params]
+                [setattr(p, "requires_grad", True) for p in reconstruction_params]
+                r_loss.backward(retain_graph=True)
+                [setattr(p, "requires_grad", True) for p in main_params]
                 main_loss.backward()
+                torch.nn.utils.clip_grad_value_(main_params, Config.grad_clip_value)
                 main_optimizer.step()
 
             if (epoch % Config.log_every == 0 and step == 0) or (step % Config.log_every == 0 and step > 0):

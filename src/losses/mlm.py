@@ -126,13 +126,12 @@ def calc_mlm_loss(agent_level, matrices, mask, eos_positions, embeddings, labels
   return mlm_losses, mlm_diff
 
 
-def calc_clear_mlm_loss(agent_level, matrices, mask, eos_positions, embeddings, labels):
-  batch, seq_length, vec_size = matrices.shape
+def calc_rmlm_loss(agent_level, reencoded_matrices, mask, eos_positions, embeddings, labels):
+  batch, seq_length, vec_size = reencoded_matrices.shape
 
   real_positions = (1 - mask.float())
 
-  post_encoder = agent_level.encoder(matrices, mask, eos_positions)
-  transformed = agent_level.encoder_transform(post_encoder)
+  transformed = agent_level.encoder_transform(reencoded_matrices)
   logits = torch.matmul(transformed, torch.transpose(embeddings, 0, 1))  # [batch,max_length,embedding_size)
 
   if agent_level.level == 0:

@@ -32,3 +32,11 @@ def calc_coherence_loss(agent_level, matrices, mask, eos_positions, embeddings):
     coherence_losses = (res - labels) ** 2
 
     return coherence_losses
+
+def calc_rc_loss(agent_level, reencoded_matrices, mask, eos_positions, embeddings):
+  batch, seq_length, vec_size = reencoded_matrices.shape
+  labels = torch.zeros(batch)
+  vectors_for_coherence = agent_level.compressor(reencoded_matrices, mask)
+  res = agent_level.coherence_checker(vectors_for_coherence).squeeze(-1)
+  coherence_losses = (res - labels) ** 2
+  return coherence_losses

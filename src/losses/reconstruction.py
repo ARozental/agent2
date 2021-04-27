@@ -44,6 +44,9 @@ def calc_reconstruction_loss(agent_level, matrices, decompressed, mask, eos_posi
     else:
       rj_loss = torch.tensor([0.0] * matrices.size(0)).to(Config.device)
 
+    #todo: figure out wtf it is needed here
+    reconstruction_diff, reconstruction_losses, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss = reconstruction_diff.to(Config.device), reconstruction_losses.to(Config.device), rc_loss.to(Config.device), re_loss.to(Config.device), rj_loss.to(Config.device), rm_loss.to(Config.device), rm_diff_loss.to(Config.device)
+
     return reconstruction_diff, reconstruction_losses, rc_loss, re_loss, rj_loss, rm_loss,rm_diff_loss
 
 
@@ -87,6 +90,8 @@ def calc_reconstruction_loss_with_pndb(agent_level, matrices, decompressed, mask
     rj_loss = calc_join_loss(agent_level, post_decoder, join_positions)
   else:
     rj_loss = torch.tensor([0.0] * matrices.size(0)).to(Config.device)
+
+  # todo: figure out wtf it is needed here
   reconstruction_diff, reconstruction_losses, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss = reconstruction_diff.to(Config.device), reconstruction_losses.to(Config.device), rc_loss.to(Config.device), re_loss.to(Config.device), rj_loss.to(Config.device), rm_loss.to(Config.device),rm_diff_loss.to(Config.device)
 
   return reconstruction_diff, reconstruction_losses, rc_loss, re_loss, rj_loss, rm_loss,rm_diff_loss

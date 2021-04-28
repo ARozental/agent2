@@ -122,11 +122,6 @@ def make_reconstruction_loss_fn(level):
 
     rj_loss = join_loss_fn(agent_level, post_decoder, join_positions)
 
-    # todo: figure out wtf it is needed here
-    reconstruction_diff, reconstruction_losses, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss = reconstruction_diff.to(
-      Config.device), reconstruction_losses.to(Config.device), rc_loss.to(Config.device), re_loss.to(
-      Config.device), rj_loss.to(Config.device), rm_loss.to(Config.device), rm_diff_loss.to(Config.device)
-
     return reconstruction_diff, reconstruction_losses, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss
   return calc_reconstruction_loss_fn
 

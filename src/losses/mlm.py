@@ -155,6 +155,6 @@ def calc_rmlm_loss(agent_level, reencoded_matrices, mask, eos_positions, embeddi
   # mlm_diff = (mlm_diff * (4.4 / math.log(embeddings.shape[0]))) / 100
 
   #no mmlm_diff
-  mlm_diff = torch.zeros(batch)
+  mlm_diff = torch.zeros(batch, device=Config.device)
 
   return mlm_losses, mlm_diff

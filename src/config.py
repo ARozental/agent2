@@ -75,9 +75,9 @@ def loss_object_to_main_loss(obj):
   for l in obj.keys():
     loss += obj[l]['m']  * 1.0
     loss += obj[l]['md'] * 0.1
-    loss += obj[l]['c']  * 1.0
+    loss += obj[l]['c']  * 0.5
     loss += obj[l]['r']  * 1.0
-    loss += obj[l]['d']  * 0.1
+    loss += obj[l]['d']  * 0.2
     loss += obj[l]['e']  * 0.1
     loss += obj[l]['j']  * 0.1
     loss += obj[l]['rm'] * 0.3
@@ -86,7 +86,7 @@ def loss_object_to_main_loss(obj):
 def loss_object_to_reconstruction_weights_loss(obj):
   loss = 0.0
   for l in obj.keys():
-    loss += obj[l]['rc'] * 5.0
+    loss += obj[l]['rc'] * 0.5
     loss += obj[l]['re'] * 0.1
     loss += obj[l]['rj'] * 0.1
     loss += obj[l]['rmd']* 0.0 #off from config

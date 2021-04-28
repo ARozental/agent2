@@ -18,6 +18,9 @@ class AgentModel(nn.Module):
         super().__init__()
         num_letters = len(TreeTokenizer.letter_tokenizer.keys())
         self.agent_levels = nn.ModuleList([AgentLevel(i, num_letters) for i in range(Config.agent_level + 1)])
+        [setattr(self.agent_levels[i], "previous_level", self.agent_levels[i-1]) for i in range(1,Config.agent_level+1)]
+
+
         self.char_embedding_layer = nn.Embedding(num_letters, Config.vector_sizes[0])
 
         self.pndb = None

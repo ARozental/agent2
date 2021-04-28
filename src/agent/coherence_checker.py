@@ -8,6 +8,7 @@ class CoherenceChecker(nn.Module):
         self.d1 = nn.Linear(embed_size, 4 * embed_size)
         self.d2 = nn.Linear(4 * embed_size, 4 * embed_size)
         self.out = nn.Linear(4 * embed_size, 1)
+        self.out_prob = nn.Linear(4 * embed_size, 1)
         self.LayerNorm = nn.LayerNorm(4*embed_size)
 
     # TODO - Add Dropout
@@ -16,6 +17,7 @@ class CoherenceChecker(nn.Module):
         #x = self.LayerNorm(x)
         x = torch.tanh(self.d2(x))
         #x = self.LayerNorm(x)
-        x = torch.sigmoid(self.out(x)) * Config.max_coherence_noise
+        scores = torch.sigmoid(self.out(x)) * Config.max_coherence_noise
+        probss = torch.sigmoid(self.out_prob(x))
 
-        return x
+        return scores,probss

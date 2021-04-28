@@ -79,3 +79,8 @@ re loss should be lower or only effect the reconstruction weights => it kills re
 small explosion after 37k even with lr=0.0001; didn't happen
 
 reconstruction1 is too low but still have bad words
+reconstruction_coherence doesn't work well, too easy, the decodedr generates whatever that doesn't look like real words
+=> each replacement is easy to see; just a guess; see results later
+
+=> use discriminator on reconstruction
+=> discriminate between vectors, reconstructed, shuffled_vectors (shuffle the n-th position between all vectors)

@@ -20,6 +20,7 @@ class AgentLevel(nn.Module):
         self.discriminator = Discriminator(Config.vector_sizes[level + 1])
         self.cnn_discriminator = CnnDiscriminator(Config.vector_sizes[level], Config.sequence_lengths[level])
 
+        self.previous_level = None
         self.LayerNorm = nn.LayerNorm(Config.vector_sizes[level])
 
         if self.level == 0:

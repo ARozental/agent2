@@ -5,7 +5,7 @@ import math
 from src.losses.eos import calc_eos_loss
 from src.losses.join import calc_join_loss
 from src.losses.mlm import calc_rmlm_loss
-from src.losses.coherence import calc_rc_loss
+from src.losses.coherence import calc_rc_loss, calc_lower_rc_loss
 
 def make_reconstruction_loss_fn(level):
   def do_pndb1(pndb,A1,post_decoder):
@@ -67,12 +67,24 @@ def make_reconstruction_loss_fn(level):
 
   token_bias_fn = create_token_bias_fn()
 
+  def do_lower_rc_loss(agent_level, reencoded_matrices, mask, lower_agent_level, post_decoder):
+    return calc_lower_rc_loss(agent_level, reencoded_matrices, mask, lower_agent_level, post_decoder)
+  def no_lower_rc_loss(agent_level, reencoded_matrices, mask, lower_agent_level, post_decoder):
+    return calc_rc_loss(agent_level, reencoded_matrices, mask, lower_agent_level, post_decoder)
+
+  def create_rc_loss_fn():
+    if level > 0:
+      return do_lower_rc_loss
+    else:
+      return calc_rc_loss
+
+  rc_loss_fn = create_rc_loss_fn()
+
 
   def do_join_loss(agent_level, post_decoder, join_positions):
     return calc_join_loss(agent_level, post_decoder, join_positions)
   def no_join_loss(agent_level, post_decoder, join_positions):
     return torch.tensor([0.0] * post_decoder.size(0)).to(Config.device)
-
 
   def create_join_loss_fn():
     if Config.join_texts and level > 0:
@@ -118,7 +130,8 @@ def make_reconstruction_loss_fn(level):
     reencoded_matrices = agent_level.encoder(post_decoder, mask, eos_positions)
     rm_loss, rm_diff_loss = calc_rmlm_loss(agent_level, reencoded_matrices, mask, eos_positions, embeddings,
                                            labels)  # no mask keep the decoded vectors and predict originals by encoding
-    rc_loss = calc_rc_loss(agent_level, reencoded_matrices, mask, eos_positions, embeddings)
+
+    rc_loss = rc_loss_fn(agent_level, reencoded_matrices, mask, agent_level.previous_level, post_decoder)
 
     rj_loss = join_loss_fn(agent_level, post_decoder, join_positions)
 

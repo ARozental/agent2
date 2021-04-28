@@ -21,8 +21,8 @@ def calc_generation_loss(agent_level, vectors, matrices, mask):
     mats = torch.cat([cnn_matrices, fake_matrices], dim=0)
     cnn_disc_loss = agent_level.cnn_discriminator.get_loss(mats, labels)
 
-    coherence = agent_level.coherence_checker(fake_vecs).squeeze()
-    coherence_g_loss = (coherence - torch.zeros(batch).to(Config.device)).norm() / (
+    coherence_scores, coherence_probs = agent_level.coherence_checker(fake_vecs).squeeze()
+    coherence_g_loss = (coherence_scores - torch.zeros(batch).to(Config.device)).norm() / (
                 (Config.vector_sizes[agent_level.level + 1]) ** 0.5)
     # also get coherence for fake children??
 

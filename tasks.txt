@@ -28,6 +28,7 @@ Refactoring:
 9. have a way to override config from terminal (run train.py with params)
 11. apply rc_loss only to same level reconstruction model??
 12. init weight location regex
+12. remove calc_reconstruction_loss_with_pndb (lots of duplicate code) use make_calc_reconstruction_loss_fn instead
 
 CURRENT TASKS:
 Datasets 5

@@ -4,7 +4,7 @@ from src.losses.eos import calc_eos_loss
 from src.losses.join import calc_join_loss
 from src.losses.mlm import calc_mlm_loss
 from src.losses.coherence import calc_coherence_loss
-from src.losses.reconstruction import calc_reconstruction_loss, calc_reconstruction_loss_with_pndb
+from src.losses.reconstruction import make_reconstruction_loss_fn#,calc_reconstruction_loss, calc_reconstruction_loss_with_pndb
 from src.losses.generation import calc_generation_loss
 from src.pre_processing import Node, TreeTokenizer
 from src.utils import iter_even_split
@@ -23,6 +23,8 @@ class AgentModel(nn.Module):
         self.pndb = None
         if Config.use_pndb1 is not None or Config.use_pndb2 is not None:
             self.pndb = Pndb()
+
+        self.reconstruction_fns = {k:make_reconstruction_loss_fn(k) for k in range(Config.agent_level + 1)}
 
     def set_word_vectors(self, node_batch):
         distinct_ids = list(dict.fromkeys([node.distinct_lookup_id for node in node_batch]))
@@ -82,27 +84,33 @@ class AgentModel(nn.Module):
                 decompressed = self.agent_levels[level_num].decompressor(vectors)
 
                 #### PNDB tests
-                if level_num == 1 and (Config.use_pndb1 is not None or Config.use_pndb2 is not None):
-                    A1, A2 = None, None
-                    if Config.use_pndb1 is not None:
-                        A1 = self.pndb.create_A_matrix(matrices, mask)
-                    if Config.use_pndb2 is not None:
-                        post_encoder = self.agent_levels[level_num].encoder(matrices, mask, eos_positions)
-                        A2 = self.pndb.create_A2_matrix(post_encoder, mask)
-
-                    reconstruction_diff_loss, reconstruction_loss, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss = calc_reconstruction_loss_with_pndb(
+                reconstruction_diff_loss, reconstruction_loss, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss = self.reconstruction_fns[level_num](
                         self.agent_levels[level_num],
                         matrices, decompressed, mask,
                         eos_positions,
                         join_positions,
-                        embedding_matrix, labels, self.pndb, A1, A2)
-                else:
-                    reconstruction_diff_loss, reconstruction_loss, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss = calc_reconstruction_loss(
-                        self.agent_levels[level_num],
-                        matrices, decompressed, mask,
-                        eos_positions,
-                        join_positions,
-                        embedding_matrix, labels)
+                        embedding_matrix, labels, self.pndb)
+                # if level_num == 1 and (Config.use_pndb1 is not None or Config.use_pndb2 is not None):
+                #     A1, A2 = None, None
+                #     if Config.use_pndb1 is not None:
+                #         A1 = self.pndb.create_A_matrix(matrices, mask)
+                #     if Config.use_pndb2 is not None:
+                #         post_encoder = self.agent_levels[level_num].encoder(matrices, mask, eos_positions)
+                #         A2 = self.pndb.create_A2_matrix(post_encoder, mask)
+                #
+                #     reconstruction_diff_loss, reconstruction_loss, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss = calc_reconstruction_loss_with_pndb(
+                #         self.agent_levels[level_num],
+                #         matrices, decompressed, mask,
+                #         eos_positions,
+                #         join_positions,
+                #         embedding_matrix, labels, self.pndb, A1, A2)
+                # else:
+                #     reconstruction_diff_loss, reconstruction_loss, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss = calc_reconstruction_loss(
+                #         self.agent_levels[level_num],
+                #         matrices, decompressed, mask,
+                #         eos_positions,
+                #         join_positions,
+                #         embedding_matrix, labels)
 
                 eos_loss = calc_eos_loss(self.agent_levels[level_num], decompressed, eos_positions)
 

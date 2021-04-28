@@ -9,6 +9,8 @@ class CoherenceChecker(nn.Module):
         self.d2 = nn.Linear(4 * embed_size, 4 * embed_size)
         self.out = nn.Linear(4 * embed_size, 1)
         self.out_prob = nn.Linear(4 * embed_size, 1)
+        self.out.bias.data.fill_(-2.2) #better than random init
+        self.out_prob.bias.data.fill_(-0.5) #better than random init
         self.LayerNorm = nn.LayerNorm(4*embed_size)
 
     # TODO - Add Dropout

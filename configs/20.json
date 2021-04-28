@@ -1,7 +1,7 @@
 {
-  "model_folder": "lower_level_rc",
-  "exp_folder": "runs/lower_level_rc",
-  "viz_file": "../viz/models/lower_level_rc.csv",
+  "model_folder": "lower_level_rc_fix",
+  "exp_folder": "runs/lower_level_rc_fix",
+  "viz_file": "../viz/models/lower_level_rc_fix.csv",
   "sequence_lengths": [16, 16, 6, 3, 4],
   "vector_sizes": [32, 64, 128, 96, 128, 156],
   "num_heads": [4, 8, 2, 2, 2, 2],

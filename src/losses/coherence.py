@@ -30,7 +30,7 @@ def calc_coherence_loss(agent_level, matrices, mask, eos_positions, embeddings):
 
     vectors_for_coherence = agent_level.compressor(agent_level.encoder(pre_encoder, mask, eos_positions), mask)
     scores, probs = agent_level.coherence_checker(vectors_for_coherence)
-    coherence_losses = (scores.squeeze(-1) - labels) ** 2 + (bce_loss(probs.squeeze(-1),labels) * 20)
+    coherence_losses = (scores.squeeze(-1) - labels) ** 2 + (bce_loss(probs.squeeze(-1),labels) * 0.05)
 
     return coherence_losses
 
@@ -39,7 +39,7 @@ def calc_rc_loss(agent_level, reencoded_matrices, mask, lower_agent_level, post_
   labels = torch.zeros(batch).to(Config.device)
   vectors_for_coherence = agent_level.compressor(reencoded_matrices, mask)
   scores, probs = agent_level.coherence_checker(vectors_for_coherence)
-  coherence_losses = (scores.squeeze(-1) - labels) ** 2 + (bce_loss(probs.squeeze(-1), labels) * 20)
+  coherence_losses = (scores.squeeze(-1) - labels) ** 2 + (bce_loss(probs.squeeze(-1), labels) * 0.05)
   return coherence_losses
 
 def calc_lower_rc_loss(agent_level, reencoded_matrices, mask, lower_agent_level, post_decoder):
@@ -47,5 +47,5 @@ def calc_lower_rc_loss(agent_level, reencoded_matrices, mask, lower_agent_level,
   vectors_for_coherence = post_decoder.view(-1,vec_size)
   labels = torch.zeros(batch*seq_length).to(Config.device)
   scores,probs = lower_agent_level.coherence_checker(vectors_for_coherence)
-  coherence_losses = (scores.squeeze(-1) - labels) ** 2 + (bce_loss(probs.squeeze(-1), labels) * 20)
+  coherence_losses = (scores.squeeze(-1) - labels) ** 2 + (bce_loss(probs.squeeze(-1), labels) * 0.05)
   return coherence_losses

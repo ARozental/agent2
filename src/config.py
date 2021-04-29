@@ -32,7 +32,7 @@ class Config:
     # max_typo_loss = 10.0
     grad_clip_value = 0.99
     optimizer = "Adam"
-    lr = 0.0005
+    lr = 0.0002
     momentum = 0.9
 
     skip_batches = None  # How many batches to skip (additional on top of the checkpoint)

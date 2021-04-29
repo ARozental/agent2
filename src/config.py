@@ -81,6 +81,13 @@ def loss_object_to_main_loss(obj):
     loss += obj[l]['e']  * 0.1
     loss += obj[l]['j']  * 0.1
     loss += obj[l]['rm'] * 0.3
+
+
+    loss += obj[l]['rc'] * 10.0
+    loss += obj[l]['re'] * 0.1
+    loss += obj[l]['rj'] * 0.1
+    loss += obj[l]['rmd']* 0.0 #off from config
+
   return loss
 
 def loss_object_to_reconstruction_weights_loss(obj):

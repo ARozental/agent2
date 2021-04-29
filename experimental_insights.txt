@@ -84,3 +84,4 @@ reconstruction_coherence doesn't work well, too easy, the decodedr generates wha
 
 => use discriminator on reconstruction
 => discriminate between vectors, reconstructed, shuffled_vectors (shuffle the n-th position between all vectors)
+=> 0.0005 is too high; 0.0002 seems ok

@@ -101,10 +101,10 @@ def train():
                 discriminator_optimizer.step()
                 generator_optimizer.step()
             else:
-                [setattr(p, "requires_grad", False) for p in main_params]
-                [setattr(p, "requires_grad", True) for p in reconstruction_params]
-                r_loss.backward(retain_graph=True)
-                [setattr(p, "requires_grad", True) for p in main_params]
+                #[setattr(p, "requires_grad", False) for p in main_params]
+                #[setattr(p, "requires_grad", True) for p in reconstruction_params]
+                #r_loss.backward(retain_graph=True)
+                #[setattr(p, "requires_grad", True) for p in main_params]
                 main_loss.backward()
                 torch.nn.utils.clip_grad_value_(main_params, Config.grad_clip_value)
                 main_optimizer.step()

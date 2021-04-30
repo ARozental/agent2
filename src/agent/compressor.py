@@ -19,6 +19,6 @@ class Compressor(nn.Module):
         lengths = (1 - mask.long()).sum(-1)
         places = (lengths - 1)
         r_out = self.recurrent(x)[0]
-        out = torch.stack([r_out[i][places[i]] for i in range(x.shape[0])])
+        out = r_out[torch.arange(x.size(0)), places]
 
         return out  # with consuming padding: self.recurrent(x)[0][:, -1, :]

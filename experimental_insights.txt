@@ -85,3 +85,9 @@ reconstruction_coherence doesn't work well, too easy, the decodedr generates wha
 => use discriminator on reconstruction
 => discriminate between vectors, reconstructed, shuffled_vectors (shuffle the n-th position between all vectors)
 => 0.0005 is too high; 0.0002 seems ok
+
+* not sure the discriminator helps at all => check
+* maybe we should only backprop on the reconstruction weights => check
+* need to also have dummy lvl1 reconstruction (select word from embedding and use it)
+    => just to see nothing is broken
+    => maybe run it locally?? dummy vs full see the nodes, see no error.

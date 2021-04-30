@@ -23,6 +23,9 @@ class Logger:
         'rmd': 'reconstruction_diff_mlm',
         'g': 'generator',
         'disc': 'discriminator',
+        'cd': 'coherence_discriminator',
+        'rcd': 'reconstruction_coherence_discriminator'
+
     }
 
     @classmethod

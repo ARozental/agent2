@@ -5,7 +5,7 @@ import math
 from src.losses.eos import calc_eos_loss
 from src.losses.join import calc_join_loss
 from src.losses.mlm import calc_rmlm_loss
-from src.losses.coherence import calc_rc_loss, calc_lower_rc_loss
+from src.losses.coherence import calc_rc_loss, calc_lower_rc_loss,make_fake_normal_vectors
 
 def make_reconstruction_loss_fn(level):
   def do_pndb1(pndb,A1,post_decoder):
@@ -131,11 +131,12 @@ def make_reconstruction_loss_fn(level):
     rm_loss, rm_diff_loss = calc_rmlm_loss(agent_level, reencoded_matrices, mask, eos_positions, embeddings,
                                            labels)  # no mask keep the decoded vectors and predict originals by encoding
 
-    rc_loss = rc_loss_fn(agent_level, reencoded_matrices, mask, agent_level.previous_level, post_decoder)
+
+    rc_loss,total_rcd_loss = rc_loss_fn(agent_level, reencoded_matrices, mask, agent_level.previous_level, post_decoder)
 
     rj_loss = join_loss_fn(agent_level, post_decoder, join_positions)
 
-    return reconstruction_diff, reconstruction_losses, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss
+    return reconstruction_diff, reconstruction_losses, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss, total_rcd_loss
   return calc_reconstruction_loss_fn
 
 #

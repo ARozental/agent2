@@ -80,40 +80,18 @@ class AgentModel(nn.Module):
                     self.char_embedding_layer.weight)
                 mlm_loss,mlm_diff_loss = calc_mlm_loss(self.agent_levels[level_num], matrices, mask, eos_positions, embedding_matrix,
                                          labels)
-                coherence_loss = calc_coherence_loss(self.agent_levels[level_num], matrices, mask, eos_positions,
+                coherence_loss,total_cd_loss = calc_coherence_loss(self.agent_levels[level_num], matrices, mask, eos_positions,
                                                      embedding_matrix)
 
                 vectors = torch.stack([node.vector for node in node_batch])
                 decompressed = self.agent_levels[level_num].decompressor(vectors)
 
-                #### PNDB tests
-                reconstruction_diff_loss, reconstruction_loss, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss = self.reconstruction_fns[level_num](
+                reconstruction_diff_loss, reconstruction_loss, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss, total_rcd_loss = self.reconstruction_fns[level_num](
                         self.agent_levels[level_num],
                         matrices, decompressed, mask,
                         eos_positions,
                         join_positions,
                         embedding_matrix, labels, self.pndb)
-                # if level_num == 1 and (Config.use_pndb1 is not None or Config.use_pndb2 is not None):
-                #     A1, A2 = None, None
-                #     if Config.use_pndb1 is not None:
-                #         A1 = self.pndb.create_A_matrix(matrices, mask)
-                #     if Config.use_pndb2 is not None:
-                #         post_encoder = self.agent_levels[level_num].encoder(matrices, mask, eos_positions)
-                #         A2 = self.pndb.create_A2_matrix(post_encoder, mask)
-                #
-                #     reconstruction_diff_loss, reconstruction_loss, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss = calc_reconstruction_loss_with_pndb(
-                #         self.agent_levels[level_num],
-                #         matrices, decompressed, mask,
-                #         eos_positions,
-                #         join_positions,
-                #         embedding_matrix, labels, self.pndb, A1, A2)
-                # else:
-                #     reconstruction_diff_loss, reconstruction_loss, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss = calc_reconstruction_loss(
-                #         self.agent_levels[level_num],
-                #         matrices, decompressed, mask,
-                #         eos_positions,
-                #         join_positions,
-                #         embedding_matrix, labels)
 
                 eos_loss = calc_eos_loss(self.agent_levels[level_num], decompressed, eos_positions)
 
@@ -135,6 +113,8 @@ class AgentModel(nn.Module):
                     "rj": rj_loss.sum(),
                     "rm": rm_loss.sum(),
                     "rmd": rm_diff_loss.sum(),
+                    "cd": total_cd_loss,
+                    "rcd": total_rcd_loss
                 }
                 if level_num not in loss_object:  # On the first node_batch
                     loss_object[level_num] = losses

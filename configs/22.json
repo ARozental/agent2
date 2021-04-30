@@ -1,7 +1,7 @@
 {
-  "model_folder": "coherence_discriminator1",
-  "exp_folder": "runs/coherence_discriminator1",
-  "viz_file": "../viz/models/coherence_discriminator1.csv",
+  "model_folder": "coherence_discriminator2_bug_fix",
+  "exp_folder": "runs/coherence_discriminator2_bug_fix",
+  "viz_file": "../viz/models/coherence_discriminator2_bug_fix.csv",
   "sequence_lengths": [16, 16, 6, 3, 4],
   "vector_sizes": [32, 64, 128, 96, 128, 156],
   "num_heads": [4, 8, 2, 2, 2, 2],

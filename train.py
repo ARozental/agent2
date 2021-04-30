@@ -23,9 +23,9 @@ Config.setup_device()
 
 # Need to wrap in a function for the child workers
 def train():
-    # dataset = DummyDataset(max_num=None)
+    dataset = DummyDataset(max_num=None)
     # dataset = BookDataset(no_stats=True, max_num=2)
-    dataset = WikiDataset(max_num=None)
+    # dataset = WikiDataset(max_num=None)
 
     dataloader = DataLoader(
         dataset,
@@ -86,8 +86,8 @@ def train():
             Logger.log_l2_classifiers(model, step=global_step)
 
             main_loss = loss_object_to_main_loss(loss_object)
-            #r_loss = loss_object_to_reconstruction_weights_loss(loss_object)
-            c_loss = loss_object_to_extra_coherence_weights_loss(loss_object)
+            r_loss = loss_object_to_reconstruction_weights_loss(loss_object)
+            #c_loss = loss_object_to_extra_coherence_weights_loss(loss_object)
 
             if GENERATE_TEXT:
                 generator_optimizer.zero_grad()
@@ -105,8 +105,8 @@ def train():
                 generator_optimizer.step()
             else:
                 [setattr(p, "requires_grad", False) for p in main_params]
-                [setattr(p, "requires_grad", True) for p in coherence_params]
-                c_loss.backward(retain_graph=True)
+                [setattr(p, "requires_grad", True) for p in reconstruction_params]
+                r_loss.backward(retain_graph=True)
                 [setattr(p, "requires_grad", True) for p in main_params]
 
                 main_loss.backward()

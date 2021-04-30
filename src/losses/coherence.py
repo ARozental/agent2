@@ -44,12 +44,14 @@ def calc_coherence_loss(agent_level, matrices, mask, eos_positions, embeddings):
     scores, probs, class_predictions = agent_level.coherence_checker(vectors_for_coherence)
     coherence_losses = (scores.squeeze(-1) - labels) ** 2 + (bce_loss(probs.squeeze(-1),labels.ceil()) * 0.05)
 
-    fake_vectors = make_fake_normal_vectors(vectors_for_coherence)
-    _, _, noise_class_predictions = agent_level.coherence_checker(fake_vectors)
-    predictions = torch.cat([noise_class_predictions, class_predictions])
-    predictions_labels = torch.cat([torch.zeros(batch, dtype=torch.long).to(Config.device),
-                                    torch.ones(batch, dtype=torch.long).to(Config.device) ])
-    total_cd_loss = ce_loss(predictions, predictions_labels).sum()  # rcd is reconstruction coherence discrimination
+    # fake stuff
+    total_cd_loss = torch.tensor(0.0).to(Config.device)
+    # fake_vectors = make_fake_normal_vectors(vectors_for_coherence)
+    # _, _, noise_class_predictions = agent_level.coherence_checker(fake_vectors)
+    # predictions = torch.cat([noise_class_predictions, class_predictions])
+    # predictions_labels = torch.cat([torch.zeros(batch, dtype=torch.long).to(Config.device),
+    #                                 torch.ones(batch, dtype=torch.long).to(Config.device) ])
+    # total_cd_loss = ce_loss(predictions, predictions_labels).sum()  # rcd is reconstruction coherence discrimination
 
     return coherence_losses,total_cd_loss
 
@@ -62,11 +64,12 @@ def calc_rc_loss(agent_level, reencoded_matrices, mask, lower_agent_level, post_
 
 
   #fake stuff
-  fake_vectors = make_fake_normal_vectors(vectors_for_coherence)
-  _, _, noise_class_predictions = agent_level.coherence_checker(fake_vectors)
-  predictions = torch.cat([noise_class_predictions, class_predictions ])
-  predictions_labels = torch.cat([torch.zeros(batch,dtype=torch.long).to(Config.device), torch.ones(batch,dtype=torch.long).to(Config.device) * 2])
-  total_rcd_loss = ce_loss(predictions,predictions_labels).sum() #rcd is reconstruction coherence discrimination
+  total_rcd_loss = torch.tensor(0.0).to(Config.device)
+  # fake_vectors = make_fake_normal_vectors(vectors_for_coherence)
+  # _, _, noise_class_predictions = agent_level.coherence_checker(fake_vectors)
+  # predictions = torch.cat([noise_class_predictions, class_predictions ])
+  # predictions_labels = torch.cat([torch.zeros(batch,dtype=torch.long).to(Config.device), torch.ones(batch,dtype=torch.long).to(Config.device) * 2])
+  # total_rcd_loss = ce_loss(predictions,predictions_labels).sum() #rcd is reconstruction coherence discrimination
 
 
   return coherence_losses,total_rcd_loss
@@ -90,11 +93,12 @@ def calc_lower_rc_loss(agent_level, reencoded_matrices, mask, lower_agent_level,
   coherence_losses = coherence_losses*non_mask
 
   #fake stuff
-  fake_vectors = make_fake_normal_vectors(vectors_for_coherence)
-  _, _, noise_class_predictions = lower_agent_level.coherence_checker(fake_vectors)
-  predictions = torch.cat([noise_class_predictions, class_predictions ])
-  predictions_labels = torch.cat([torch.zeros(batch*seq_length,dtype=torch.long).to(Config.device), torch.ones(batch*seq_length,dtype=torch.long).to(Config.device) * 2])
-  total_rcd_loss = ce_loss(predictions,predictions_labels)#.sum() #rcd is reconstruction coherence discrimination
-  total_rcd_loss = total_rcd_loss * torch.cat([non_mask,non_mask])
-  total_rcd_loss = total_rcd_loss.sum() / seq_length
+  total_rcd_loss=torch.tensor(0.0).to(Config.device)
+  # fake_vectors = make_fake_normal_vectors(vectors_for_coherence)
+  # _, _, noise_class_predictions = lower_agent_level.coherence_checker(fake_vectors)
+  # predictions = torch.cat([noise_class_predictions, class_predictions ])
+  # predictions_labels = torch.cat([torch.zeros(batch*seq_length,dtype=torch.long).to(Config.device), torch.ones(batch*seq_length,dtype=torch.long).to(Config.device) * 2])
+  # total_rcd_loss = ce_loss(predictions,predictions_labels)#.sum() #rcd is reconstruction coherence discrimination
+  # total_rcd_loss = total_rcd_loss * torch.cat([non_mask,non_mask])
+  # total_rcd_loss = total_rcd_loss.sum() / seq_length
   return coherence_losses,total_rcd_loss

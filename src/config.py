@@ -86,7 +86,7 @@ def loss_object_to_main_loss(obj):
     loss += obj[l]['rc'] * 10.0
     loss += obj[l]['re'] * 0.1
     loss += obj[l]['rj'] * 0.1
-    loss += obj[l]['rmd']* 0.0 #off from config
+    #loss += obj[l]['rmd']* 0.0 #off from config
 
     loss += obj[l]['cd']* -0.05 #negative on the main weights
     loss += obj[l]['rcd']* -0.05 #negative on the main weights
@@ -99,7 +99,7 @@ def loss_object_to_reconstruction_weights_loss(obj):
     loss += obj[l]['rc'] * 10.0
     loss += obj[l]['re'] * 0.1
     loss += obj[l]['rj'] * 0.1
-    loss += obj[l]['rmd']* 0.0 #off from config
+    #loss += obj[l]['rmd']* 0.0 #off from config
   return loss
 
 def loss_object_to_extra_coherence_weights_loss(obj):

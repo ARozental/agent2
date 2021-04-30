@@ -75,7 +75,10 @@ def calc_mlm_loss(agent_level, matrices, mask, eos_positions, embeddings, labels
 
   # Choose 1 to mask MLM
   real_positions = (1 - mask.float())
-  mlm_positions = (torch.nn.functional.one_hot(torch.max((torch.rand(batch, seq_length).to(Config.device) * real_positions), dim=-1).indices,seq_length)).unsqueeze(-1)
+  mlm_indices = torch.max(torch.rand((batch, seq_length), device=Config.device) * real_positions, dim=-1).indices
+  mlm_positions = torch.zeros((batch, seq_length), device=Config.device)
+  mlm_positions[torch.arange(batch, device=Config.device), mlm_indices] = 1
+  mlm_positions = mlm_positions.unsqueeze(-1)
   keep_positions = 1 - mlm_positions
 
   # Prob MLM;   1 => keep original 0, calc mlm,Config.mlm_rate

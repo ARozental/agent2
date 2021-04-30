@@ -82,16 +82,19 @@ def calc_rc_loss(agent_level, reencoded_matrices, mask, lower_agent_level, post_
 
 def calc_lower_rc_loss(agent_level, reencoded_matrices, mask, lower_agent_level, post_decoder):
   batch, seq_length, vec_size = post_decoder.shape
-  vectors_for_coherence = post_decoder.view(-1,vec_size)
+  non_mask = (1 - mask.int()).view(-1)
+  vectors_for_coherence = post_decoder.view(-1,vec_size) #todo fix bug we also take the would be masked vecotrs here
   labels = torch.zeros(batch*seq_length).to(Config.device)
   scores,probs,class_predictions = lower_agent_level.coherence_checker(vectors_for_coherence)
   coherence_losses = (scores.squeeze(-1) - labels) ** 2 + (bce_loss(probs.squeeze(-1), labels.ceil()) * 0.05)
+  coherence_losses = coherence_losses*non_mask
 
   #fake stuff
   fake_vectors = make_fake_normal_vectors(vectors_for_coherence)
   _, _, noise_class_predictions = lower_agent_level.coherence_checker(fake_vectors)
   predictions = torch.cat([noise_class_predictions, class_predictions ])
   predictions_labels = torch.cat([torch.zeros(batch*seq_length,dtype=torch.long).to(Config.device), torch.ones(batch*seq_length,dtype=torch.long).to(Config.device) * 2])
-  total_rcd_loss = ce_loss(predictions,predictions_labels).sum() #rcd is reconstruction coherence discrimination
-
+  total_rcd_loss = ce_loss(predictions,predictions_labels)#.sum() #rcd is reconstruction coherence discrimination
+  total_rcd_loss = total_rcd_loss * torch.cat([non_mask,non_mask])
+  total_rcd_loss = total_rcd_loss.sum() / seq_length
   return coherence_losses,total_rcd_loss

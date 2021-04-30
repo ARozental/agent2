@@ -88,8 +88,8 @@ def loss_object_to_main_loss(obj):
     #loss += obj[l]['rj'] * 0.1
     #loss += obj[l]['rmd']* 0.0 #off from code
 
-    loss += obj[l]['cd']* -0.05 #negative on the main weights
-    loss += obj[l]['rcd']* -0.05 #negative on the main weights
+    loss += obj[l]['cd']* -0.03 #negative on the main weights
+    loss += obj[l]['rcd']* -0.03 #negative on the main weights
 
   return loss
 
@@ -105,6 +105,6 @@ def loss_object_to_reconstruction_weights_loss(obj):
 def loss_object_to_extra_coherence_weights_loss(obj):
   loss = 0.0
   for l in obj.keys():
-    loss += obj[l]['cd']* 0.2 #off from code
-    loss += obj[l]['rcd']* 0.2 #off from code
+    loss += obj[l]['cd']* 0.2
+    loss += obj[l]['rcd']* 0.2
   return loss

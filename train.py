@@ -87,7 +87,7 @@ def train():
 
             main_loss = loss_object_to_main_loss(loss_object)
             r_loss = loss_object_to_reconstruction_weights_loss(loss_object)
-            #c_loss = loss_object_to_extra_coherence_weights_loss(loss_object)
+            c_loss = loss_object_to_extra_coherence_weights_loss(loss_object)
 
             if GENERATE_TEXT:
                 generator_optimizer.zero_grad()
@@ -107,6 +107,9 @@ def train():
                 [setattr(p, "requires_grad", False) for p in main_params]
                 [setattr(p, "requires_grad", True) for p in reconstruction_params]
                 r_loss.backward(retain_graph=True)
+                [setattr(p, "requires_grad", False) for p in reconstruction_params]
+                [setattr(p, "requires_grad", True) for p in coherence_params]
+                c_loss.backward(retain_graph=True)
                 [setattr(p, "requires_grad", True) for p in main_params]
 
                 main_loss.backward()

@@ -1,7 +1,7 @@
 {
-  "model_folder": "90k_start_big_disk",
-  "exp_folder": "runs/90k_start_big_disk",
-  "viz_file": "../viz/models/90k_start_big_disk.csv",
+  "model_folder": "big_disk",
+  "exp_folder": "runs/big_disk",
+  "viz_file": "../viz/models/big_disk.csv",
   "sequence_lengths": [16, 16, 6, 3, 4],
   "vector_sizes": [32, 64, 128, 96, 128, 156],
   "num_heads": [4, 8, 2, 2, 2, 2],
@@ -19,7 +19,7 @@
   "log_every": 2000,
   "save_every": 10000,
   "optimizer": "MADGRAD",
-  "lr": 0.0001,
+  "lr": 0.00025,
   "momentum": 0.9,
   "gpu_num": 1
 }

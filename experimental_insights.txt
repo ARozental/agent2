@@ -91,3 +91,6 @@ reconstruction_coherence doesn't work well, too easy, the decodedr generates wha
 * need to also have dummy lvl1 reconstruction (select word from embedding and use it)
     => just to see nothing is broken
     => maybe run it locally?? dummy vs full see the nodes, see no error.
+
+
+* print after backprop => fix

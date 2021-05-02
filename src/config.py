@@ -28,6 +28,10 @@ class Config:
     use_pndb1 = None
     use_pndb2 = None
 
+    cnn_padding = 1 # kernal=2*padding+1
+    dist_on_reconstruction = 0.3
+    dist_on_all = 0.0
+
     # smoothing
     # max_typo_loss = 10.0
     grad_clip_value = 0.99
@@ -74,13 +78,14 @@ def loss_object_to_main_loss(obj):
   loss = 0.0
   for l in obj.keys():
     loss += obj[l]['m']  * 1.0
-    loss += obj[l]['md'] * 0.1
+    #loss += obj[l]['md'] * 0.1 #off from code
     loss += obj[l]['c']  * 10.0
     loss += obj[l]['r']  * 1.0
-    loss += obj[l]['d']  * 0.2
     loss += obj[l]['e']  * 0.1
     loss += obj[l]['j']  * 0.1
     loss += obj[l]['rm'] * 0.3
+    loss += obj[l]['d']  * Config.dist_on_all #moved here as a test
+
 
 
     #loss += obj[l]['rc'] * 10.0
@@ -88,14 +93,16 @@ def loss_object_to_main_loss(obj):
     #loss += obj[l]['rj'] * 0.1
     #loss += obj[l]['rmd']* 0.0 #off from code
 
-    loss += obj[l]['cd']* -0.03 #negative on the main weights
-    loss += obj[l]['rcd']* -0.03 #negative on the main weights
+    loss += obj[l]['cd']* -0.05 #negative on the main weights
+    loss += obj[l]['rcd']* -0.1 #negative on the main weights
 
   return loss
 
 def loss_object_to_reconstruction_weights_loss(obj):
   loss = 0.0
   for l in obj.keys():
+    loss += obj[l]['d']  * Config.dist_on_reconstruction #moved here as a test
+
     loss += obj[l]['rc'] * 10.0
     loss += obj[l]['re'] * 0.1
     loss += obj[l]['rj'] * 0.1

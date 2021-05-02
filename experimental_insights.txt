@@ -94,3 +94,5 @@ reconstruction_coherence doesn't work well, too easy, the decodedr generates wha
 
 
 * print after backprop => fix
+* add small norm1 (norm2+0.1*morm1) to the diff losses?? diff losses stop learning close to their 0
+   => naybe not... explosion was probably caused by mlm_diff1 going to 0. shrtly after the reconstruction_diff also goes down

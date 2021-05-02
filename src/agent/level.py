@@ -15,7 +15,7 @@ class AgentLevel(nn.Module):
         self.decoder = Decoder(level)
         self.compressor = Compressor(level)
         self.decompressor = Decompressor(level)
-        self.coherence_checker = CoherenceChecker(Config.vector_sizes[level + 1])
+        self.coherence_checker = CoherenceChecker(level)
         self.generator = Generator(Config.vector_sizes[level + 1])
         self.discriminator = Discriminator(Config.vector_sizes[level + 1])
         self.cnn_discriminator = CnnDiscriminator(Config.vector_sizes[level], Config.sequence_lengths[level])

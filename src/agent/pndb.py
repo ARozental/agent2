@@ -19,7 +19,7 @@ class Pndb(nn.Module):
         if Config.use_pndb1 is not None:
             self.questions = nn.Parameter(
                 torch.rand([Config.use_pndb1, Config.vector_sizes[level]], requires_grad=True))  # global Q matrix
-            self.to_k = nn.Linear(Config.vector_sizes[level], Config.vector_sizes[level])
+            self.to_k = nn.Linear(Config.vector_sizes[level], Config.vector_sizes[level],bias=False)
             # self.to_v = nn.Linear(Config.vector_sizes[level], Config.vector_sizes[level]) #should it be the identity matrix??
             self.ignore1 = nn.Linear(Config.vector_sizes[level], 1)
             self.update11 = nn.Linear(Config.vector_sizes[level], 1)
@@ -30,9 +30,9 @@ class Pndb(nn.Module):
         if Config.use_pndb2 is not None:
             self.questions2 = nn.Parameter(
                 torch.rand([Config.use_pndb2, Config.vector_sizes[level]], requires_grad=True))  # global Q matrix
-            self.to_k2 = nn.Linear(Config.vector_sizes[level], Config.vector_sizes[level])
+            self.to_k2 = nn.Linear(Config.vector_sizes[level], Config.vector_sizes[level],bias=False)
             self.to_v2 = nn.Linear(Config.vector_sizes[level],
-                                   Config.vector_sizes[level])  # should it be the identity matrix??
+                                   Config.vector_sizes[level],bias=False)  # should it be the identity matrix??
             self.ignore2 = nn.Linear(Config.vector_sizes[level], 1)
             self.update21 = nn.Linear(Config.vector_sizes[level], 1)
             self.update22 = nn.Linear(Config.vector_sizes[level], 1)

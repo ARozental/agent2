@@ -65,7 +65,6 @@ def attention(q, k, v, d_k, mask=None, dropout=None):
     scores = dropout(scores)
 
   output = torch.matmul(scores, v)
-
   return output
 
 def gelu_new(x):

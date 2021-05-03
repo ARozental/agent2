@@ -105,9 +105,11 @@ The Parliament of Andalusia is => The Bareiement of Andarosia is
 I like big butts too.
 I like big butts as well.
 => should have the same vector because of MLM but the decompressor won't find the right EoS
+=> lowering lr 0.00025=>0.0001 at 110K prevented explosion and improved learning
 
 
-=> coherence_discriminator/0??  exploaded at 115k
+=> coherence_discriminator/0??  exploaded at 115k OR maybe when reconstruction is too low nothing stops reconstruction_diff??
+    => reconstruction_diff*=reconstruction (use .detach or .nograd or nothing???)
 => get continuous mask from cumsum on EoS classifer; when 100% sure it acts as regular mask with frozen EoS
 => decoder block
 => get EoS loss for backprop

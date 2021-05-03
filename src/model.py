@@ -4,7 +4,7 @@ from src.losses.eos import calc_eos_loss
 from src.losses.join import calc_join_loss
 from src.losses.mlm import calc_mlm_loss
 from src.losses.coherence import calc_coherence_loss
-from src.losses.reconstruction import make_reconstruction_loss_fn#,calc_reconstruction_loss, calc_reconstruction_loss_with_pndb
+from src.losses.reconstruction import calc_reconstruction_loss
 from src.losses.generation import calc_generation_loss
 from src.pre_processing import Node, TreeTokenizer
 from src.utils import iter_even_split
@@ -26,8 +26,6 @@ class AgentModel(nn.Module):
         self.pndb = None
         if Config.use_pndb1 is not None or Config.use_pndb2 is not None:
             self.pndb = Pndb()
-
-        self.reconstruction_fns = {k:make_reconstruction_loss_fn(k) for k in range(Config.agent_level + 1)}
 
     def set_word_vectors(self, node_batch):
         distinct_ids = list(dict.fromkeys([node.distinct_lookup_id for node in node_batch]))
@@ -86,7 +84,8 @@ class AgentModel(nn.Module):
                 vectors = torch.stack([node.vector for node in node_batch])
                 decompressed = self.agent_levels[level_num].decompressor(vectors)
 
-                reconstruction_diff_loss, reconstruction_loss, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss, total_rcd_loss = self.reconstruction_fns[level_num](
+                reconstruction_diff_loss, reconstruction_loss, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss, total_rcd_loss = \
+                    calc_reconstruction_loss(
                         self.agent_levels[level_num],
                         matrices, decompressed, mask,
                         eos_positions,

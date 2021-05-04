@@ -3,14 +3,13 @@ import torch.nn.functional as F
 from src.config import Config
 import math
 
-def calc_mlm_loss_original(agent_level, matrices, mask, eos_positions, embeddings, labels):
+def calc_mlm_loss_original(agent_level, matrices, real_positions, eos_positions, embeddings, labels):
     # matrices,mask,labels => [batch,seq_length,vec_size], embeddings => [seq_length,vec_size]
     # to use when calc_clear_mlm_loss is not active, has a "same word" component
 
     batch, seq_length, vec_size = matrices.shape
 
     #Choose 1 to mask MLM
-    real_positions = (1 - mask.float())
     mlm_positions = (torch.nn.functional.one_hot(torch.max((torch.rand(batch, seq_length).to(Config.device) * real_positions),dim=-1).indices, seq_length)).unsqueeze(-1)
     keep_positions = 1 - mlm_positions
 
@@ -35,7 +34,7 @@ def calc_mlm_loss_original(agent_level, matrices, mask, eos_positions, embedding
     pre_encoder = keep_positions * matrices + mask_positions * mask_vec_replacements
     pre_encoder += random_replace_positions * random_vec_replacements + replace_with_original_positions * matrices
 
-    post_encoder = agent_level.encoder(pre_encoder, mask, eos_positions)
+    post_encoder = agent_level.encoder(pre_encoder, real_positions, eos_positions)
     transformed = agent_level.encoder_transform(post_encoder)
     logits = torch.matmul(transformed, torch.transpose(embeddings, 0, 1))  # [batch,max_length,embedding_size)
 
@@ -65,7 +64,7 @@ def calc_mlm_loss_original(agent_level, matrices, mask, eos_positions, embedding
     return mlm_losses, mlm_diff
 
 
-def calc_mlm_loss(agent_level, matrices, mask, eos_positions, embeddings, labels):
+def calc_mlm_loss(agent_level, matrices, real_positions, eos_positions, embeddings, labels):
   # matrices,mask,labels => [batch,seq_length,vec_size], embeddings => [seq_length,vec_size]
   # to use when calc_clear_mlm_loss is not active, has a "same word" component
 
@@ -74,7 +73,6 @@ def calc_mlm_loss(agent_level, matrices, mask, eos_positions, embeddings, labels
   batch, seq_length, vec_size = matrices.shape
 
   # Choose 1 to mask MLM
-  real_positions = (1 - mask.float())
   mlm_indices = torch.max(torch.rand((batch, seq_length), device=Config.device) * real_positions, dim=-1).indices
   mlm_positions = torch.zeros((batch, seq_length), device=Config.device)
   mlm_positions[torch.arange(batch, device=Config.device), mlm_indices] = 1
@@ -100,7 +98,7 @@ def calc_mlm_loss(agent_level, matrices, mask, eos_positions, embeddings, labels
   pre_encoder = keep_positions * matrices + mask_positions * mask_vec_replacements
   pre_encoder += random_replace_positions * random_vec_replacements
 
-  post_encoder = agent_level.encoder(pre_encoder, mask, eos_positions)
+  post_encoder = agent_level.encoder(pre_encoder, real_positions, eos_positions)
   transformed = agent_level.encoder_transform(post_encoder)
   logits = torch.matmul(transformed, torch.transpose(embeddings, 0, 1))  # [batch,max_length,embedding_size)
 
@@ -130,10 +128,8 @@ def calc_mlm_loss(agent_level, matrices, mask, eos_positions, embeddings, labels
   return mlm_losses, mlm_diff
 
 
-def calc_rmlm_loss(agent_level, reencoded_matrices, mask, eos_positions, embeddings, labels):
+def calc_rmlm_loss(agent_level, reencoded_matrices, real_positions, eos_positions, embeddings, labels):
   batch, seq_length, vec_size = reencoded_matrices.shape
-
-  real_positions = (1 - mask.float())
 
   transformed = agent_level.encoder_transform(reencoded_matrices)
   logits = torch.matmul(transformed, torch.transpose(embeddings, 0, 1))  # [batch,max_length,embedding_size)

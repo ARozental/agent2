@@ -52,12 +52,14 @@ def split_nodes_to_batches(nodes,max_batch_size):
   return []
 
 
-def attention(q, k, v, d_k, mask=None, dropout=None):
+def attention(q, k, v, d_k, real_positions=None, dropout=None):
   """ for pndb only"""
   scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(d_k)
-  if mask is not None:
-    mask = mask.unsqueeze(1)
-    scores = scores.masked_fill(mask == True, -1e9)
+
+  #todo: use real_positions instead of mask
+  # if mask is not None:
+  #   mask = mask.unsqueeze(1)
+  #   scores = scores.masked_fill(mask == True, -1e9)
 
   scores = F.softmax(scores, dim=-1)
 
@@ -65,7 +67,6 @@ def attention(q, k, v, d_k, mask=None, dropout=None):
     scores = dropout(scores)
 
   output = torch.matmul(scores, v)
-
   return output
 
 def gelu_new(x):
@@ -77,3 +78,8 @@ def gelu_new(x):
 
 def md5(s):
   return hashlib.md5(s.encode('utf-8')).hexdigest()[0:5]
+
+#WTF no one on line knows how to do it?
+def earth_movers_distance(l, p):
+  v = torch.cumsum(l - p, -1) - (l - p)
+  return (v * torch.sign(v)).sum(-1)

@@ -86,8 +86,8 @@ def train():
             Logger.log_l2_classifiers(model, step=global_step)
 
             main_loss = loss_object_to_main_loss(loss_object)
-            r_loss = loss_object_to_reconstruction_weights_loss(loss_object)
-            c_loss = loss_object_to_extra_coherence_weights_loss(loss_object)
+            #r_loss = loss_object_to_reconstruction_weights_loss(loss_object)
+            #c_loss = loss_object_to_extra_coherence_weights_loss(loss_object)
 
             if GENERATE_TEXT:
                 generator_optimizer.zero_grad()
@@ -104,13 +104,13 @@ def train():
                 discriminator_optimizer.step()
                 generator_optimizer.step()
             else:
-                [setattr(p, "requires_grad", False) for p in main_params]
-                [setattr(p, "requires_grad", True) for p in reconstruction_params]
-                r_loss.backward(retain_graph=True)
-                [setattr(p, "requires_grad", False) for p in reconstruction_params]
-                [setattr(p, "requires_grad", True) for p in coherence_params]
-                c_loss.backward(retain_graph=True)
-                [setattr(p, "requires_grad", True) for p in main_params]
+                # [setattr(p, "requires_grad", False) for p in main_params]
+                # [setattr(p, "requires_grad", True) for p in reconstruction_params]
+                # r_loss.backward(retain_graph=True)
+                # [setattr(p, "requires_grad", False) for p in reconstruction_params]
+                # [setattr(p, "requires_grad", True) for p in coherence_params]
+                # c_loss.backward(retain_graph=True)
+                # [setattr(p, "requires_grad", True) for p in main_params]
 
                 main_loss.backward()
                 torch.nn.utils.clip_grad_value_(main_params, Config.grad_clip_value)
@@ -118,7 +118,8 @@ def train():
 
             if (epoch % Config.log_every == 0 and step == 0) or (step % Config.log_every == 0 and step > 0):
                 print('Epoch', epoch, 'Batch', step)
-                # print(loss_object)
+                print(loss_object)
+                print(main_loss)
                 model.eval()
 
                 if GENERATE_TEXT:
@@ -131,6 +132,7 @@ def train():
                     expected = [TreeTokenizer.deep_detokenize(node.build_struct(return_eos=True)[0], Config.agent_level)
                                 for node in nodes]
                     reconstructed = [model.full_decode(batch.level_nodes[i][:5]) for i in range(Config.agent_level + 1)]
+
                     reconstructed = [[TreeTokenizer.deep_detokenize(node[0], i) for node in items] for i, items in
                                      enumerate(reconstructed)]
                     for i, text in enumerate(reconstructed):

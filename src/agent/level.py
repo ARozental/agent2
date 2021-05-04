@@ -3,6 +3,7 @@ import torch.nn.functional as F
 import torch.nn as nn
 import torch
 from src.config import Config
+from src.losses.eos import decompressed_to_cdot,cdot_to_probs
 
 
 class AgentLevel(nn.Module):
@@ -158,23 +159,24 @@ class AgentLevel(nn.Module):
 
     def vecs_to_children_vecs(self, vecs):
         # 0th-element is the eos token; X is a vector
+        print(self.level)
+        print("vecs",vecs)
+
         decompressed = self.decompressor(vecs)
+        print("decompressed",decompressed)
 
-        # Find EoS token and num_tokens
-        eos_vector = self.eos_vector.unsqueeze(0).unsqueeze(0)
-        eos_dot = (decompressed / decompressed.norm(dim=2, keepdim=True) * eos_vector / eos_vector.norm())
-        eos_dot = eos_dot.sum(dim=-1, keepdim=True)
-        eos_logits = self.eos_classifier1(eos_dot).squeeze(-1)
+        eos_dot = decompressed_to_cdot(self,decompressed)
+        eos_mask = cdot_to_probs(eos_dot)
+        eos_mask_max = eos_mask.max(dim=-1).values
+        is_eos = eos_mask_max > 0.05
+        num_tokens = torch.where(eos_mask_max > 0.05, torch.argmax(eos_mask, dim=-1), eos_mask.size(1))
 
-        eos_softmax = F.softmax(eos_logits, dim=1).max(dim=-1).values
-        eos_sigmoid = torch.sigmoid(eos_logits).max(dim=-1).values
-        is_eos = torch.logical_and(eos_softmax > 0.5, eos_sigmoid > 0.5)
-        num_tokens = torch.where(is_eos, torch.argmax(eos_logits, dim=-1), eos_logits.size(1))
 
-        range_matrix = torch.arange(eos_logits.size(1)).repeat(eos_logits.size(0), 1).to(Config.device)
+        range_matrix = torch.arange(eos_mask.size(1)).repeat(eos_mask.size(0), 1).to(Config.device)
+
         mask = range_matrix > num_tokens.unsqueeze(-1)
         real_positions = (1 - mask.float())
-        eos_positions = (range_matrix == num_tokens.unsqueeze(-1)).long()
+        #eos_positions = (range_matrix == num_tokens.unsqueeze(-1)).long()
 
         # Find join token
         if Config.join_texts and self.level > 0:
@@ -185,7 +187,13 @@ class AgentLevel(nn.Module):
 
             is_join = torch.sigmoid(join_logits) > 0.5
 
-        post_decoder = self.decoder(decompressed, real_positions, eos_positions)
+
+        post_decoder = self.decoder(decompressed, real_positions, None)
+        print("post_decoder",post_decoder)
+        print("decompressed",decompressed)
+        print("real_positions",real_positions)
+        1+None
+
 
         # There can be a word that has only the EoS token so words need at least one token
         # But for all other levels we can assume one less token
@@ -196,5 +204,4 @@ class AgentLevel(nn.Module):
         if Config.join_texts and self.level > 0:
             children_vectors = [[vector if not j else None for vector, j in zip(child, joins)] for child, joins in
                                 zip(children_vectors, is_join)]
-
         return children_vectors, is_eos, post_decoder, real_positions

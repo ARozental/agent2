@@ -93,8 +93,9 @@ class AgentModel(nn.Module):
                         join_positions,
                         embedding_matrix, labels, self.pndb)
 
-                eos_loss = calc_eos_loss(self.agent_levels[level_num], decompressed, eos_positions)
 
+                #does it help to do it on decompressed (pre decoded)?
+                eos_loss,_ = calc_eos_loss(self.agent_levels[level_num], decompressed, eos_positions)
                 if Config.join_texts and level_num >= 1:
                     join_loss = calc_join_loss(self.agent_levels[level_num], decompressed, join_positions)
                 else:
@@ -163,7 +164,7 @@ class AgentModel(nn.Module):
         if node_batch is None:
             node_batch = batch_tree.level_nodes[0]
         tokens = [n.get_padded_word_tokens() for n in node_batch]
-        real_positions = (torch.tensor(tokens) != Config.pad_token_id).float()
+        real_positions = (torch.tensor(tokens) == Config.pad_token_id).float()
         eos_positions = (torch.tensor(tokens) == Config.eos_token_id).float()
         vectors = torch.stack([n.vector for n in node_batch])
         output = self.agent_levels[0].decompressor(vectors)
@@ -206,6 +207,8 @@ class AgentModel(nn.Module):
         # TODO - use numpy.split here for even faster batching
         results = []
         index = 0
+        print(children_eos)
+
         for node in nodes:
             if node.is_join():
                 results.append((-1, True))

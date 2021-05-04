@@ -100,8 +100,11 @@ def make_reconstruction_loss_fn(level):
     A1,A2 = As_fn(pndb,matrices, real_positions)
     decompressed = pndb2_fn(pndb,A2, decompressed)
 
+    _,projected_eos_positions = calc_eos_loss(agent_level, decompressed, eos_positions) #overrides real_positions with the best the decompressor can do
+    real_positions_for_mask = 1 - torch.cumsum(projected_eos_positions, dim=1)
 
-    post_decoder = agent_level.decoder(decompressed, real_positions, eos_positions)  # [batch, seq_length, vec_size]
+
+    post_decoder = agent_level.decoder(decompressed, real_positions_for_mask, eos_positions)  # [batch, seq_length, vec_size]
     post_decoder = pndb1_fn(pndb,A1, post_decoder)
 
     logits = torch.matmul(post_decoder, torch.transpose(embeddings, 0, 1))  # [batch, max_length, embedding_size)
@@ -124,15 +127,14 @@ def make_reconstruction_loss_fn(level):
     4.4 / math.log(embeddings.shape[0]))  # 4.4 is ln(len(char_embedding)) == ln(81)
     # reconstruction_losses = torch.min(torch.stack([(reconstruction_losses / reconstruction_losses) * Config.max_typo_loss, reconstruction_losses], dim=0),dim=0)[0]  # can't explode on typo
     reconstruction_diff = (reconstruction_diff * (4.4 / math.log(embeddings.shape[0])))
-    re_loss = calc_eos_loss(agent_level, post_decoder, eos_positions)
+    re_loss,_ = calc_eos_loss(agent_level, post_decoder, eos_positions)
 
-    reencoded_matrices = agent_level.encoder(post_decoder, real_positions, eos_positions)
+    reencoded_matrices = agent_level.encoder(post_decoder, real_positions_for_mask, eos_positions)
     rm_loss, rm_diff_loss = calc_rmlm_loss(agent_level, reencoded_matrices, real_positions, eos_positions, embeddings,
                                            labels)  # no mask keep the decoded vectors and predict originals by encoding
 
 
     rc_loss,total_rcd_loss = rc_loss_fn(agent_level, reencoded_matrices, real_positions, agent_level.previous_level, post_decoder)
-
     rj_loss = join_loss_fn(agent_level, post_decoder, join_positions)
 
     return reconstruction_diff, reconstruction_losses, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss, total_rcd_loss

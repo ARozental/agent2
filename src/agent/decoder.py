@@ -22,9 +22,9 @@ class Decoder(nn.Module):
           #self.d2 = nn.Linear(4 * Config.vector_sizes[level], 4 * Config.vector_sizes[level])
           self.out = nn.Linear(4 * Config.vector_sizes[level], Config.vector_sizes[level])
 
-    def forward(self, src, mask, eos_positions):
+    def forward(self, src, real_positions, eos_positions):
         src = src.transpose(0, 1)
-        att_add_mask = torch.log((1 - mask.float()))
+        att_add_mask = torch.log(real_positions)
         # todo: fix?? due to the positional encoding not all eos are the same vec, #do we even need pos encoding here?
         #eos_positions = eos_positions.transpose(0, 1).unsqueeze(-1)
 

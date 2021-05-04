@@ -36,14 +36,14 @@ class AgentModel(nn.Module):
         id_to_place = {node_id: i for i, node_id in enumerate(distinct_ids)}
         distinct_word_embedding_tokens = [id_to_tokens[node_id] for node_id in distinct_ids]
         local_char_embedding_tokens = torch.LongTensor(distinct_word_embedding_tokens).to(Config.device)
-        mask = local_char_embedding_tokens == Config.pad_token_id  # True => position to mask
-        eos_positions = local_char_embedding_tokens == Config.eos_token_id  # True => position to mask
+        real_positions = (local_char_embedding_tokens != Config.pad_token_id).float()
+        eos_positions = local_char_embedding_tokens == Config.eos_token_id
         local_char_embedding_matrix = self.char_embedding_layer(local_char_embedding_tokens)
 
         # first encoder call
         word_embedding_matrix = self.agent_levels[0].compressor(
-            self.agent_levels[0].encoder(local_char_embedding_matrix, mask, eos_positions.float()),
-            mask)  # [distinct_words_in_batch,word_vector_size]
+            self.agent_levels[0].encoder(local_char_embedding_matrix, real_positions, eos_positions.float()),
+          real_positions)  # [distinct_words_in_batch,word_vector_size]
 
         special_vectors = torch.stack(
             [
@@ -74,13 +74,13 @@ class AgentModel(nn.Module):
                 else:
                     self.agent_levels[level_num].realize_vectors(node_batch)
 
-                matrices, mask, eos_positions, join_positions, embedding_matrix, labels = self.agent_levels[
+                matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels = self.agent_levels[
                     level_num].get_children(
                     node_batch,
                     self.char_embedding_layer.weight)
-                mlm_loss,mlm_diff_loss = calc_mlm_loss(self.agent_levels[level_num], matrices, mask, eos_positions, embedding_matrix,
+                mlm_loss,mlm_diff_loss = calc_mlm_loss(self.agent_levels[level_num], matrices, real_positions, eos_positions, embedding_matrix,
                                          labels)
-                coherence_loss,total_cd_loss = calc_coherence_loss(self.agent_levels[level_num], matrices, mask, eos_positions,
+                coherence_loss,total_cd_loss = calc_coherence_loss(self.agent_levels[level_num], matrices, real_positions, eos_positions,
                                                      embedding_matrix)
 
                 vectors = torch.stack([node.vector for node in node_batch])
@@ -88,7 +88,7 @@ class AgentModel(nn.Module):
 
                 reconstruction_diff_loss, reconstruction_loss, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss, total_rcd_loss = self.reconstruction_fns[level_num](
                         self.agent_levels[level_num],
-                        matrices, decompressed, mask,
+                        matrices, decompressed, real_positions,
                         eos_positions,
                         join_positions,
                         embedding_matrix, labels, self.pndb)
@@ -163,11 +163,11 @@ class AgentModel(nn.Module):
         if node_batch is None:
             node_batch = batch_tree.level_nodes[0]
         tokens = [n.get_padded_word_tokens() for n in node_batch]
-        mask = torch.tensor(tokens) == Config.pad_token_id  # True => position to mask
+        real_positions = (torch.tensor(tokens) != Config.pad_token_id).float()
         eos_positions = (torch.tensor(tokens) == Config.eos_token_id).float()
         vectors = torch.stack([n.vector for n in node_batch])
         output = self.agent_levels[0].decompressor(vectors)
-        output = self.agent_levels[0].decoder(output, mask, eos_positions)
+        output = self.agent_levels[0].decoder(output, real_positions, eos_positions)
 
         output = torch.matmul(output, self.char_embedding_layer.weight.transpose(0, 1))
         output = torch.argmax(output, dim=2)

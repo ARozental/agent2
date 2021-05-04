@@ -13,10 +13,10 @@ class Encoder(nn.Module):
         encoder_layers.activation = gelu_new
         self.transformer_encoder = TransformerEncoder(encoder_layers, Config.num_transformer_layers[level])
 
-    def forward(self, src, mask, eos_positions):
+    def forward(self, src, real_positions, eos_positions):
         src = src.transpose(0, 1)
         #eos_positions = eos_positions.transpose(0, 1).unsqueeze(-1)
-        att_add_mask = torch.log((1 - mask.float()))
+        att_add_mask = torch.log(real_positions)
 
         #eos_value = eos_positions * src
         src = src + self.pos_encoder(src)  # * math.sqrt(Config.vector_sizes[level])

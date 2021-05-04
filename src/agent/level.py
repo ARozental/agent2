@@ -55,7 +55,7 @@ class AgentLevel(nn.Module):
 
         if self.level == 0:  # words => get token vectors
             lookup_ids = torch.LongTensor([node.get_padded_word_tokens() for node in node_batch]).to(Config.device)
-            mask = lookup_ids == Config.pad_token_id
+            real_positions = (lookup_ids != Config.pad_token_id).float()
             eos_positions = (lookup_ids == Config.eos_token_id).float()
             matrices = torch.index_select(char_embedding, 0, lookup_ids.view(-1))
             matrices = matrices.view(
@@ -65,7 +65,7 @@ class AgentLevel(nn.Module):
             )
 
             # lookup_ids is also labels
-            return matrices, mask, eos_positions, None, char_embedding, lookup_ids
+            return matrices, real_positions, eos_positions, None, char_embedding, lookup_ids
         else:
             if self.level == 1:
                 id_name = 'distinct_lookup_id'
@@ -126,7 +126,8 @@ class AgentLevel(nn.Module):
                 child_vectors
             ).to(Config.device)
 
-            return matrices, mask, eos_positions, join_positions, embedding, labels
+            real_positions = (1 - mask.float())
+            return matrices, real_positions, eos_positions, join_positions, embedding, labels
 
     def realize_vectors(self, node_batch):
         # todo: realize join vectors here
@@ -146,12 +147,13 @@ class AgentLevel(nn.Module):
         matrices = [item[:max_length] for item in matrices]
 
         mask = torch.tensor(masks).to(Config.device)
+        real_positions = (1 - mask.float())
         eos_positions = torch.tensor(eos_positions).to(Config.device)
 
         # [sentences_in_node_batch, max_words_in sentence, word vec size]
         matrices = torch.stack(matrices).to(Config.device)
 
-        vectors = self.compressor(self.encoder(matrices, mask, eos_positions), mask)
+        vectors = self.compressor(self.encoder(matrices, real_positions, eos_positions), mask)
         [n.set_vector(v) for n, v in zip(node_batch, vectors)]
 
     def vecs_to_children_vecs(self, vecs):
@@ -171,6 +173,7 @@ class AgentLevel(nn.Module):
 
         range_matrix = torch.arange(eos_logits.size(1)).repeat(eos_logits.size(0), 1).to(Config.device)
         mask = range_matrix > num_tokens.unsqueeze(-1)
+        real_positions = (1 - mask.float())
         eos_positions = (range_matrix == num_tokens.unsqueeze(-1)).long()
 
         # Find join token
@@ -182,7 +185,7 @@ class AgentLevel(nn.Module):
 
             is_join = torch.sigmoid(join_logits) > 0.5
 
-        post_decoder = self.decoder(decompressed, mask, eos_positions)
+        post_decoder = self.decoder(decompressed, real_positions, eos_positions)
 
         # There can be a word that has only the EoS token so words need at least one token
         # But for all other levels we can assume one less token
@@ -194,4 +197,4 @@ class AgentLevel(nn.Module):
             children_vectors = [[vector if not j else None for vector, j in zip(child, joins)] for child, joins in
                                 zip(children_vectors, is_join)]
 
-        return children_vectors, is_eos, post_decoder, mask
+        return children_vectors, is_eos, post_decoder, real_positions

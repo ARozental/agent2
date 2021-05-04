@@ -159,11 +159,11 @@ class AgentLevel(nn.Module):
 
     def vecs_to_children_vecs(self, vecs):
         # 0th-element is the eos token; X is a vector
-        print(self.level)
-        print("vecs",vecs)
+        # print(self.level)
+        # print("vecs",vecs)
 
         decompressed = self.decompressor(vecs)
-        print("decompressed",decompressed)
+        # print("decompressed",decompressed)
 
         eos_dot = decompressed_to_cdot(self,decompressed)
         eos_mask = cdot_to_probs(eos_dot)
@@ -189,10 +189,10 @@ class AgentLevel(nn.Module):
 
 
         post_decoder = self.decoder(decompressed, real_positions, None)
-        print("post_decoder",post_decoder)
-        print("decompressed",decompressed)
-        print("real_positions",real_positions)
-        1+None
+        # print("post_decoder",post_decoder)
+        # print("decompressed",decompressed)
+        # print("real_positions",real_positions)
+        # 1+None
 
 
         # There can be a word that has only the EoS token so words need at least one token

@@ -151,7 +151,7 @@ class AgentModel(nn.Module):
 
             current_losses = []
             for label, loss in loss_object[level_num].items():
-                if label not in ['g', 'disc']:
+                if label not in ['g', 'disc','cd','rcd']:
                     loss /= len(real_nodes)
                     current_losses.append(loss)
                     loss_object[level_num][label] = loss  # Keep loss_object as a tensor for custom backwards

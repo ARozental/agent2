@@ -28,9 +28,6 @@ class Config:
     use_pndb1 = None
     use_pndb2 = None
 
-    cnn_padding = 2 # kernal=2*padding+1
-    dist_on_reconstruction = 0.0
-    dist_on_all = 0.3
 
     # smoothing
     # max_typo_loss = 10.0
@@ -73,9 +70,17 @@ class Config:
             Config.device = torch.device('cpu')
 
 
+    cnn_padding = 2 # kernal=2*padding+1
+    reconstruction_d = 0.0
+    main_d= 0.3
+    main_cd = -0.05
+    main_rcd = -0.05
+    main_rm = -0.05
+
+
 
 def loss_object_to_main_loss(obj):
-  loss = 0.0
+  loss = obj[0]['r'] * 0.0
   for l in obj.keys():
     loss += obj[l]['m']  * 1.0
     #loss += obj[l]['md'] * 0.1 #off from code
@@ -83,8 +88,7 @@ def loss_object_to_main_loss(obj):
     loss += obj[l]['r']  * 1.0
     loss += obj[l]['e']  * 0.1
     loss += obj[l]['j']  * 0.01 #do we even need it??
-    loss += obj[l]['rm'] * 0.3
-    loss += obj[l]['d']  * Config.dist_on_all #moved here as a test
+    loss += obj[l]['d']  * Config.main_d #moved here as a test
 
 
 
@@ -93,25 +97,25 @@ def loss_object_to_main_loss(obj):
     loss += obj[l]['rj'] * 0.1
     #loss += obj[l]['rmd']* 0.0 #off from code
 
-    #loss += obj[l]['cd']* -0.05 * 0.1 #negative on the main weights
-    #loss += obj[l]['rcd']* -0.05  #negative on the main weights
+    loss += obj[l]['cd']* Config.main_cd  #negative on the main weights
+    loss += obj[l]['rcd']* Config.main_rcd  #negative on the main weights
+    loss += obj[l]['rm'] * Config.main_rm
+
+
 
   return loss
 
 def loss_object_to_reconstruction_weights_loss(obj):
-  loss = 0.0
+  loss = obj[0]['r'] * 0.0
   for l in obj.keys():
-    loss += obj[l]['d']  * Config.dist_on_reconstruction #moved here as a test
+    loss += obj[l]['rm'] * (-Config.main_rm)
+    #loss += obj[l]['rcd'] * (-Config.main_rcd)
 
-    # loss += obj[l]['rc'] * 10.0
-    # loss += obj[l]['re'] * 0.5
-    # loss += obj[l]['rj'] * 0.3
-    #loss += obj[l]['rmd']* 0.0 #off from code
   return loss
 
 def loss_object_to_extra_coherence_weights_loss(obj):
-  loss = 0.0
+  loss = obj[0]['r'] * 0.0
   for l in obj.keys():
-    loss += obj[l]['cd']* 0.2 * 0.1
-    loss += obj[l]['rcd']* 0.2
+    loss += obj[l]['cd']* (0.2-Config.main_cd)
+    loss += obj[l]['rcd']* (0.2-Config.main_rcd)
   return loss

@@ -118,3 +118,5 @@ I like big butts as well.
 => look at (change?) the default LSTM cell
 => fix vec_to_children_vecs fails to decode when torch.argmax(eos_mask, dim=-1) is 0
 
+=> is reconstruction_mlm bad because it insentivizes the decoder to "spill" the vector? should it only backprop on encoder?
+=> did the grad killing stopped backprop where it shouldn't have??

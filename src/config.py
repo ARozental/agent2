@@ -81,20 +81,20 @@ def loss_object_to_main_loss(obj):
     #loss += obj[l]['md'] * 0.1 #off from code
     loss += obj[l]['c']  * 10.0
     loss += obj[l]['r']  * 1.0
-    loss += obj[l]['e']  * 0.0
-    loss += obj[l]['j']  * 0.0
+    loss += obj[l]['e']  * 0.5
+    loss += obj[l]['j']  * 0.1
     loss += obj[l]['rm'] * 0.3
     loss += obj[l]['d']  * Config.dist_on_all #moved here as a test
 
 
 
     loss += obj[l]['rc'] * 10.0
-    loss += obj[l]['re'] * 0.5
+    loss += obj[l]['re'] * 1.0
     loss += obj[l]['rj'] * 0.3
     #loss += obj[l]['rmd']* 0.0 #off from code
 
-    loss += obj[l]['cd']* -0.05 * 0 #negative on the main weights
-    loss += obj[l]['rcd']* -0.1 * 0 #negative on the main weights
+    loss += obj[l]['cd']* -0.05 * 0.1 #negative on the main weights
+    loss += obj[l]['rcd']* -0.1  #negative on the main weights
 
   return loss
 
@@ -104,8 +104,8 @@ def loss_object_to_reconstruction_weights_loss(obj):
     loss += obj[l]['d']  * Config.dist_on_reconstruction #moved here as a test
 
     # loss += obj[l]['rc'] * 10.0
-    # loss += obj[l]['re'] * 0.1
-    # loss += obj[l]['rj'] * 0.1
+    # loss += obj[l]['re'] * 0.5
+    # loss += obj[l]['rj'] * 0.3
     #loss += obj[l]['rmd']* 0.0 #off from code
   return loss
 

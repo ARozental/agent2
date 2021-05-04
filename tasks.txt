@@ -58,3 +58,6 @@ Tests:
 
 WTF:
 reconstructed text:   William Knollys <unk>15 October 1694</unk>
+
+fix inconsistency for EoS vector? real position or not?
+add a more complex eos classifier?

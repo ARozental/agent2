@@ -23,9 +23,9 @@ Config.setup_device()
 
 # Need to wrap in a function for the child workers
 def train():
-    dataset = DummyDataset(max_num=None)
+    # dataset = DummyDataset(max_num=None)
     # dataset = BookDataset(no_stats=True, max_num=2)
-    # dataset = WikiDataset(max_num=None)
+    dataset = WikiDataset(max_num=None)
 
     dataloader = DataLoader(
         dataset,
@@ -51,7 +51,7 @@ def train():
         main_optimizer = torch.optim.AdamW(main_params, Config.lr)
     else:
         main_optimizer = madgrad.MADGRAD(main_params, lr=Config.lr, momentum=Config.momentum)  # 0.01,0.9 is the default
-    main_optimizer = torch.optim.AdamW(main_params, 0.0001) #todo: for dummy only
+    #main_optimizer = torch.optim.AdamW(main_params, 0.001) #todo: for dummy only
     generator_optimizer = torch.optim.AdamW(generator_params, 0.001)
     discriminator_optimizer = torch.optim.AdamW(discriminator_params, 0.001)
 
@@ -104,19 +104,19 @@ def train():
                 discriminator_optimizer.step()
                 generator_optimizer.step()
             else:
-                # [setattr(p, "requires_grad", False) for p in main_params]
-                # [setattr(p, "requires_grad", True) for p in reconstruction_params]
-                # r_loss.backward(retain_graph=True)
-                # [setattr(p, "requires_grad", False) for p in reconstruction_params]
-                # [setattr(p, "requires_grad", True) for p in coherence_params]
-                # c_loss.backward(retain_graph=True)
-                # [setattr(p, "requires_grad", True) for p in main_params]
+                [setattr(p, "requires_grad", False) for p in main_params]
+                [setattr(p, "requires_grad", True) for p in reconstruction_params]
+                r_loss.backward(retain_graph=True)
+                [setattr(p, "requires_grad", False) for p in reconstruction_params]
+                [setattr(p, "requires_grad", True) for p in coherence_params]
+                c_loss.backward(retain_graph=True)
+                [setattr(p, "requires_grad", True) for p in main_params]
 
                 main_loss.backward()
                 torch.nn.utils.clip_grad_value_(main_params, Config.grad_clip_value)
                 main_optimizer.step()
 
-            if True: #(epoch % Config.log_every == 0 and step == 0) or (step % Config.log_every == 0 and step > 0):
+            if (epoch % Config.log_every == 0 and step == 0) or (step % Config.log_every == 0 and step > 0):
                 print('Epoch', epoch, 'Batch', step)
                 print(loss_object)
                 print(main_loss)
@@ -131,9 +131,7 @@ def train():
                     nodes = batch.batch_root.children
                     expected = [TreeTokenizer.deep_detokenize(node.build_struct(return_eos=True)[0], Config.agent_level)
                                 for node in nodes]
-                    print("here")
                     reconstructed = [model.full_decode(batch.level_nodes[i][:5]) for i in range(Config.agent_level + 1)]
-                    print("there")
 
                     reconstructed = [[TreeTokenizer.deep_detokenize(node[0], i) for node in items] for i, items in
                                      enumerate(reconstructed)]

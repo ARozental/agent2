@@ -101,7 +101,7 @@ def make_reconstruction_loss_fn(level):
     decompressed = pndb2_fn(pndb,A2, decompressed)
 
     _,projected_eos_positions = calc_eos_loss(agent_level, decompressed, eos_positions) #overrides real_positions with the best the decompressor can do
-    real_positions_for_mask = 1 - torch.cumsum(projected_eos_positions, dim=1)
+    real_positions_for_mask = (1 - torch.cumsum(projected_eos_positions, dim=1))
 
 
     post_decoder = agent_level.decoder(decompressed, real_positions_for_mask, eos_positions)  # [batch, seq_length, vec_size]

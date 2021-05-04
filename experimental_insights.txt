@@ -116,3 +116,5 @@ I like big butts as well.
 
 =>CNN5 works but why? it is kinda shitty and expects odd words after EoS/16_words in the current config. => work from reconstructed_matrices
 => look at (change?) the default LSTM cell
+=> fix vec_to_children_vecs fails to decode when torch.argmax(eos_mask, dim=-1) is 0
+

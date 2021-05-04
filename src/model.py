@@ -207,7 +207,6 @@ class AgentModel(nn.Module):
         # TODO - use numpy.split here for even faster batching
         results = []
         index = 0
-        print(children_eos)
 
         for node in nodes:
             if node.is_join():

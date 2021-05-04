@@ -32,17 +32,9 @@ class Decompressor(nn.Module):
             seq.append(output)
             last_input = output
 
-        seq0 = seq  # [batch,max_length,top_text_vec_size]
         seq = torch.cat(seq, 0).transpose(0, 1)  # [batch,max_length,top_text_vec_size]
         seq = self.LayerNorm(seq)
         seq = self.out_projection(self.dropout(seq))
-        if torch.isnan(seq.mean()):
-          print("xS",x.unsqueeze(0).shape)
-          print("xS",x.unsqueeze(0).mean())
-          print("WTF",self.recurrent(x.unsqueeze(0), (state_h0, state_c0)))
-
-          [x for x in range(999999)]
-          5+None
         return seq  # [batch,max_length,vec_size]
 
     # closest vec / first close vec / have the last embedding matrix and choose first stop / other option

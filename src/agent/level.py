@@ -168,15 +168,14 @@ class AgentLevel(nn.Module):
         eos_dot = decompressed_to_cdot(self,decompressed)
         eos_mask = cdot_to_probs(eos_dot)
         eos_mask_max = eos_mask.max(dim=-1).values
-        is_eos = eos_mask_max > 0.05
-        num_tokens = torch.where(eos_mask_max > 0.05, torch.argmax(eos_mask, dim=-1), eos_mask.size(1))
+        is_eos = eos_mask_max > 0.1
+        num_tokens = torch.where(eos_mask_max > 0.1, torch.argmax(eos_mask, dim=-1), eos_mask.size(1)) #todo fix fails to decode when torch.argmax(eos_mask, dim=-1) is 0
 
 
         range_matrix = torch.arange(eos_mask.size(1)).repeat(eos_mask.size(0), 1).to(Config.device)
 
         mask = range_matrix > num_tokens.unsqueeze(-1)
         real_positions = (1 - mask.float())
-        #eos_positions = (range_matrix == num_tokens.unsqueeze(-1)).long()
 
         # Find join token
         if Config.join_texts and self.level > 0:
@@ -189,10 +188,6 @@ class AgentLevel(nn.Module):
 
 
         post_decoder = self.decoder(decompressed, real_positions, None)
-        # print("post_decoder",post_decoder)
-        # print("decompressed",decompressed)
-        # print("real_positions",real_positions)
-        # 1+None
 
 
         # There can be a word that has only the EoS token so words need at least one token

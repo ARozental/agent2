@@ -78,3 +78,8 @@ def gelu_new(x):
 
 def md5(s):
   return hashlib.md5(s.encode('utf-8')).hexdigest()[0:5]
+
+#WTF no one on line knows how to do it?
+def earth_movers_distance(l, p):
+  v = torch.cumsum(l - p, -1) - (l - p)
+  return (v * torch.sign(v)).sum(-1)

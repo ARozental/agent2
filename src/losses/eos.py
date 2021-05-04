@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch
 from src.config import Config
+from src.utils import earth_movers_distance
 
 # It makes all non EoS positions go and be the opposite of EoS => fixed by: dot = torch.max(dot, torch.zeros(dot.shape))
 bce_loss = nn.BCEWithLogitsLoss(reduction='none')
@@ -27,9 +28,13 @@ def calc_eos_loss(agent_level, decompressed, eos_positions):
     # multiply losses where no eos exist by 0 otherwise by 1 because argmax for all zeroes is 0
     loss2 = mce_loss(cdot, eos_labels) * torch.sign(torch.count_nonzero(eos_positions, dim=1))
 
-    total_loss = loss1 + loss2
-    #total_loss = torch.min(torch.stack([(total_loss/total_loss)*Config.max_typo_loss,total_loss],dim=0),dim=0)[0] #can't explode on typo
+    #probs = torch.softmax(cdot, -1)
     eos_mask = cdot_to_probs(cdot)
+
+    loss3 = earth_movers_distance(eos_positions,eos_mask) / decompressed.shape[-1]
+
+    total_loss = loss1 + loss2 + loss3
+    #total_loss = torch.min(torch.stack([(total_loss/total_loss)*Config.max_typo_loss,total_loss],dim=0),dim=0)[0] #can't explode on typo
 
 
     return total_loss,eos_mask

@@ -94,7 +94,7 @@ class AgentModel(nn.Module):
                         embedding_matrix, labels, self.pndb)
 
 
-                #does it help to do it on decompressed (pre decoded)?
+                #does it help to do it on decompressed (pre decoded)? maybe but very noisy
                 eos_loss,_ = calc_eos_loss(self.agent_levels[level_num], decompressed, eos_positions)
                 if Config.join_texts and level_num >= 1:
                     join_loss = calc_join_loss(self.agent_levels[level_num], decompressed, join_positions)

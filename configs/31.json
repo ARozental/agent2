@@ -1,7 +1,7 @@
 {
-  "model_folder": "cnn_pad_fix_0005",
-  "exp_folder": "runs/cnn_pad_fix_0005",
-  "viz_file": "../viz/models/cnn_pad_fix_0005.csv",
+  "model_folder": "fixed_reconstruction_0005",
+  "exp_folder": "runs/fixed_reconstruction_0005",
+  "viz_file": "../viz/models/fixed_reconstruction_0005.csv",
   "sequence_lengths": [16, 16, 6, 3, 4],
   "vector_sizes": [32, 64, 128, 96, 128, 156],
   "num_heads": [4, 8, 2, 2, 2, 2],

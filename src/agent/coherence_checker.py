@@ -16,7 +16,8 @@ class CoherenceChecker(nn.Module):
 
 
         # for cnn forward
-        self.out_classifier = nn.Linear(4 * embed_size, 3) #noise, encoded, reconstructed
+        #self.out_classifier = nn.Linear(4 * embed_size, 3) #noise, encoded, reconstructed
+        self.out_classifier = nn.Linear(4 * embed_size, 2) #encoded, reconstructed
 
         #for cnn forward
         self.num_filters = 32
@@ -25,7 +26,7 @@ class CoherenceChecker(nn.Module):
         self.max_pool = nn.MaxPool1d(Config.sequence_lengths[level+1])
         self.act = F.elu
         self.bce_loss = nn.BCEWithLogitsLoss()
-        self.d3 = nn.Linear(self.num_filters, 3)
+        self.d3 = nn.Linear(self.num_filters, 1)
 
     # TODO - Add Dropout
     def forward(self, x0):
@@ -38,7 +39,7 @@ class CoherenceChecker(nn.Module):
         class_predictions = torch.softmax(self.out_classifier(x),-1)
         return scores,probs,class_predictions
 
-    def lower_forward(self, x0):
+    def lower_forward(self, x0,matrices):
         x = torch.tanh(self.d1(x0))
         #x = self.LayerNorm(x)
         x = torch.tanh(self.d2(x))
@@ -48,13 +49,9 @@ class CoherenceChecker(nn.Module):
         #class_predictions = torch.softmax(self.out_classifier(x),-1)
 
         #with CNN now
-        x = torch.transpose(x0.unsqueeze(0), 1, 2) #todo: make better for the TPU no need for this reshaping
+        x = torch.transpose(matrices, 1, 2) #todo: make better for the TPU no need for this reshaping
         x = self.conv(x)
-        x = torch.transpose(x.squeeze(0),0,1)
+        x = self.max_pool(x).squeeze(-1)
         x = self.act(x)
-        class_predictions = torch.softmax(self.d3(x),-1)
+        class_predictions = torch.sigmoid(self.d3(x))
         return scores,probs,class_predictions
-
-
-
-

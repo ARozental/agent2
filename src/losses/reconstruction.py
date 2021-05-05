@@ -67,10 +67,10 @@ def make_reconstruction_loss_fn(level):
 
   token_bias_fn = create_token_bias_fn()
 
-  def do_lower_rc_loss(agent_level, reencoded_matrices, real_positions, lower_agent_level, post_decoder):
-    return calc_lower_rc_loss(agent_level, reencoded_matrices, real_positions, lower_agent_level, post_decoder)
-  def no_lower_rc_loss(agent_level, reencoded_matrices, real_positions, lower_agent_level, post_decoder):
-    return calc_rc_loss(agent_level, reencoded_matrices, real_positions, lower_agent_level, post_decoder)
+  def do_lower_rc_loss(agent_level, reencoded_matrices, real_positions, lower_agent_level, post_decoder, matrices):
+    return calc_lower_rc_loss(agent_level, reencoded_matrices, real_positions, lower_agent_level, post_decoder, matrices)
+  def no_lower_rc_loss(agent_level, reencoded_matrices, real_positions, lower_agent_level, post_decoder, matrices):
+    return calc_rc_loss(agent_level, reencoded_matrices, real_positions, lower_agent_level, post_decoder, matrices)
 
   def create_rc_loss_fn():
     if level > 0:
@@ -111,8 +111,8 @@ def make_reconstruction_loss_fn(level):
 
     # works :) with *10?, maybe we won't need the *10 when there is a real dataset, verify the norm doesn't go crazy because of this line later
 
-    reconstruction_diff = (((matrices - post_decoder) * real_positions.unsqueeze(-1)).norm(dim=[1, 2]))
-    reconstruction_diff = reconstruction_diff / ((matrices * real_positions.unsqueeze(-1)).norm(dim=[1, 2]))
+    reconstruction_diff = (((matrices - post_decoder) * real_positions.unsqueeze(-1)).norm(p=1,dim=[1, 2]))
+    reconstruction_diff = reconstruction_diff / ((matrices * real_positions.unsqueeze(-1)).norm(p=1,dim=[1, 2]))
 
     logits = token_bias_fn(agent_level,logits)
 
@@ -134,7 +134,7 @@ def make_reconstruction_loss_fn(level):
                                            labels)  # no mask keep the decoded vectors and predict originals by encoding
 
 
-    rc_loss,total_rcd_loss = rc_loss_fn(agent_level, reencoded_matrices, real_positions, agent_level.previous_level, post_decoder)
+    rc_loss,total_rcd_loss = rc_loss_fn(agent_level, reencoded_matrices, real_positions, agent_level.previous_level, matrices, post_decoder)
     rj_loss = join_loss_fn(agent_level, post_decoder, join_positions)
 
     return reconstruction_diff, reconstruction_losses, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss, total_rcd_loss

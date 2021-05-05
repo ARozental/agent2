@@ -4,7 +4,7 @@ import sys
 
 
 class Config:
-    sequence_lengths = [16, 16, 6, 3, 4]  # [10,12,6,20,20]
+    sequence_lengths = [8, 8, 6, 3, 4]  # [10,12,6,20,20]
     # vector_sizes = [8, 10, 12, 14, 16, 18]  # [4,6,8,10] #letters,words,sentences,paragraphs,chapters,book
     vector_sizes = [32, 64, 96, 96, 128, 156]  # [4,6,8,10] #letters,words,sentences,paragraphs,chapters,book
     num_heads = [4, 8, 2, 2, 2, 2]  # [2,3,4,5] #for transformers
@@ -31,9 +31,9 @@ class Config:
 
     # smoothing
     # max_typo_loss = 10.0
-    grad_clip_value = 0.99
+    grad_clip_value = 3.0
     optimizer = "Adam"
-    lr = 0.0002
+    lr = 0.001
     momentum = 0.9
 
     skip_batches = None  # How many batches to skip (additional on top of the checkpoint)
@@ -72,33 +72,33 @@ class Config:
 
     cnn_padding = 2 # kernal=2*padding+1
     reconstruction_d = 0.0
-    main_d= 0.3
-    main_cd = -0.05
-    main_rcd = -0.05
-    main_rm = -0.05
+    main_d= 0.1
+    main_cd = -0.0
+    main_rcd = -0.03
+    main_rm = 0.1
 
 
 
 def loss_object_to_main_loss(obj):
   loss = obj[0]['r'] * 0.0
   for l in obj.keys():
-    loss += obj[l]['m']  * 1.0
+    #loss += obj[l]['m']  * 0.1
     #loss += obj[l]['md'] * 0.1 #off from code
-    loss += obj[l]['c']  * 10.0
-    loss += obj[l]['r']  * 1.0
+    loss += obj[l]['c']  * 1.0
+    loss += obj[l]['r']  * 0.1
     loss += obj[l]['e']  * 0.1
-    loss += obj[l]['j']  * 0.01 #do we even need it??
+    loss += obj[l]['j']  * 0.001   #do we even need it??
     loss += obj[l]['d']  * Config.main_d #moved here as a test
 
 
 
-    loss += obj[l]['rc'] * 10.0
-    loss += obj[l]['re'] * 1.0
-    loss += obj[l]['rj'] * 0.1
+    loss += obj[l]['rc'] * 1.0
+    loss += obj[l]['re'] * 0.1
+    loss += obj[l]['rj'] * 0.01
     #loss += obj[l]['rmd']* 0.0 #off from code
 
-    loss += obj[l]['cd']* Config.main_cd  #negative on the main weights
-    loss += obj[l]['rcd']* Config.main_rcd  #negative on the main weights
+    loss += obj[l]['cd']* Config.main_cd    #negative on the main weights
+    loss += obj[l]['rcd']* Config.main_rcd   #negative on the main weights
     loss += obj[l]['rm'] * Config.main_rm
 
 
@@ -109,13 +109,12 @@ def loss_object_to_reconstruction_weights_loss(obj):
   loss = obj[0]['r'] * 0.0
   for l in obj.keys():
     loss += obj[l]['rm'] * (-Config.main_rm)
-    #loss += obj[l]['rcd'] * (-Config.main_rcd)
+
 
   return loss
 
 def loss_object_to_extra_coherence_weights_loss(obj):
   loss = obj[0]['r'] * 0.0
   for l in obj.keys():
-    loss += obj[l]['cd']* (0.2-Config.main_cd)
-    loss += obj[l]['rcd']* (0.2-Config.main_rcd)
+    loss += obj[l]['rcd']* (4* (-Config.main_rcd))
   return loss

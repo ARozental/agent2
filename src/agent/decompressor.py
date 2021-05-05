@@ -20,8 +20,6 @@ class Decompressor(nn.Module):
         # h0.size=c0.size = (num_layers * num_directions, batch, hidden_size)        #x: seq_len, batch, input_size
 
         # todo: state_h, state_c should probably be trainable params
-        state_h0 = torch.zeros(1, x.size(0), Config.vector_sizes[self.level + 1]).to(Config.device)
-        state_c0 = torch.zeros(1, x.size(0), Config.vector_sizes[self.level + 1]).to(Config.device)
         state_h = torch.zeros(1, x.size(0), Config.vector_sizes[self.level + 1]).to(Config.device)
         state_c = torch.zeros(1, x.size(0), Config.vector_sizes[self.level + 1]).to(Config.device)
 

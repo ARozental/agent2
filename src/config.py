@@ -4,7 +4,7 @@ import sys
 from src.utils import inverse_loss
 
 class Config:
-    sequence_lengths = [8, 8, 6, 3, 4]  # [10,12,6,20,20]
+    sequence_lengths = [16, 16, 6, 3, 4]  # [10,12,6,20,20]
     # vector_sizes = [8, 10, 12, 14, 16, 18]  # [4,6,8,10] #letters,words,sentences,paragraphs,chapters,book
     vector_sizes = [32, 64, 96, 96, 128, 156]  # [4,6,8,10] #letters,words,sentences,paragraphs,chapters,book
     num_heads = [4, 8, 2, 2, 2, 2]  # [2,3,4,5] #for transformers
@@ -73,7 +73,7 @@ class Config:
     cnn_padding = 2 # kernal=2*padding+1
     reconstruction_d = 0.0
     main_d= 0.03
-    main_rcd = 0.01
+    main_rcd = 0.03
     main_rm = 0.1
 
 
@@ -97,7 +97,7 @@ def loss_object_to_main_loss(obj):
     #loss += obj[l]['rmd']* 0.0 #off from code
 
     if l>0:
-      loss += inverse_loss(obj[l]['rcd'])* Config.main_rcd   #negative on the main weights
+      loss += inverse_loss(obj[l]['rcd']) * Config.main_rcd   #negative on the main weights
     loss += obj[l]['rm'] * Config.main_rm
 
 

@@ -22,7 +22,7 @@ class CoherenceChecker(nn.Module):
         #for cnn forward
         self.num_filters = 32
         self.padding = Config.cnn_padding
-        self.conv = nn.Conv1d(embed_size, self.num_filters, 1+2*self.padding,padding_mode='circular',padding=self.padding)  # <input_vector_size, num_filters, 1=unigram>
+        self.conv = nn.Conv1d(embed_size, self.num_filters, 1+2*self.padding,padding_mode='zeros',padding=self.padding)  # <input_vector_size, num_filters, 1=unigram>
         self.max_pool = nn.MaxPool1d(Config.sequence_lengths[level+1])
         self.act = F.elu
         self.bce_loss = nn.BCEWithLogitsLoss()

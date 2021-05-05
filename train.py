@@ -25,7 +25,7 @@ Config.setup_device()
 def train():
     dataset = DummyDataset(max_num=None)
     # dataset = BookDataset(no_stats=True, max_num=2)
-    #dataset = WikiDataset(max_num=None)
+    # dataset = WikiDataset(max_num=None)
 
     dataloader = DataLoader(
         dataset,
@@ -50,7 +50,7 @@ def train():
         main_optimizer = torch.optim.AdamW(main_params, Config.lr)
     else:
         main_optimizer = madgrad.MADGRAD(main_params, lr=Config.lr, momentum=Config.momentum)  # 0.01,0.9 is the default
-    main_optimizer = torch.optim.AdamW(main_params, 0.001) #todo: for dummy only
+    #main_optimizer = torch.optim.AdamW(main_params, 0.001) #todo: for dummy only
     generator_optimizer = torch.optim.AdamW(generator_params, 0.001)
     discriminator_optimizer = torch.optim.AdamW(discriminator_params, 0.001)
 
@@ -137,8 +137,6 @@ def train():
                                      enumerate(reconstructed)]
                     for i, text in enumerate(reconstructed):
                         print('Level', i, text)
-                        print('r_losses', i, [n.reconstruction_loss.item() for n in batch.level_nodes[i][:5]])
-                        print('struct', i, [n.build_struct() for n in batch.level_nodes[i][:5]])
                         Logger.log_reconstructed(text, i, step=global_step)
                         for j, item in enumerate(text):
                             Logger.log_viz(batch.level_nodes[i][j], text[j], i, step=global_step)

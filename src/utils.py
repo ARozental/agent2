@@ -83,3 +83,7 @@ def md5(s):
 def earth_movers_distance(l, p):
   v = torch.cumsum(l - p, -1) - (l - p)
   return (v * torch.sign(v)).sum(-1)
+
+def inverse_loss(loss):
+  "0.6931471805599453 is loss for 50:50"
+  return -torch.max(loss-0.6931471805599453,loss*0)

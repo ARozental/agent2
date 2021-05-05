@@ -26,7 +26,7 @@ class CoherenceChecker(nn.Module):
         self.max_pool = nn.MaxPool1d(Config.sequence_lengths[level+1])
         self.act = F.elu
         self.bce_loss = nn.BCEWithLogitsLoss()
-        self.d3 = nn.Linear(self.num_filters, 1)
+        self.d3 = nn.Linear(self.num_filters, 1,bias=False)
 
     # TODO - Add Dropout
     def forward(self, x0):

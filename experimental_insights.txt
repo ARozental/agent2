@@ -120,3 +120,6 @@ I like big butts as well.
 
 => is reconstruction_mlm bad because it insentivizes the decoder to "spill" the vector? should it only backprop on encoder?
 => did the grad killing stopped backprop where it shouldn't have??
+
+
+=>experiment 30 exploded fast, probably due to d0 (only it went down) OR higher clipping (3.0 instead of 0.99); maybe some other issues?

@@ -1,7 +1,7 @@
 import torch
 import json
 import sys
-
+from src.utils import inverse_loss
 
 class Config:
     sequence_lengths = [8, 8, 6, 3, 4]  # [10,12,6,20,20]
@@ -31,9 +31,9 @@ class Config:
 
     # smoothing
     # max_typo_loss = 10.0
-    grad_clip_value = 3.0
+    grad_clip_value = 0.99
     optimizer = "Adam"
-    lr = 0.001
+    lr = 0.0005
     momentum = 0.9
 
     skip_batches = None  # How many batches to skip (additional on top of the checkpoint)
@@ -72,9 +72,8 @@ class Config:
 
     cnn_padding = 2 # kernal=2*padding+1
     reconstruction_d = 0.0
-    main_d= 0.1
-    main_cd = -0.0
-    main_rcd = -0.03
+    main_d= 0.03
+    main_rcd = 0.01
     main_rm = 0.1
 
 
@@ -82,7 +81,7 @@ class Config:
 def loss_object_to_main_loss(obj):
   loss = obj[0]['r'] * 0.0
   for l in obj.keys():
-    #loss += obj[l]['m']  * 0.1
+    loss += obj[l]['m']  * 0.1
     #loss += obj[l]['md'] * 0.1 #off from code
     loss += obj[l]['c']  * 1.0
     loss += obj[l]['r']  * 0.1
@@ -97,8 +96,8 @@ def loss_object_to_main_loss(obj):
     loss += obj[l]['rj'] * 0.01
     #loss += obj[l]['rmd']* 0.0 #off from code
 
-    loss += obj[l]['cd']* Config.main_cd    #negative on the main weights
-    loss += obj[l]['rcd']* Config.main_rcd   #negative on the main weights
+    if l>0:
+      loss += inverse_loss(obj[l]['rcd'])* Config.main_rcd   #negative on the main weights
     loss += obj[l]['rm'] * Config.main_rm
 
 
@@ -116,5 +115,5 @@ def loss_object_to_reconstruction_weights_loss(obj):
 def loss_object_to_extra_coherence_weights_loss(obj):
   loss = obj[0]['r'] * 0.0
   for l in obj.keys():
-    loss += obj[l]['rcd']* (4* (-Config.main_rcd))
+    loss += obj[l]['rcd'] * 1
   return loss

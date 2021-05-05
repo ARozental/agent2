@@ -74,7 +74,7 @@ def calc_lower_rc_loss(agent_level, reencoded_matrices, real_positions, lower_ag
   batch, seq_length, vec_size = post_decoder.shape
   vectors_for_coherence = post_decoder.view(-1,vec_size) #todo fix bug we also take the would be masked vecotrs here
   labels = torch.ones(batch*seq_length).to(Config.device)
-  scores,probs,class_predictions = lower_agent_level.coherence_checker.lower_forward(vectors_for_coherence, torch.cat([matrices,post_decoder]))
+  scores,probs,class_predictions = lower_agent_level.coherence_checker.lower_forward(vectors_for_coherence, torch.cat([matrices*real_positions.unsqueeze(-1),post_decoder*real_positions.unsqueeze(-1)]))
   coherence_losses = (scores.squeeze(-1) - labels) ** 2 + (bce_loss(probs.squeeze(-1), labels.ceil()) * 0.05)
   real_positions=real_positions.view(-1)
   coherence_losses = coherence_losses*real_positions

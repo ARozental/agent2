@@ -121,7 +121,8 @@ def make_reconstruction_loss_fn(level):
       labels,
       ignore_index=Config.pad_token_id,
       reduction='none'  # Gives mlm loss from each of [batch, words]
-    ).mean(-1)
+    )#.mean(-1) => this was a bug
+    reconstruction_losses = reconstruction_losses.sum(-1) / real_positions.sum(-1)
 
     reconstruction_losses = reconstruction_losses * (
     4.4 / math.log(embeddings.shape[0]))  # 4.4 is ln(len(char_embedding)) == ln(81)

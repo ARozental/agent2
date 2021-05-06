@@ -15,7 +15,7 @@ def decompressed_to_cdot(agent_level,decompressed):
   return cdot
 
 def cdot_to_probs(cdot):
-  return torch.stack([torch.sigmoid(cdot),torch.softmax(cdot,-1)*0.999]).min(0)[0] #*0.999 for exploding gradient on edge condition
+  return torch.stack([torch.sigmoid(cdot),torch.softmax(cdot,-1)*0.9999]).min(0)[0] #*0.999 for exploding gradient on edge condition
 
 
 def calc_eos_loss(agent_level, decompressed, eos_positions):

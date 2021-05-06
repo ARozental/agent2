@@ -1,7 +1,7 @@
 import torch
 import json
 import sys
-from src.utils import inverse_loss
+from src.utils import inverse_loss, cap_loss
 
 class Config:
     sequence_lengths = [16, 16, 6, 3, 4]  # [10,12,6,20,20]
@@ -115,5 +115,5 @@ def loss_object_to_reconstruction_weights_loss(obj):
 def loss_object_to_extra_coherence_weights_loss(obj):
   loss = obj[0]['r'] * 0.0
   for l in obj.keys():
-    loss += obj[l]['rcd'] * 1
+    loss += cap_loss(obj[l]['rcd']) * 1
   return loss

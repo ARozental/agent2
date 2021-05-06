@@ -10,7 +10,7 @@ def calc_mlm_loss_original(agent_level, matrices, real_positions, eos_positions,
     batch, seq_length, vec_size = matrices.shape
 
     #Choose 1 to mask MLM
-    mlm_positions = (torch.nn.functional.one_hot(torch.max((torch.rand(batch, seq_length).to(Config.device) * real_positions),dim=-1).indices, seq_length)).unsqueeze(-1)
+    mlm_positions = (torch.nn.functional.one_hot(torch.max((torch.rand(batch, seq_length,device=Config.device) * real_positions),dim=-1).indices, seq_length)).unsqueeze(-1)
     keep_positions = 1 - mlm_positions
 
     # Prob MLM;   1 => keep original 0, calc mlm,Config.mlm_rate
@@ -18,17 +18,17 @@ def calc_mlm_loss_original(agent_level, matrices, real_positions, eos_positions,
     # mlm_positions = 1 - keep_positions
 
     # 1 => replace with <mask>
-    mask_positions = (torch.rand(batch, seq_length, 1).to(Config.device) + 0.8).floor() * mlm_positions
+    mask_positions = (torch.rand(batch, seq_length, 1,device=Config.device) + 0.8).floor() * mlm_positions
 
     # 1 => replace with original, 0 replace with random   #valid when there is no calc_clear_mlm_loss active
-    special_mlm_positions = (torch.rand(batch, seq_length, 1).to(Config.device) + 0.5).floor()
+    special_mlm_positions = (torch.rand(batch, seq_length, 1,device=Config.device) + 0.5).floor()
     random_replace_positions = mlm_positions * (1 - mask_positions) * (1 - special_mlm_positions)
     replace_with_original_positions = mlm_positions * (1 - mask_positions) * special_mlm_positions
 
     mask_vec_replacements = agent_level.mask_vector.repeat(batch * seq_length).view(batch, seq_length, vec_size)
 
     # todo: make sure the pad token is not here, also no join for levels 0 and 1
-    random_indexes = torch.fmod(torch.randperm(batch * seq_length).to(Config.device), embeddings.shape[0])
+    random_indexes = torch.fmod(torch.randperm(batch * seq_length,device=Config.device), embeddings.shape[0])
     random_vec_replacements = torch.index_select(embeddings, 0, random_indexes).view(batch, seq_length, vec_size)
 
     pre_encoder = keep_positions * matrices + mask_positions * mask_vec_replacements
@@ -84,7 +84,7 @@ def calc_mlm_loss(agent_level, matrices, real_positions, eos_positions, embeddin
   # mlm_positions = 1 - keep_positions
 
   # 1 => replace with <mask>
-  mask_positions = (torch.rand(batch, seq_length, 1).to(Config.device) + 0.9).floor() * mlm_positions
+  mask_positions = (torch.rand(batch, seq_length, 1,device=Config.device) + 0.9).floor() * mlm_positions
 
   # 1 => replace with original, 0 replace with random   #valid when there is no calc_clear_mlm_loss active
   random_replace_positions = mlm_positions * (1 - mask_positions)
@@ -92,7 +92,7 @@ def calc_mlm_loss(agent_level, matrices, real_positions, eos_positions, embeddin
   mask_vec_replacements = agent_level.mask_vector.repeat(batch * seq_length).view(batch, seq_length, vec_size)
 
   # todo: make sure the pad token is not here, also no join for levels 0 and 1
-  random_indexes = torch.fmod(torch.randperm(batch * seq_length).to(Config.device), embeddings.shape[0])
+  random_indexes = torch.fmod(torch.randperm(batch * seq_length,device=Config.device), embeddings.shape[0])
   random_vec_replacements = torch.index_select(embeddings, 0, random_indexes).view(batch, seq_length, vec_size)
 
   pre_encoder = keep_positions * matrices + mask_positions * mask_vec_replacements

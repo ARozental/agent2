@@ -87,3 +87,7 @@ def earth_movers_distance(l, p):
 def inverse_loss(loss):
   "0.6931471805599453 is loss for 50:50"
   return -torch.max(loss-0.6931471805599453,loss*0)
+
+def cap_loss(loss):
+  "cap loss and effectivly kill gradient to prevent the classifier from winning completely"
+  return -torch.max(loss,(loss*0)+0.01)

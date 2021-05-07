@@ -11,6 +11,9 @@ import numpy as np
 import torch
 import time
 import madgrad  # is it any good?
+import torch.optim.lr_scheduler
+import math
+
 
 seed_torch(0)  # 0 learns 2 doesn't (before no cnn layer)
 
@@ -23,9 +26,9 @@ Config.setup_device()
 
 # Need to wrap in a function for the child workers
 def train():
-    # dataset = DummyDataset(max_num=None)
+    dataset = DummyDataset(max_num=None)
     # dataset = BookDataset(no_stats=True, max_num=2)
-    dataset = WikiDataset(max_num=None)
+    # dataset = WikiDataset(max_num=None)
 
     dataloader = DataLoader(
         dataset,
@@ -51,6 +54,10 @@ def train():
     else:
         main_optimizer = madgrad.MADGRAD(main_params, lr=Config.lr, momentum=Config.momentum)  # 0.01,0.9 is the default
     #main_optimizer = torch.optim.AdamW(main_params, 0.001) #todo: for dummy only
+
+    lambda_lr = lambda batch: math.exp(math.log(0.5)/Config.half_life_steps) ** batch
+    scheduler = torch.optim.lr_scheduler.LambdaLR(main_optimizer,lambda_lr)
+
     generator_optimizer = torch.optim.AdamW(generator_params, 0.001)
     discriminator_optimizer = torch.optim.AdamW(discriminator_params, 0.001)
 
@@ -115,6 +122,7 @@ def train():
                 main_loss.backward()
                 torch.nn.utils.clip_grad_norm_(main_params, Config.grad_clip_value)
                 main_optimizer.step()
+                scheduler.step()
 
             if (epoch % Config.log_every == 0 and step == 0) or (step % Config.log_every == 0 and step > 0):
                 print('Epoch', epoch, 'Batch', step)

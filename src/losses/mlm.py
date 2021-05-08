@@ -128,7 +128,7 @@ def calc_mlm_loss(agent_level, matrices, real_positions, eos_positions, embeddin
   return mlm_losses, mlm_diff
 
 
-def calc_rmlm_loss(agent_level, reencoded_matrices, real_positions, eos_positions, embeddings, labels):
+def calc_rmlm_loss(agent_level, reencoded_matrices, real_positions, matrices, embeddings, labels):
   batch, seq_length, vec_size = reencoded_matrices.shape
 
   transformed = agent_level.encoder_transform(reencoded_matrices)
@@ -142,19 +142,20 @@ def calc_rmlm_loss(agent_level, reencoded_matrices, real_positions, eos_position
     labels,
     ignore_index=Config.pad_token_id,
     reduction='none'  # Gives mlm loss from each of [batch,words]
-  ).mean(-1)
+  )#.mean(-1)
+  mlm_losses = mlm_losses.sum(-1)  / real_positions.sum(-1)
 
   # todo?? have mlm_diff here?
   mlm_losses = mlm_losses * (4.4 / math.log(embeddings.shape[0]))  # 4.4 is ln(len(char_embedding)) == ln(81)
   # mlm_losses = torch.min(torch.stack([(mlm_losses/mlm_losses)*Config.max_typo_loss,mlm_losses],dim=0),dim=0)[0] #can't explode on typo
 
   # mlm_diff
-  # real_positions = real_positions.unsqueeze(-1)
-  # mlm_diff = (((matrices - transformed) * real_positions).norm(dim=[1, 2]))
-  # mlm_diff = mlm_diff / ((matrices * real_positions).norm(dim=[1, 2]))
-  # mlm_diff = (mlm_diff * (4.4 / math.log(embeddings.shape[0]))) / 100
+  real_positions = real_positions.unsqueeze(-1)
+  mlm_diff = (((matrices - transformed) * real_positions).norm(dim=[1, 2]))
+  mlm_diff = mlm_diff / ((matrices * real_positions).norm(dim=[1, 2]))
+
 
   #no mmlm_diff
-  mlm_diff = torch.zeros(batch, device=Config.device)
+  # mlm_diff = torch.zeros(batch, device=Config.device)
 
   return mlm_losses, mlm_diff

@@ -131,7 +131,7 @@ def make_reconstruction_loss_fn(level):
     re_loss,_ = calc_eos_loss(agent_level, post_decoder, eos_positions)
 
     reencoded_matrices = agent_level.encoder(post_decoder, real_positions_for_mask, eos_positions)
-    rm_loss, rm_diff_loss = calc_rmlm_loss(agent_level, reencoded_matrices, real_positions, eos_positions, embeddings,
+    rm_loss, rm_diff_loss = calc_rmlm_loss(agent_level, reencoded_matrices, real_positions, matrices, embeddings,
                                            labels)  # no mask keep the decoded vectors and predict originals by encoding
 
 

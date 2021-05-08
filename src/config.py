@@ -35,7 +35,7 @@ class Config:
     optimizer = "Adam"
     lr = 0.0005
     momentum = 0.9
-    half_life_steps = 200000
+    half_life_steps = 150000
 
     skip_batches = None  # How many batches to skip (additional on top of the checkpoint)
     use_checkpoint = None  # Load saved model and dataset step from a checkpoint
@@ -76,6 +76,7 @@ class Config:
     main_d= 0.03
     main_rcd = 0.03
     main_rm = 0.1
+    main_rmd = 0.03
 
 
 
@@ -95,7 +96,7 @@ def loss_object_to_main_loss(obj):
     loss += obj[l]['rc'] * 1.0
     loss += obj[l]['re'] * 0.1
     loss += obj[l]['rj'] * 0.01
-    #loss += obj[l]['rmd']* 0.0 #off from code
+    loss += obj[l]['rmd']* Config.main_rmd
 
     if l>0:
       loss += inverse_loss(obj[l]['rcd']) * Config.main_rcd   #negative on the main weights
@@ -109,6 +110,7 @@ def loss_object_to_reconstruction_weights_loss(obj):
   loss = obj[0]['r'] * 0.0
   for l in obj.keys():
     loss += obj[l]['rm'] * (-Config.main_rm)
+    loss += obj[l]['rmd'] * (-Config.main_rmd)
 
 
   return loss

@@ -38,12 +38,12 @@ def train():
         num_workers=1,
         persistent_workers=True  # This is helpful when num_workers > 0
     )
-
+    Config.device = torch.device('cpu')
     model = AgentModel()
-    model.to("cpu")
     Logger.setup()
     Checkpoints.setup()
     Checkpoints.load(model)
+    Config.device = torch.device('cuda', Config.gpu_num)
     model.to(Config.device)
 
     main_params = [param for name, param in model.named_parameters() if

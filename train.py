@@ -40,6 +40,7 @@ def train():
     )
 
     model = AgentModel()
+    model.to("cpu")
     Logger.setup()
     Checkpoints.setup()
     Checkpoints.load(model)

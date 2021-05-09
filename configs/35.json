@@ -9,7 +9,7 @@
   "num_transformer_layers":  [4, 6, 2, 2, 2, 2],
   "batch_size": 8,
   "batch_sizes": [3000, 3000, 1000, 1000, 1000],
-  "mini_batch_size": 85,
+  "mini_batch_size": 170,
   "drop_rate": 0.0,
   "join_texts": true,
   "use_pndb1": null,

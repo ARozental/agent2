@@ -150,12 +150,12 @@ def calc_rmlm_loss(agent_level, reencoded_matrices, real_positions, matrices, em
   # mlm_losses = torch.min(torch.stack([(mlm_losses/mlm_losses)*Config.max_typo_loss,mlm_losses],dim=0),dim=0)[0] #can't explode on typo
 
   # mlm_diff
-  real_positions = real_positions.unsqueeze(-1)
-  mlm_diff = (((matrices - transformed) * real_positions).norm(dim=[1, 2]))
-  mlm_diff = mlm_diff / ((matrices * real_positions).norm(dim=[1, 2]))
+  # real_positions = real_positions.unsqueeze(-1)
+  # mlm_diff = (((matrices - transformed) * real_positions).norm(dim=[1, 2]))
+  # mlm_diff = mlm_diff / ((matrices * real_positions).norm(dim=[1, 2]))
 
 
   #no mmlm_diff
-  # mlm_diff = torch.zeros(batch, device=Config.device)
+  mlm_diff = torch.zeros(batch, device=Config.device)
 
   return mlm_losses, mlm_diff

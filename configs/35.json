@@ -9,7 +9,7 @@
   "num_transformer_layers":  [4, 6, 2, 2, 2, 2],
   "batch_size": 8,
   "batch_sizes": [3000, 3000, 1000, 1000, 1000],
-  "mini_batch_size": 140,
+  "mini_batch_size": 85,
   "drop_rate": 0.0,
   "join_texts": true,
   "use_pndb1": null,
@@ -21,7 +21,7 @@
   "optimizer": "Adam",
   "grad_clip_value":3,
   "use_checkpoint": "late_start_acc/0.0",
-  "grad_acc_steps": 10,
+  "grad_acc_steps": 20,
   "lr": 0.0005,
   "momentum": 0.9,
   "gpu_num": 0

@@ -108,14 +108,14 @@ def train():
                 discriminator_optimizer.step()
                 generator_optimizer.step()
             else:
-                (main_loss / Config.grad_acc_steps).backward()
-                # [setattr(p, "requires_grad", False) for p in main_params]
-                # [setattr(p, "requires_grad", True) for p in coherence_params]
-                # (c_loss / Config.grad_acc_steps).backward(retain_graph=True)
-                # [setattr(p, "requires_grad", False) for p in coherence_params]
-                # [setattr(p, "requires_grad", True) for p in reconstruction_params]
-                #(r_loss / Config.grad_acc_steps).backward()
+                [setattr(p, "requires_grad", False) for p in main_params]
+                [setattr(p, "requires_grad", True) for p in coherence_params]
+                (c_loss / Config.grad_acc_steps).backward(retain_graph=True)
+                [setattr(p, "requires_grad", False) for p in coherence_params]
+                [setattr(p, "requires_grad", True) for p in reconstruction_params]
+                (r_loss / Config.grad_acc_steps).backward(retain_graph=True)
                 [setattr(p, "requires_grad", True) for p in main_params]
+                (main_loss / Config.grad_acc_steps).backward()
                 if step % Config.grad_acc_steps == 0:
                   print(step)
                   torch.nn.utils.clip_grad_norm_(main_params, Config.grad_clip_value)

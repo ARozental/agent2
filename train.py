@@ -75,6 +75,7 @@ def train():
             if Config.skip_batches is not None and (epoch == 0 and step < Config.skip_batches):
                 global_step += 1
                 continue
+            main_optimizer.zero_grad()
 
             model.train()
 

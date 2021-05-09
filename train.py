@@ -38,12 +38,8 @@ def train():
         num_workers=1,
         persistent_workers=True  # This is helpful when num_workers > 0
     )
-    Config.device = torch.device('cpu')
+
     model = AgentModel()
-    Logger.setup()
-    Checkpoints.setup()
-    Checkpoints.load(model)
-    Config.device = torch.device('cuda', Config.gpu_num)
     model.to(Config.device)
 
     main_params = [param for name, param in model.named_parameters() if
@@ -65,6 +61,9 @@ def train():
     generator_optimizer = torch.optim.AdamW(generator_params, 0.001)
     discriminator_optimizer = torch.optim.AdamW(discriminator_params, 0.001)
 
+    Logger.setup()
+    Checkpoints.setup()
+    Checkpoints.load(model)
     all_times = []
     global_step = 0
     for epoch in range(10001):

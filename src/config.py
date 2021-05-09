@@ -36,6 +36,7 @@ class Config:
     lr = 0.0005
     momentum = 0.9
     half_life_steps = 150000
+    grad_acc_steps = 10
 
     skip_batches = None  # How many batches to skip (additional on top of the checkpoint)
     use_checkpoint = None  # Load saved model and dataset step from a checkpoint

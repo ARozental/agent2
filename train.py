@@ -79,7 +79,6 @@ def train():
                 continue
 
             model.train()
-            main_optimizer.zero_grad()
 
             will_reconstruct = PRINT_RECONSTRUCTED_TEXT and (
                     (epoch % Config.log_every == 0 and step == 0) or
@@ -96,6 +95,7 @@ def train():
             c_loss = loss_object_to_extra_coherence_weights_loss(loss_object)
 
             if GENERATE_TEXT:
+                #todo: this is no longer up to date like the else part
                 generator_optimizer.zero_grad()
                 discriminator_optimizer.zero_grad()
                 main_loss.backward(retain_graph=True)
@@ -110,19 +110,19 @@ def train():
                 discriminator_optimizer.step()
                 generator_optimizer.step()
             else:
-                main_loss.backward(retain_graph=True)
+                (main_loss / Config.grad_acc_steps).backward(retain_graph=True)
                 [setattr(p, "requires_grad", False) for p in main_params]
                 [setattr(p, "requires_grad", True) for p in coherence_params]
-                c_loss.backward(retain_graph=True)
+                (c_loss / Config.grad_acc_steps).backward(retain_graph=True)
                 [setattr(p, "requires_grad", False) for p in coherence_params]
                 [setattr(p, "requires_grad", True) for p in reconstruction_params]
-                r_loss.backward(retain_graph=True)
+                (r_loss / Config.grad_acc_steps).backward(retain_graph=True)
                 [setattr(p, "requires_grad", True) for p in main_params]
-
-                main_loss.backward()
-                torch.nn.utils.clip_grad_norm_(main_params, Config.grad_clip_value)
-                main_optimizer.step()
-                scheduler.step()
+                if step % Config.grad_acc_steps == 0:
+                  torch.nn.utils.clip_grad_norm_(main_params, Config.grad_clip_value)
+                  main_optimizer.step()
+                  main_optimizer.zero_grad()
+                  scheduler.step()
 
             if (epoch % Config.log_every == 0 and step == 0) or (step % Config.log_every == 0 and step > 0):
                 print('Epoch', epoch, 'Batch', step)

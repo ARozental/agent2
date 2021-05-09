@@ -20,7 +20,7 @@
   "save_every": 10000,
   "optimizer": "Adam",
   "grad_clip_value":3,
-  "lr": 0.001,
+  "lr": 0.0005,
   "momentum": 0.9,
   "gpu_num": 0
 }

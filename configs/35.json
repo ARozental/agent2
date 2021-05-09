@@ -1,7 +1,7 @@
 {
-  "model_folder": "late_start_acc",
-  "exp_folder": "runs/late_start_acc",
-  "viz_file": "../viz/models/late_start_acc.csv",
+  "model_folder": "grad_acc",
+  "exp_folder": "runs/grad_acc",
+  "viz_file": "../viz/models/grad_acc.csv",
   "sequence_lengths": [16, 16, 6, 3, 4],
   "vector_sizes": [32, 64, 128, 96, 128, 156],
   "num_heads": [4, 8, 2, 2, 2, 2],
@@ -21,7 +21,7 @@
   "optimizer": "Adam",
   "grad_clip_value":3,
   "use_checkpoint": "late_start_acc/0.0",
-  "lr": 0.0005,
+  "lr": 0.001,
   "momentum": 0.9,
-  "gpu_num": 0
+  "gpu_num": 1
 }

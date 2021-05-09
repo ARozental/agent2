@@ -114,7 +114,7 @@ def train():
                 (c_loss / Config.grad_acc_steps).backward(retain_graph=True)
                 [setattr(p, "requires_grad", False) for p in coherence_params]
                 [setattr(p, "requires_grad", True) for p in reconstruction_params]
-                (r_loss / Config.grad_acc_steps).backward(retain_graph=True)
+                (r_loss / Config.grad_acc_steps).backward()
                 [setattr(p, "requires_grad", True) for p in main_params]
                 if step % Config.grad_acc_steps == 0:
                   torch.nn.utils.clip_grad_norm_(main_params, Config.grad_clip_value)

@@ -20,7 +20,6 @@
   "save_every": 10000,
   "optimizer": "Adam",
   "grad_clip_value":3,
-  "use_checkpoint": "late_start_acc/0.0",
   "lr": 0.001,
   "momentum": 0.9,
   "gpu_num": 1

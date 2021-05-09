@@ -117,7 +117,6 @@ def train():
                 [setattr(p, "requires_grad", True) for p in main_params]
                 (main_loss / Config.grad_acc_steps).backward()
                 if step % Config.grad_acc_steps == 0:
-                  print(step)
                   torch.nn.utils.clip_grad_norm_(main_params, Config.grad_clip_value)
                   main_optimizer.step()
                   main_optimizer.zero_grad()

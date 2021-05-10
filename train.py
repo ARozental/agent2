@@ -115,6 +115,7 @@ def train():
                   Logger.log_losses(g_loss, disc_loss, main_loss, acc_loss_object, step=global_step)
                   Logger.log_l2_classifiers(model, step=global_step)
                   acc_loss_object =  map_nested_dicts(acc_loss_object, lambda x: x*0.0)
+                  global_step += 1
 
             if (epoch % (Config.grad_acc_steps * Config.log_every) == 0 and step == 0) or (step % (Config.grad_acc_steps * Config.log_every) == 0 and step > 0):
                 print('Epoch', epoch, 'Batch', step)
@@ -147,7 +148,7 @@ def train():
                                 exit()
 
                 Checkpoints.save(model, epoch, global_step)
-            global_step += 1
+
 
 
                 # current_time = time.time() - start_time

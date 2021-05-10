@@ -66,7 +66,7 @@ def train():
     Checkpoints.load(model)
     all_times = []
     global_step = 0
-    acc_loss_object = {'m': 0,'md': 0,'c': 0,'r': 0,'e': 0,'j': 0,'d': 0,'rc': 0,'re': 0,'rj': 0,'rm': 0,'rmd': 0,'g': 0,'disc': 0,'cd': 0,'rcd': 0}
+    acc_loss_object = {}
     for epoch in range(10001):
         # print('Epoch', epoch + 1)
         # start_time = time.time()
@@ -86,7 +86,7 @@ def train():
 
             g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT,
                                                                       debug=will_reconstruct)
-            acc_loss_object = {k: acc_loss_object.get(k, 0) + loss_object.get(k, 0) for k in set(acc_loss_object)}
+            acc_loss_object = {k: loss_object.get(k, 0)+acc_loss_object.get(k, 0)  for k in set(loss_object)}
 
             main_loss = loss_object_to_main_loss(loss_object)
             r_loss = loss_object_to_reconstruction_weights_loss(loss_object)

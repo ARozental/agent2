@@ -10,25 +10,16 @@ Datasets:
 6. find out who to get a real dataset (all of Kindle with style and star rating)
 
 Transformer Model:
-1. use SwiGLU activation function: https://arxiv.org/pdf/2102.11972.pdf
 2. have a universal transformer => a lot later, as it is ~6X slower than the regular one for the same number of params
 
 Training:
 1. create batches of controllable (set from config) memory footprint from all Tree nodes for each level:
-2. have a loss object multiplier and (maybe) an apply loss function like in the TF code => after medium dataset
-3. find a set of sane hyper parameters
-4. have a remove outlayer function => given a list of losses (all level N nodes MLM for example) check if the top one > 20* mean_without_top
-5. limit weights for classifiers<20 ???
+3. have a remove outlayer function??
 
 Refactoring:
-4. make code faster, avoid everyplace that exits the GPU
 5. use the same name for hidden_size/vector_size/embed_size
-7. run with batch of batches (at least for the forward)
 8. make config an object again
-9. have a way to override config from terminal (run train.py with params)
-11. apply rc_loss only to same level reconstruction model??
-12. init weight location regex
-12. remove calc_reconstruction_loss_with_pndb (lots of duplicate code) use make_calc_reconstruction_loss_fn instead
+12. fix step/global_step for grad_acc
 
 CURRENT TASKS:
 Datasets 5
@@ -55,10 +46,3 @@ Tests:
 2. track memory usage
 3. track model norm (maybe per component if it gets out of hand)
 
-
-WTF:
-reconstructed text:   William Knollys <unk>15 October 1694</unk>
-
-fix inconsistency for EoS vector? real position or not?
-add a more complex eos classifier?
-need to learn EoS better (earth-movers? add post reconstruction eos loss)

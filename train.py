@@ -58,14 +58,15 @@ def train():
     lambda_lr = lambda batch: math.exp(math.log(0.5)/Config.half_life_steps) ** batch
     scheduler = torch.optim.lr_scheduler.LambdaLR(main_optimizer,lambda_lr)
 
-    generator_optimizer = torch.optim.AdamW(generator_params, 0.001)
-    discriminator_optimizer = torch.optim.AdamW(discriminator_params, 0.001)
+    #generator_optimizer = torch.optim.AdamW(generator_params, 0.001)
+    #discriminator_optimizer = torch.optim.AdamW(discriminator_params, 0.001)
 
     Logger.setup()
     Checkpoints.setup()
     Checkpoints.load(model)
     all_times = []
     global_step = 0
+    acc_loss_object = {'m': 0,'md': 0,'c': 0,'r': 0,'e': 0,'j': 0,'d': 0,'rc': 0,'re': 0,'rj': 0,'rm': 0,'rmd': 0,'g': 0,'disc': 0,'cd': 0,'rcd': 0}
     for epoch in range(10001):
         # print('Epoch', epoch + 1)
         # start_time = time.time()
@@ -79,34 +80,21 @@ def train():
             model.train()
 
             will_reconstruct = PRINT_RECONSTRUCTED_TEXT and (
-                    (epoch % Config.log_every == 0 and step == 0) or
-                    (step % Config.log_every == 0 and step > 0)
+                    (epoch % (Config.grad_acc_steps * Config.log_every) == 0 and step == 0) or
+                    (step % (Config.grad_acc_steps * Config.log_every) == 0 and step > 0)
             )
 
             g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT,
                                                                       debug=will_reconstruct)
-            Logger.log_losses(g_loss, disc_loss, main_loss, loss_object, step=global_step)
-            Logger.log_l2_classifiers(model, step=global_step)
+            acc_loss_object = {k: acc_loss_object.get(k, 0) + loss_object.get(k, 0) for k in set(acc_loss_object)}
 
             main_loss = loss_object_to_main_loss(loss_object)
             r_loss = loss_object_to_reconstruction_weights_loss(loss_object)
             c_loss = loss_object_to_extra_coherence_weights_loss(loss_object)
 
             if GENERATE_TEXT:
+              pass
                 #todo: this is no longer up to date like the else part
-                generator_optimizer.zero_grad()
-                discriminator_optimizer.zero_grad()
-                main_loss.backward(retain_graph=True)
-                [setattr(p, "requires_grad", False) for p in main_params + generator_params]
-                disc_loss.backward(retain_graph=True)
-                [setattr(p, "requires_grad", True) for p in generator_params]
-                [setattr(p, "requires_grad", False) for p in discriminator_params]
-                (g_loss - disc_loss * 0.2).backward()  # disc loss won't go down even when this is commented => BUG
-                [setattr(p, "requires_grad", True) for p in main_params + discriminator_params]
-                torch.nn.utils.clip_grad_norm_(model.parameters(), Config.grad_clip_value)
-                main_optimizer.step()
-                discriminator_optimizer.step()
-                generator_optimizer.step()
             else:
                 [setattr(p, "requires_grad", False) for p in main_params]
                 [setattr(p, "requires_grad", True) for p in coherence_params]
@@ -116,13 +104,19 @@ def train():
                 (r_loss / Config.grad_acc_steps).backward(retain_graph=True)
                 [setattr(p, "requires_grad", True) for p in main_params]
                 (main_loss / Config.grad_acc_steps).backward()
+                #I want to clip on every step, how?
                 if step % Config.grad_acc_steps == 0:
                   torch.nn.utils.clip_grad_norm_(main_params, Config.grad_clip_value)
                   main_optimizer.step()
                   main_optimizer.zero_grad()
                   scheduler.step()
+                  #log
+                  acc_loss_object = {k: acc_loss_object.get(k, 0)/Config.grad_acc_steps for k in set(acc_loss_object)}
+                  Logger.log_losses(g_loss, disc_loss, main_loss, acc_loss_object, step=global_step)
+                  Logger.log_l2_classifiers(model, step=global_step)
+                  acc_loss_object = {k: acc_loss_object.get(k, 0)*0 for k in set(acc_loss_object)}
 
-            if (epoch % Config.log_every == 0 and step == 0) or (step % Config.log_every == 0 and step > 0):
+            if (epoch % (Config.grad_acc_steps * Config.log_every) == 0 and step == 0) or (step % (Config.grad_acc_steps * Config.log_every) == 0 and step > 0):
                 print('Epoch', epoch, 'Batch', step)
                 print(loss_object)
                 print(main_loss)
@@ -152,10 +146,11 @@ def train():
                                 print('MATCHED')
                                 exit()
 
-            Checkpoints.save(model, epoch, step)
+                Checkpoints.save(model, epoch, global_step)
             global_step += 1
 
-        # current_time = time.time() - start_time
+
+                # current_time = time.time() - start_time
         # all_times.append(current_time)
         # print('Epoch', epoch + 1, 'completed in', round(current_time, 3), 'average', round(np.mean(all_times), 3))
 

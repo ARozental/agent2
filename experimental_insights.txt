@@ -127,3 +127,4 @@ I like big butts as well.
 
 => continue adam from 230k with new mlm_diff loss, half lr and grad acc 10
 and 280 for the other
+=> grad_acc really helps results! find out how much is needed

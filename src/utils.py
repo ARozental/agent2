@@ -7,6 +7,7 @@ import torch.nn as nn
 import math
 import torch.nn.functional as F
 import hashlib
+import collections
 
 def seed_torch(seed=777):
     random.seed(seed)
@@ -91,3 +92,17 @@ def inverse_loss(loss):
 def cap_loss(loss):
   "cap loss and effectivly kill gradient to prevent the classifier from winning completely"
   return torch.max(loss,(loss*0)+0.01)
+
+def merge_dicts(d1,d2):
+  ""
+  res = {}
+  levels = d1.keys()
+  for l in levels:
+    res[l] = {k: d1[l].get(k, 0)+d2[l].get(k, 0) for k in set(d1[l])}
+  return res
+
+def map_nested_dicts(ob, func):
+  if isinstance(ob, collections.Mapping):
+    return {k: map_nested_dicts(v, func) for k, v in ob.items()}
+  else:
+    return func(ob)

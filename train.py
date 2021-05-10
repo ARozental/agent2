@@ -4,7 +4,7 @@ from src.config import Config, loss_object_to_main_loss, loss_object_to_reconstr
 from src.datasets import BookDataset, DummyDataset, WikiDataset
 from src.logger import Logger
 from src.pre_processing import TreeTokenizer, worker_init_fn
-from src.utils import seed_torch
+from src.utils import seed_torch,merge_dicts,map_nested_dicts
 from src.model import AgentModel
 from torch.utils.data.dataloader import DataLoader
 import numpy as np
@@ -66,7 +66,7 @@ def train():
     Checkpoints.load(model)
     all_times = []
     global_step = 0
-    acc_loss_object = {}
+    acc_loss_object = {0: {}, 1: {}}
     for epoch in range(10001):
         # print('Epoch', epoch + 1)
         # start_time = time.time()
@@ -86,7 +86,7 @@ def train():
 
             g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT,
                                                                       debug=will_reconstruct)
-            acc_loss_object = {k: loss_object.get(k, 0)+acc_loss_object.get(k, 0)  for k in set(loss_object)}
+            acc_loss_object = merge_dicts(loss_object,acc_loss_object)
 
             main_loss = loss_object_to_main_loss(loss_object)
             r_loss = loss_object_to_reconstruction_weights_loss(loss_object)
@@ -111,10 +111,10 @@ def train():
                   main_optimizer.zero_grad()
                   scheduler.step()
                   #log
-                  acc_loss_object = {k: acc_loss_object.get(k, 0)/Config.grad_acc_steps for k in set(acc_loss_object)}
+                  acc_loss_object =  map_nested_dicts(acc_loss_object, lambda x: x/Config.grad_acc_steps)
                   Logger.log_losses(g_loss, disc_loss, main_loss, acc_loss_object, step=global_step)
                   Logger.log_l2_classifiers(model, step=global_step)
-                  acc_loss_object = {k: acc_loss_object.get(k, 0)*0 for k in set(acc_loss_object)}
+                  acc_loss_object =  map_nested_dicts(acc_loss_object, lambda x: x*0.0)
 
             if (epoch % (Config.grad_acc_steps * Config.log_every) == 0 and step == 0) or (step % (Config.grad_acc_steps * Config.log_every) == 0 and step > 0):
                 print('Epoch', epoch, 'Batch', step)

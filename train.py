@@ -111,7 +111,8 @@ def train():
                   main_optimizer.zero_grad()
                   scheduler.step()
                   #log
-                  acc_loss_object =  map_nested_dicts(acc_loss_object, lambda x: x/Config.grad_acc_steps)
+                  if step>0:
+                    acc_loss_object =  map_nested_dicts(acc_loss_object, lambda x: x/Config.grad_acc_steps)
                   Logger.log_losses(g_loss, disc_loss, main_loss, acc_loss_object, step=global_step)
                   Logger.log_l2_classifiers(model, step=global_step)
                   acc_loss_object =  map_nested_dicts(acc_loss_object, lambda x: x*0.0)

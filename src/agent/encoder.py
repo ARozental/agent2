@@ -3,6 +3,7 @@ import torch.nn as nn
 from src.config import Config
 from src.utils import gelu_new
 
+
 class Encoder(nn.Module):
     def __init__(self, level):
         super().__init__()

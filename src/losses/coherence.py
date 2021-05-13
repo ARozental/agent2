@@ -15,7 +15,7 @@ def make_fake_normal_vectors(vectors):
     return fake
 
 
-def calc_coherence_loss(agent_level, matrices, mask, eos_positions, embeddings):
+def calc_coherence_loss(agent_level, matrices, mask, eos_positions, embeddings, num_dummy=0):
     # matrices,mask,labels => [batch,seq_length,vec_size], embeddings => [seq_length,vec_size]
     batch, seq_length, vec_size = matrices.shape
 
@@ -31,7 +31,8 @@ def calc_coherence_loss(agent_level, matrices, mask, eos_positions, embeddings):
 
     # todo: make sure the pad token is not here, also no join for levels 0 and 1 otherwise pad learns
     # random_indexes = torch.fmod(torch.randperm(batch * seq_length).to(Config.device), embeddings.shape[0])
-    random_indexes = (torch.rand(batch * seq_length).to(Config.device) * embeddings.shape[0]).floor().long()
+    num_indices = (embeddings.size(0) - num_dummy)  # Number of real indices to use
+    random_indexes = (torch.rand(batch * seq_length).to(Config.device) * num_indices).floor().long()
     random_vec_replacements = torch.index_select(embeddings, 0, random_indexes)
     random_vec_replacements = random_vec_replacements.view(batch, seq_length, vec_size)
 
@@ -50,9 +51,9 @@ def calc_coherence_loss(agent_level, matrices, mask, eos_positions, embeddings):
     predictions = torch.cat([noise_class_predictions, class_predictions])
     predictions_labels = torch.cat([torch.zeros(batch, dtype=torch.long).to(Config.device),
                                     torch.ones(batch, dtype=torch.long).to(Config.device)])
-    total_cd_loss = ce_loss(predictions, predictions_labels).sum()  # rcd is reconstruction coherence discrimination
+    cd_loss = ce_loss(predictions, predictions_labels)  # rcd is reconstruction coherence discrimination
 
-    return coherence_losses, total_cd_loss
+    return coherence_losses, cd_loss
 
 
 def calc_rc_loss(agent_level, reencoded_matrices, mask, lower_agent_level, post_decoder):

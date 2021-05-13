@@ -13,6 +13,8 @@ class Config:
     mlm_rate = 0.15  # 0.15 like BERT
     batch_size = 8  # How many books/articles/etc per batch.
     batch_sizes = [4096, 4096, 1024, 1000, 1000]  # How many nodes to process at a time at each level
+    batch_sizes_dynamic = [[4096, 9216, 15360], [512, 1024, 3072]]  # Used for the TPU (TODO - Make these true dynamic)
+    dynamic_batch_sizes = True  # Used for the TPU
     mini_batch_size = 256
 
     drop_rate = 0.0
@@ -58,6 +60,7 @@ class Config:
 
     # Run configuration below (keeping device here makes it easier to use throughout all of the code)
     use_cuda = True
+    use_tpu = False
     gpu_num = 0
     device = None  # Will be set in setup()
 
@@ -69,42 +72,42 @@ class Config:
             Config.device = torch.device('cpu')
 
 
-
 def loss_object_to_main_loss(obj):
-  loss = 0.0
-  for l in obj.keys():
-    loss += obj[l]['m']  * 1.0
-    loss += obj[l]['md'] * 0.1
-    loss += obj[l]['c']  * 10.0
-    loss += obj[l]['r']  * 1.0
-    loss += obj[l]['d']  * 0.2
-    loss += obj[l]['e']  * 0.1
-    loss += obj[l]['j']  * 0.1
-    loss += obj[l]['rm'] * 0.3
+    loss = 0.0
+    for level in obj.keys():
+        loss += obj[level]['m'] * 1.0
+        loss += obj[level]['md'] * 0.1
+        loss += obj[level]['c'] * 10.0
+        loss += obj[level]['r'] * 1.0
+        loss += obj[level]['d'] * 0.2
+        loss += obj[level]['e'] * 0.1
+        loss += obj[level]['j'] * 0.1
+        loss += obj[level]['rm'] * 0.3
 
+        # loss += obj[level]['rc'] * 10.0
+        # loss += obj[level]['re'] * 0.1
+        # loss += obj[level]['rj'] * 0.1
+        # loss += obj[level]['rmd']* 0.0 #off from code
 
-    #loss += obj[l]['rc'] * 10.0
-    #loss += obj[l]['re'] * 0.1
-    #loss += obj[l]['rj'] * 0.1
-    #loss += obj[l]['rmd']* 0.0 #off from code
+        loss += obj[level]['cd'] * -0.03  # negative on the main weights
+        loss += obj[level]['rcd'] * -0.03  # negative on the main weights
 
-    loss += obj[l]['cd']* -0.03 #negative on the main weights
-    loss += obj[l]['rcd']* -0.03 #negative on the main weights
+    return loss
 
-  return loss
 
 def loss_object_to_reconstruction_weights_loss(obj):
-  loss = 0.0
-  for l in obj.keys():
-    loss += obj[l]['rc'] * 10.0
-    loss += obj[l]['re'] * 0.1
-    loss += obj[l]['rj'] * 0.1
-    #loss += obj[l]['rmd']* 0.0 #off from code
-  return loss
+    loss = 0.0
+    for level in obj.keys():
+        loss += obj[level]['rc'] * 10.0
+        loss += obj[level]['re'] * 0.1
+        loss += obj[level]['rj'] * 0.1
+        # loss += obj[level]['rmd']* 0.0 #off from code
+    return loss
+
 
 def loss_object_to_extra_coherence_weights_loss(obj):
-  loss = 0.0
-  for l in obj.keys():
-    loss += obj[l]['cd']* 0.2
-    loss += obj[l]['rcd']* 0.2
-  return loss
+    loss = 0.0
+    for level in obj.keys():
+        loss += obj[level]['cd'] * 0.2
+        loss += obj[level]['rcd'] * 0.2
+    return loss

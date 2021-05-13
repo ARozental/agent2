@@ -1,4 +1,6 @@
+from src.pre_processing import Node
 from src.config import Config
+import numpy as np
 
 
 class BatchTree:
@@ -19,6 +21,38 @@ class BatchTree:
 
     def batch_up_nodes(self):  # fills the self.level_nodes hash, called from tokenizer.batch_texts_to_trees(texts)
         [self.__batch_up_nodes1(c) for c in self.batch_root.children]
+
+    # TODO - Make this work for any number of levels, only works when Config.agent_level == 1
+    def fill_dummy_nodes(self):
+        if not Config.use_tpu:  # This is only for the TPU
+            return
+
+        assert Config.agent_level <= Config.levels['SENTENCE']
+
+        if Config.dynamic_batch_sizes:
+            num0 = len(self.level_nodes[0])
+            num1 = len(self.level_nodes[1])
+            # Dynamically change the batch_sizes to be the smallest size that will fit all of the nodes
+            Config.batch_sizes[0] = [val for val in Config.batch_sizes_dynamic[0] if num0 < val][0]
+            Config.batch_sizes[1] = [val for val in Config.batch_sizes_dynamic[1] if num1 < val][0]
+
+        add0 = Config.batch_sizes[0] - len(self.level_nodes[0])
+        add1 = Config.batch_sizes[1] - len(self.level_nodes[1])
+        assert add0 > 0
+        assert add1 > 0
+
+        children_per = np.array_split(range(add0), add1)
+        for num_per in children_per:
+            dummy_parent = Node(level=1, tokens=[0])
+            dummy_parent.is_dummy = True
+            dummy_parent.children = []
+            for i in range(len(num_per)):
+                dummy_child = Node(level=0, tokens=[0])
+                dummy_child.is_dummy = True
+                self.level_nodes[0].append(dummy_child)
+                dummy_parent.children.append(dummy_child)
+
+            self.level_nodes[1].append(dummy_parent)
 
     def make_distinct_words(self):
         # the i-th element of distinct_word_embedding_tokens gets word tokens with full padding

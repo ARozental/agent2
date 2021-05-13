@@ -9,7 +9,7 @@ from src.losses.coherence import calc_rc_loss, calc_lower_rc_loss, make_fake_nor
 
 
 def calc_reconstruction_loss(agent_level, matrices, decompressed, mask, eos_positions, join_positions, embeddings,
-                             labels, pndb):
+                             labels, pndb, num_dummy=0, dummy_logit_bias=None):
     # matrices, mask, labels => [batch,seq_length,vec_size]
     if Config.use_pndb2 is not None and agent_level.level == 1:
         decompressed = pndb.get_data_from_A2_matrix(pndb.create_A2_matrix(matrices, mask), decompressed)
@@ -28,6 +28,9 @@ def calc_reconstruction_loss(agent_level, matrices, decompressed, mask, eos_posi
     if agent_level.level == 0:
         logits = logits + agent_level.token_bias
 
+    if Config.use_tpu and dummy_logit_bias is not None:
+        logits = logits - dummy_logit_bias
+
     reconstruction_losses = F.cross_entropy(
         logits.transpose(1, 2),
         labels,
@@ -35,10 +38,10 @@ def calc_reconstruction_loss(agent_level, matrices, decompressed, mask, eos_posi
         reduction='none'  # Gives mlm loss from each of [batch, words]
     ).mean(-1)
 
-    reconstruction_losses = reconstruction_losses * (
-        4.4 / math.log(embeddings.shape[0]))  # 4.4 is ln(len(char_embedding)) == ln(81)
+    # 4.4 is ln(len(char_embedding)) == ln(81)
+    reconstruction_losses = reconstruction_losses * (4.4 / math.log(embeddings.size(0) - num_dummy))
     # reconstruction_losses = torch.min(torch.stack([(reconstruction_losses / reconstruction_losses) * Config.max_typo_loss, reconstruction_losses], dim=0),dim=0)[0]  # can't explode on typo
-    reconstruction_diff = (reconstruction_diff * (4.4 / math.log(embeddings.shape[0])))
+    reconstruction_diff = (reconstruction_diff * (4.4 / math.log(embeddings.size(0) - num_dummy)))
     re_loss = calc_eos_loss(agent_level, post_decoder, eos_positions)
 
     reencoded_matrices = agent_level.encoder(post_decoder, mask, eos_positions)

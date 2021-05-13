@@ -4,7 +4,7 @@ import torch
 import math
 
 
-def calc_mlm_loss(agent_level, matrices, mask, eos_positions, embeddings, labels):
+def calc_mlm_loss(agent_level, matrices, mask, eos_positions, embeddings, labels, num_dummy=0, dummy_logit_bias=None):
     # matrices,mask,labels => [batch,seq_length,vec_size], embeddings => [seq_length,vec_size]
     # to use when calc_clear_mlm_loss is not active, has a "same word" component
 
@@ -33,7 +33,7 @@ def calc_mlm_loss(agent_level, matrices, mask, eos_positions, embeddings, labels
     mask_vec_replacements = agent_level.mask_vector.repeat(batch * seq_length).view(batch, seq_length, vec_size)
 
     # todo: make sure the pad token is not here, also no join for levels 0 and 1
-    random_indexes = torch.fmod(torch.randperm(batch * seq_length).to(Config.device), embeddings.size(0))
+    random_indexes = torch.fmod(torch.randperm(batch * seq_length).to(Config.device), embeddings.size(0) - num_dummy)
     random_vec_replacements = torch.index_select(embeddings, 0, random_indexes).view(batch, seq_length, vec_size)
 
     pre_encoder = keep_positions * matrices + mask_positions * mask_vec_replacements
@@ -46,6 +46,9 @@ def calc_mlm_loss(agent_level, matrices, mask, eos_positions, embeddings, labels
     if agent_level.level == 0:
         logits = logits + agent_level.token_bias
 
+    if Config.use_tpu and dummy_logit_bias is not None:
+        logits = logits - dummy_logit_bias
+
     mlm_losses = F.cross_entropy(
         logits.transpose(1, 2),
         labels,
@@ -56,15 +59,15 @@ def calc_mlm_loss(agent_level, matrices, mask, eos_positions, embeddings, labels
     mlm_losses = (mlm_losses * real_positions * mlm_positions.squeeze(-1)).sum(
         -1)  # this fix is only valid in the choose 1 MLM position version otherwise replace "sum" with mean_on_non_zeros
 
-    # todo?? have mlm_diff here?
-    mlm_losses = mlm_losses * (4.4 / math.log(embeddings.shape[0]))  # 4.4 is ln(len(char_embedding)) == ln(81)
+    # 4.4 is ln(len(char_embedding)) == ln(81)
+    mlm_losses = mlm_losses * (4.4 / math.log(embeddings.size(0) - num_dummy))
     # mlm_losses = torch.min(torch.stack([(mlm_losses/mlm_losses)*Config.max_typo_loss,mlm_losses],dim=0),dim=0)[0] #can't explode on typo
 
     # mlm_diff
     real_positions = real_positions.unsqueeze(-1)
     mlm_diff = (((matrices - transformed) * real_positions).norm(dim=[1, 2]))
     mlm_diff = mlm_diff / ((matrices * real_positions).norm(dim=[1, 2]))
-    mlm_diff = (mlm_diff * (4.4 / math.log(embeddings.shape[0])))  # / 100
+    mlm_diff = (mlm_diff * (4.4 / math.log(embeddings.size(0) - num_dummy)))  # / 100
 
     return mlm_losses, mlm_diff
 

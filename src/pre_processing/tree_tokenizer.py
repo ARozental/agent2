@@ -176,6 +176,7 @@ class TreeTokenizer:
         batch_root.expand_struct(structs,md5s)
         batch_tree = BatchTree(batch_root)
         batch_tree.batch_up_nodes()
+        batch_tree.fill_dummy_nodes()
         batch_tree.make_distinct_words()
 
         return batch_tree

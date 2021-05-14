@@ -42,14 +42,14 @@ class AgentModel(nn.Module):
         distinct_word_embedding_tokens = [id_to_tokens[distinct_id] for distinct_id in
                                           range(max_distinct_id + num_dummy_distinct + 1)]
         local_char_embedding_tokens = torch.LongTensor(distinct_word_embedding_tokens).to(Config.device)
-        mask = local_char_embedding_tokens == Config.pad_token_id  # True => position to mask
-        eos_positions = local_char_embedding_tokens == Config.eos_token_id  # True => position to mask
+        real_positions = (local_char_embedding_tokens != Config.pad_token_id).float()
+        eos_positions = local_char_embedding_tokens == Config.eos_token_id
         local_char_embedding_matrix = self.char_embedding_layer(local_char_embedding_tokens)
 
         # first encoder call
         word_embedding_matrix = self.agent_levels[0].compressor(
-            self.agent_levels[0].encoder(local_char_embedding_matrix, mask, eos_positions.float()),
-            mask)  # [distinct_words_in_batch,word_vector_size]
+            self.agent_levels[0].encoder(local_char_embedding_matrix, real_positions, eos_positions.float()),
+            real_positions)  # [distinct_words_in_batch,word_vector_size]
 
         special_vectors = torch.stack(
             [
@@ -88,14 +88,14 @@ class AgentModel(nn.Module):
                     vectors, previous_vectors, num_dummy0_embed = self.set_word_vectors(node_batch, debug=debug)
 
                 if level_num == 0:
-                    matrices, mask, eos_positions, join_positions, embedding_matrix, labels, _, num_dummy = \
+                    matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, _, num_dummy = \
                         self.agent_levels[
                             level_num].get_children(
                             node_batch,
                             self.char_embedding_layer.weight,
                             previous_vectors)
                 else:
-                    matrices, mask, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy = \
+                    matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy = \
                         self.agent_levels[
                             level_num].get_children(
                             node_batch,
@@ -111,11 +111,11 @@ class AgentModel(nn.Module):
                 else:
                     dummy_logit_bias = None
 
-                mlm_loss, mlm_diff_loss = calc_mlm_loss(self.agent_levels[level_num], matrices, mask, eos_positions,
+                mlm_loss, mlm_diff_loss = calc_mlm_loss(self.agent_levels[level_num], matrices, real_positions, eos_positions,
                                                         embedding_matrix,
                                                         labels, num_dummy=num_dummy, dummy_logit_bias=dummy_logit_bias)
 
-                coherence_loss, cd_loss = calc_coherence_loss(self.agent_levels[level_num], matrices, mask,
+                coherence_loss, cd_loss = calc_coherence_loss(self.agent_levels[level_num], matrices, real_positions,
                                                               eos_positions,
                                                               embedding_matrix, num_dummy=num_dummy)
 
@@ -124,12 +124,13 @@ class AgentModel(nn.Module):
                 reconstruction_diff_loss, reconstruction_loss, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss, total_rcd_loss = \
                     calc_reconstruction_loss(
                         self.agent_levels[level_num],
-                        matrices, decompressed, mask,
+                        matrices, decompressed, real_positions,
                         eos_positions,
                         join_positions,
                         embedding_matrix, labels, self.pndb, num_dummy=num_dummy, dummy_logit_bias=dummy_logit_bias)
 
-                eos_loss = calc_eos_loss(self.agent_levels[level_num], decompressed, eos_positions)
+                # does it help to do it on decompressed (pre decoded)? maybe but very noisy
+                eos_loss, _ = calc_eos_loss(self.agent_levels[level_num], decompressed, eos_positions)
 
                 if Config.join_texts and level_num >= 1:
                     join_loss = calc_join_loss(self.agent_levels[level_num], decompressed, join_positions)
@@ -149,12 +150,13 @@ class AgentModel(nn.Module):
                     "j": (join_loss * loss_keeper).sum(),
                     "d": (reconstruction_diff_loss * loss_keeper).sum(),
 
-                    # "rc": (rc_loss * loss_keeper).sum(),
-                    # "re": (re_loss * loss_keeper).sum(),
-                    # "rj": (rj_loss * loss_keeper).sum(),
-                    # "rm": (rm_loss * loss_keeper).sum(),
-                    # "rmd": (rm_diff_loss * loss_keeper).sum(),
-                    # "cd": (cd_loss * loss_keeper).sum(),
+                    # TODO - NEED TO IMPLEMENT
+                    # "rc": rc_loss.sum(),
+                    # "re": re_loss.sum(),
+                    # "rj": rj_loss.sum(),
+                    # "rm": rm_loss.sum(),
+                    # "rmd": rm_diff_loss.sum(),
+                    # "cd": total_cd_loss,
                     # "rcd": total_rcd_loss
                 }
 
@@ -192,7 +194,7 @@ class AgentModel(nn.Module):
 
             current_losses = []
             for label, loss in loss_object[level_num].items():
-                if label not in ['g', 'disc']:
+                if label not in ['g', 'disc', 'cd', 'rcd']:
                     loss /= (len(real_nodes) - total_dummy_nodes)
                     current_losses.append(loss)
                     loss_object[level_num][label] = loss  # Keep loss_object as a tensor for custom backwards
@@ -205,11 +207,11 @@ class AgentModel(nn.Module):
         if node_batch is None:
             node_batch = batch_tree.level_nodes[0]
         tokens = [n.get_padded_word_tokens() for n in node_batch]
-        mask = torch.tensor(tokens) == Config.pad_token_id  # True => position to mask
+        real_positions = (torch.tensor(tokens) == Config.pad_token_id).float()
         eos_positions = (torch.tensor(tokens) == Config.eos_token_id).float()
         vectors = torch.stack([n.vector for n in node_batch])
         output = self.agent_levels[0].decompressor(vectors)
-        output = self.agent_levels[0].decoder(output, mask, eos_positions)
+        output = self.agent_levels[0].decoder(output, real_positions, eos_positions)
 
         output = torch.matmul(output, self.char_embedding_layer.weight.transpose(0, 1))
         output = torch.argmax(output, dim=2)
@@ -248,6 +250,7 @@ class AgentModel(nn.Module):
         # TODO - use numpy.split here for even faster batching
         results = []
         index = 0
+
         for node in nodes:
             if node.is_join():
                 results.append((-1, True))

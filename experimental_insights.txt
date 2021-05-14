@@ -91,3 +91,40 @@ reconstruction_coherence doesn't work well, too easy, the decodedr generates wha
 * need to also have dummy lvl1 reconstruction (select word from embedding and use it)
     => just to see nothing is broken
     => maybe run it locally?? dummy vs full see the nodes, see no error.
+
+
+* print after backprop => fix
+* add small norm1 (norm2+0.1*morm1) to the diff losses?? diff losses stop learning close to their 0
+   => naybe not... explosion was probably caused by mlm_diff1 going to 0. shrtly after the reconstruction_diff also goes down
+
+=> reconstruction0 with loss at 0.08 there are still errors on hard words:
+The Parliament of Andalusia is => The Bareiement of Andarosia is
+
+
+
+I like big butts too.
+I like big butts as well.
+=> should have the same vector because of MLM but the decompressor won't find the right EoS
+=> lowering lr 0.00025=>0.0001 at 110K prevented explosion and improved learning
+
+
+=> coherence_discriminator/0??  exploaded at 115k OR maybe when reconstruction is too low nothing stops reconstruction_diff??
+    => reconstruction_diff*=reconstruction (use .detach or .nograd or nothing???)
+=> get continuous mask from cumsum on EoS classifer; when 100% sure it acts as regular mask with frozen EoS
+=> decoder block
+=> get EoS loss for backprop
+
+=>CNN5 works but why? it is kinda shitty and expects odd words after EoS/16_words in the current config. => work from reconstructed_matrices
+=> look at (change?) the default LSTM cell
+=> fix vec_to_children_vecs fails to decode when torch.argmax(eos_mask, dim=-1) is 0
+
+=> is reconstruction_mlm bad because it insentivizes the decoder to "spill" the vector? should it only backprop on encoder?
+=> did the grad killing stopped backprop where it shouldn't have??
+
+
+=>experiment 30 exploded fast, probably due to d0 (only it went down) OR higher clipping (3.0 instead of 0.99); maybe some other issues?
+
+
+=> continue adam from 230k with new mlm_diff loss, half lr and grad acc 10
+and 280 for the other
+=> grad_acc really helps results! find out how much is needed

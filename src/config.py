@@ -1,6 +1,7 @@
 import torch
 import json
 import sys
+from src.utils import inverse_loss, cap_loss
 
 
 class Config:
@@ -34,8 +35,10 @@ class Config:
     # max_typo_loss = 10.0
     grad_clip_value = 0.99
     optimizer = "Adam"
-    lr = 0.0002
+    lr = 0.0005
     momentum = 0.9
+    half_life_steps = 150000
+    grad_acc_steps = 2
 
     skip_batches = None  # How many batches to skip (additional on top of the checkpoint)
     use_checkpoint = None  # Load saved model and dataset step from a checkpoint
@@ -71,43 +74,54 @@ class Config:
         else:
             Config.device = torch.device('cpu')
 
+    cnn_padding = 2  # kernal=2*padding+1
+    reconstruction_d = 0.0
+    main_d = 0.03
+    main_rcd = 0.03
+    main_rm = 0.1
+    main_rmd = 0.03
+
 
 def loss_object_to_main_loss(obj):
-    loss = 0.0
-    for level in obj.keys():
-        loss += obj[level]['m'] * 1.0
-        loss += obj[level]['md'] * 0.1
-        loss += obj[level]['c'] * 10.0
-        loss += obj[level]['r'] * 1.0
-        loss += obj[level]['d'] * 0.2
-        loss += obj[level]['e'] * 0.1
-        loss += obj[level]['j'] * 0.1
-        loss += obj[level]['rm'] * 0.3
+    loss = obj[0]['r'] * 0.0
+    for l in obj.keys():
+        loss += obj[l]['m'] * 0.1
+        # loss += obj[l]['md'] * 0.1 #off from code
+        loss += obj[l]['c'] * 1.0
+        loss += obj[l]['r'] * 0.1
+        loss += obj[l]['e'] * 0.1
+        loss += obj[l]['j'] * 0.001  # do we even need it??
+        loss += obj[l]['d'] * Config.main_d  # moved here as a test
 
-        # loss += obj[level]['rc'] * 10.0
-        # loss += obj[level]['re'] * 0.1
-        # loss += obj[level]['rj'] * 0.1
-        # loss += obj[level]['rmd']* 0.0 #off from code
+        loss += obj[l]['rc'] * 1.0
+        loss += obj[l]['re'] * 0.1
+        loss += obj[l]['rj'] * 0.01
+        loss += obj[l]['rmd'] * Config.main_rmd
 
-        loss += obj[level]['cd'] * -0.03  # negative on the main weights
-        loss += obj[level]['rcd'] * -0.03  # negative on the main weights
+        if l > 0:
+            loss += inverse_loss(obj[l]['rcd']) * Config.main_rcd  # negative on the main weights
+        loss += obj[l]['rm'] * Config.main_rm
 
     return loss
 
 
 def loss_object_to_reconstruction_weights_loss(obj):
-    loss = 0.0
-    for level in obj.keys():
-        loss += obj[level]['rc'] * 10.0
-        loss += obj[level]['re'] * 0.1
-        loss += obj[level]['rj'] * 0.1
-        # loss += obj[level]['rmd']* 0.0 #off from code
+    loss = obj[0]['r'] * 0.0
+    for l in obj.keys():
+        loss += obj[l]['rm'] * (-Config.main_rm)
+        loss += obj[l]['rmd'] * (-Config.main_rmd)
+
     return loss
 
 
 def loss_object_to_extra_coherence_weights_loss(obj):
-    loss = 0.0
-    for level in obj.keys():
-        loss += obj[level]['cd'] * 0.2
-        loss += obj[level]['rcd'] * 0.2
+    loss = obj[0]['r'] * 0.0
+    for l in obj.keys():
+        loss += cap_loss(obj[l]['rcd']) * 1
     return loss
+
+    def map_nested_dicts(ob, func):
+        if isinstance(ob, collections.Mapping):
+            return {k: map_nested_dicts(v, func) for k, v in ob.iteritems()}
+        else:
+            return func(ob)

@@ -4,13 +4,16 @@ from src.config import Config, loss_object_to_main_loss, loss_object_to_reconstr
 from src.datasets import BookDataset, DummyDataset, WikiDataset
 from src.logger import Logger
 from src.pre_processing import TreeTokenizer, worker_init_fn
-from src.utils import seed_torch
+from src.utils import seed_torch,merge_dicts,map_nested_dicts
 from src.model import AgentModel
 from torch.utils.data.dataloader import DataLoader
 import numpy as np
 import torch
 import time
 import madgrad  # is it any good?
+import torch.optim.lr_scheduler
+import math
+
 
 seed_torch(0)  # 0 learns 2 doesn't (before no cnn layer)
 
@@ -43,23 +46,27 @@ def train():
                    ("discriminator" not in name) and ("generator" not in name)]
     generator_params = [param for name, param in model.named_parameters() if "generator" in name]
     discriminator_params = [param for name, param in model.named_parameters() if "discriminator" in name]
-
-    reconstruction_params = [param for name, param in model.named_parameters() if (("decompressor" in name) or ("decoder" in name))]
     coherence_params = [param for name, param in model.named_parameters() if "coherence" in name]
+    reconstruction_params = [param for name, param in model.named_parameters() if (("decompressor" in name) or ("decoder" in name))]
 
     if Config.optimizer == "Adam":
         main_optimizer = torch.optim.AdamW(main_params, Config.lr)
     else:
         main_optimizer = madgrad.MADGRAD(main_params, lr=Config.lr, momentum=Config.momentum)  # 0.01,0.9 is the default
     #main_optimizer = torch.optim.AdamW(main_params, 0.001) #todo: for dummy only
-    generator_optimizer = torch.optim.AdamW(generator_params, 0.001)
-    discriminator_optimizer = torch.optim.AdamW(discriminator_params, 0.001)
+
+    lambda_lr = lambda batch: math.exp(math.log(0.5)/Config.half_life_steps) ** batch
+    scheduler = torch.optim.lr_scheduler.LambdaLR(main_optimizer,lambda_lr)
+
+    #generator_optimizer = torch.optim.AdamW(generator_params, 0.001)
+    #discriminator_optimizer = torch.optim.AdamW(discriminator_params, 0.001)
 
     Logger.setup()
     Checkpoints.setup()
     Checkpoints.load(model)
     all_times = []
     global_step = 0
+    acc_loss_object = {0: {}, 1: {}}
     for epoch in range(10001):
         # print('Epoch', epoch + 1)
         # start_time = time.time()
@@ -69,56 +76,52 @@ def train():
             if Config.skip_batches is not None and (epoch == 0 and step < Config.skip_batches):
                 global_step += 1
                 continue
-            if step>50810 and step<50840: #todo: delete later
-                continue
 
             model.train()
-            main_optimizer.zero_grad()
 
             will_reconstruct = PRINT_RECONSTRUCTED_TEXT and (
-                    (epoch % Config.log_every == 0 and step == 0) or
-                    (step % Config.log_every == 0 and step > 0)
+                    (epoch % (Config.grad_acc_steps * Config.log_every) == 0 and step == 0) or
+                    (step % (Config.grad_acc_steps * Config.log_every) == 0 and step > 0)
             )
 
             g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT,
                                                                       debug=will_reconstruct)
-            Logger.log_losses(g_loss, disc_loss, main_loss, loss_object, step=global_step)
-            Logger.log_l2_classifiers(model, step=global_step)
+            acc_loss_object = merge_dicts(loss_object,acc_loss_object)
 
             main_loss = loss_object_to_main_loss(loss_object)
             r_loss = loss_object_to_reconstruction_weights_loss(loss_object)
             c_loss = loss_object_to_extra_coherence_weights_loss(loss_object)
 
             if GENERATE_TEXT:
-                generator_optimizer.zero_grad()
-                discriminator_optimizer.zero_grad()
-                main_loss.backward(retain_graph=True)
-                [setattr(p, "requires_grad", False) for p in main_params + generator_params]
-                disc_loss.backward(retain_graph=True)
-                [setattr(p, "requires_grad", True) for p in generator_params]
-                [setattr(p, "requires_grad", False) for p in discriminator_params]
-                (g_loss - disc_loss * 0.2).backward()  # disc loss won't go down even when this is commented => BUG
-                [setattr(p, "requires_grad", True) for p in main_params + discriminator_params]
-                torch.nn.utils.clip_grad_norm_(model.parameters(), Config.grad_clip_value)
-                main_optimizer.step()
-                discriminator_optimizer.step()
-                generator_optimizer.step()
+              pass
+                #todo: this is no longer up to date like the else part
             else:
                 [setattr(p, "requires_grad", False) for p in main_params]
-                [setattr(p, "requires_grad", True) for p in reconstruction_params]
-                r_loss.backward(retain_graph=True)
-                [setattr(p, "requires_grad", False) for p in reconstruction_params]
                 [setattr(p, "requires_grad", True) for p in coherence_params]
-                c_loss.backward(retain_graph=True)
+                (c_loss / Config.grad_acc_steps).backward(retain_graph=True)
+                [setattr(p, "requires_grad", False) for p in coherence_params]
+                [setattr(p, "requires_grad", True) for p in reconstruction_params]
+                (r_loss / Config.grad_acc_steps).backward(retain_graph=True)
                 [setattr(p, "requires_grad", True) for p in main_params]
+                (main_loss / Config.grad_acc_steps).backward()
+                #I want to clip on every step, how?
+                if step % Config.grad_acc_steps == 0:
+                  torch.nn.utils.clip_grad_norm_(main_params, Config.grad_clip_value)
+                  main_optimizer.step()
+                  main_optimizer.zero_grad()
+                  scheduler.step()
+                  #log
+                  if step>0:
+                    acc_loss_object =  map_nested_dicts(acc_loss_object, lambda x: x/Config.grad_acc_steps)
+                  Logger.log_losses(g_loss, disc_loss, main_loss, acc_loss_object, step=global_step)
+                  Logger.log_l2_classifiers(model, step=global_step)
+                  acc_loss_object =  map_nested_dicts(acc_loss_object, lambda x: x*0.0)
+                  global_step += 1
 
-                main_loss.backward()
-                torch.nn.utils.clip_grad_value_(main_params, Config.grad_clip_value)
-                main_optimizer.step()
-
-            if (epoch % Config.log_every == 0 and step == 0) or (step % Config.log_every == 0 and step > 0):
+            if (epoch % (Config.grad_acc_steps * Config.log_every) == 0 and step == 0) or (step % (Config.grad_acc_steps * Config.log_every) == 0 and step > 0):
                 print('Epoch', epoch, 'Batch', step)
-                # print(loss_object)
+                print(loss_object)
+                print(main_loss)
                 model.eval()
 
                 if GENERATE_TEXT:
@@ -131,6 +134,7 @@ def train():
                     expected = [TreeTokenizer.deep_detokenize(node.build_struct(return_eos=True)[0], Config.agent_level)
                                 for node in nodes]
                     reconstructed = [model.full_decode(batch.level_nodes[i][:5]) for i in range(Config.agent_level + 1)]
+
                     reconstructed = [[TreeTokenizer.deep_detokenize(node[0], i) for node in items] for i, items in
                                      enumerate(reconstructed)]
                     for i, text in enumerate(reconstructed):
@@ -144,10 +148,11 @@ def train():
                                 print('MATCHED')
                                 exit()
 
-            Checkpoints.save(model, epoch, step)
-            global_step += 1
+                Checkpoints.save(model, epoch, global_step)
 
-        # current_time = time.time() - start_time
+
+
+                # current_time = time.time() - start_time
         # all_times.append(current_time)
         # print('Epoch', epoch + 1, 'completed in', round(current_time, 3), 'average', round(np.mean(all_times), 3))
 

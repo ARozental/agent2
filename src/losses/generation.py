@@ -5,18 +5,18 @@ from src.config import Config
 BCE_LOSS = nn.BCEWithLogitsLoss()
 
 
-def calc_generation_loss(agent_level, vectors, matrices, mask):
+def calc_generation_loss(agent_level, vectors, matrices, real_positions):
     batch, vec_size = vectors.shape
     fake_vecs = agent_level.generator.forward(vectors)  # make fake vecs of the same shape
     labels = torch.cat([torch.ones(batch), torch.zeros(batch)], dim=0).to(Config.device)
     vecs = torch.cat([vectors, fake_vecs], dim=0)
     disc_loss = agent_level.discriminator.get_loss(vecs, labels)
 
-    _, _, fake_matrices, fake_mask = agent_level.vecs_to_children_vecs(vectors)
-    fake_mask = (1 - fake_mask.float()).unsqueeze(-1)
-    cnn_mask = (1 - mask.float()).unsqueeze(-1)
-    fake_matrices *= fake_mask  # 0 on all pad positions to make life easy for the CNN
-    cnn_matrices = matrices * cnn_mask
+    _, _, fake_matrices, fake_real_positions = agent_level.vecs_to_children_vecs(vectors)
+    fake_real_positions = fake_real_positions.unsqueeze(-1)
+    cnn_real_positions = real_positions.unsqueeze(-1)
+    fake_matrices *= fake_real_positions  # 0 on all pad positions to make life easy for the CNN
+    cnn_matrices = matrices * cnn_real_positions
 
     mats = torch.cat([cnn_matrices, fake_matrices], dim=0)
     cnn_disc_loss = agent_level.cnn_discriminator.get_loss(mats, labels)

@@ -19,7 +19,7 @@ class Pndb(nn.Module):
         if Config.use_pndb1 is not None:
             self.questions = nn.Parameter(
                 torch.rand([Config.use_pndb1, Config.vector_sizes[level]], requires_grad=True))  # global Q matrix
-            self.to_k = nn.Linear(Config.vector_sizes[level], Config.vector_sizes[level])
+            self.to_k = nn.Linear(Config.vector_sizes[level], Config.vector_sizes[level],bias=False)
             # self.to_v = nn.Linear(Config.vector_sizes[level], Config.vector_sizes[level]) #should it be the identity matrix??
             self.ignore1 = nn.Linear(Config.vector_sizes[level], 1)
             self.update11 = nn.Linear(Config.vector_sizes[level], 1)
@@ -30,9 +30,9 @@ class Pndb(nn.Module):
         if Config.use_pndb2 is not None:
             self.questions2 = nn.Parameter(
                 torch.rand([Config.use_pndb2, Config.vector_sizes[level]], requires_grad=True))  # global Q matrix
-            self.to_k2 = nn.Linear(Config.vector_sizes[level], Config.vector_sizes[level])
+            self.to_k2 = nn.Linear(Config.vector_sizes[level], Config.vector_sizes[level],bias=False)
             self.to_v2 = nn.Linear(Config.vector_sizes[level],
-                                   Config.vector_sizes[level])  # should it be the identity matrix??
+                                   Config.vector_sizes[level],bias=False)  # should it be the identity matrix??
             self.ignore2 = nn.Linear(Config.vector_sizes[level], 1)
             self.update21 = nn.Linear(Config.vector_sizes[level], 1)
             self.update22 = nn.Linear(Config.vector_sizes[level], 1)
@@ -46,19 +46,19 @@ class Pndb(nn.Module):
     def update_gate(self, x, A, g1, g2, b):
         return torch.sigmoid(g1(x) + g2(A) + b)
 
-    def create_A_matrix(self, raw_embedding_matrices, mask):
+    def create_A_matrix(self, raw_embedding_matrices, real_positions):
         # input is the matrices from a single book only! each node should have a root_id so we can make sure of that
         k = self.to_k(raw_embedding_matrices)
         v = raw_embedding_matrices * self.ignore_gate(raw_embedding_matrices, self.ignore1)
-        A = attention(self.questions, k, v, Config.vector_sizes[1], mask=mask)  # [batch,num_questions,hidden]
+        A = attention(self.questions, k, v, Config.vector_sizes[1], real_positions=real_positions)  # [batch,num_questions,hidden]
         A = A.mean(0)  # we can have a sum here and subtract later
         return A
 
-    def create_A2_matrix(self, post_encoder_matrices, mask):
+    def create_A2_matrix(self, post_encoder_matrices, real_positions):
         # input is the matrices from a single book only! each node should have a root_id so we can make sure of that
         k = self.to_k2(post_encoder_matrices)
         v = self.to_v2(post_encoder_matrices) * self.ignore_gate(post_encoder_matrices, self.ignore2)
-        A = attention(self.questions2, k, v, Config.vector_sizes[1], mask=mask)  # [batch,num_questions,hidden]
+        A = attention(self.questions2, k, v, Config.vector_sizes[1], real_positions=real_positions)  # [batch,num_questions,hidden]
         A = A.mean(0)
         return A
 

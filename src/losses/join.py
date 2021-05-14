@@ -14,7 +14,6 @@ def calc_join_loss(agent_level, decompressed, join_positions):
 
     # Convert to float to avoid a case where they are int's and the loss breaks
     loss = bce_loss(cdot.float(), join_positions.float()).mean(-1)  # needed because of texts with full size and no EoS
-    #loss = torch.min(torch.stack([(loss/loss)*Config.max_typo_loss,loss],dim=0),dim=0)[0] #can't explode on typo
-
+    # loss = torch.min(torch.stack([(loss/loss)*Config.max_typo_loss,loss],dim=0),dim=0)[0] #can't explode on typo
 
     return loss

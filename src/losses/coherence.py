@@ -39,7 +39,8 @@ def calc_coherence_loss(agent_level, matrices, real_positions, eos_positions, em
     pre_encoder += changed_examples.unsqueeze(-1) * changed_tokens.unsqueeze(-1) * random_vec_replacements
     pre_encoder += changed_examples.unsqueeze(-1) * (1 - changed_tokens).unsqueeze(-1) * matrices
 
-    vectors_for_coherence = agent_level.compressor(agent_level.encoder(pre_encoder, real_positions, eos_positions), real_positions)
+    vectors_for_coherence = agent_level.compressor(agent_level.encoder(pre_encoder, real_positions, eos_positions),
+                                                   real_positions)
     scores, probs, class_predictions = agent_level.coherence_checker(vectors_for_coherence)
     coherence_losses = (scores.squeeze(-1) - labels) ** 2 + (bce_loss(probs.squeeze(-1), labels.ceil()) * 0.05)
 
@@ -57,31 +58,34 @@ def calc_coherence_loss(agent_level, matrices, real_positions, eos_positions, em
 
 
 def calc_rc_loss(agent_level, reencoded_matrices, real_positions, lower_agent_level, post_decoder, matrices):
-  batch, seq_length, vec_size = post_decoder.shape
-  # labels = torch.zeros(batch).to(Config.device)
-  # vectors_for_coherence = agent_level.compressor(reencoded_matrices, real_positions)
-  # scores, probs,class_predictions = agent_level.coherence_checker(vectors_for_coherence)
-  # coherence_losses = (scores.squeeze(-1) - labels) ** 2 + (bce_loss(probs.squeeze(-1), labels.ceil()) * 0.05)
+    batch, seq_length, vec_size = post_decoder.shape
+    # labels = torch.zeros(batch).to(Config.device)
+    # vectors_for_coherence = agent_level.compressor(reencoded_matrices, real_positions)
+    # scores, probs,class_predictions = agent_level.coherence_checker(vectors_for_coherence)
+    # coherence_losses = (scores.squeeze(-1) - labels) ** 2 + (bce_loss(probs.squeeze(-1), labels.ceil()) * 0.05)
 
-
-  total_rcd_loss = torch.tensor(0.0).to(Config.device)
-  coherence_losses = torch.zeros(batch).to(Config.device)
-  return coherence_losses,total_rcd_loss
+    total_rcd_loss = torch.tensor(0.0).to(Config.device)
+    coherence_losses = torch.zeros(batch).to(Config.device)
+    return coherence_losses, total_rcd_loss
 
 
 def calc_lower_rc_loss(agent_level, reencoded_matrices, real_positions, lower_agent_level, matrices, post_decoder):
+    batch, seq_length, vec_size = post_decoder.shape
+    vectors_for_coherence = post_decoder.view(-1,
+                                              vec_size)  # todo fix bug we also take the would be masked vecotrs here
+    labels = torch.ones(batch * seq_length).to(Config.device)
+    scores, probs, class_predictions = lower_agent_level.coherence_checker.lower_forward(vectors_for_coherence,
+                                                                                         torch.cat([
+                                                                                                       matrices * real_positions.unsqueeze(
+                                                                                                           -1),
+                                                                                                       post_decoder * real_positions.unsqueeze(
+                                                                                                           -1)]))
+    coherence_losses = (scores.squeeze(-1) - labels) ** 2 + (bce_loss(probs.squeeze(-1), labels.ceil()) * 0.05)
+    real_positions = real_positions.view(-1)
+    coherence_losses = coherence_losses * real_positions
 
+    predictions_labels = torch.cat([torch.zeros(batch).to(Config.device), torch.ones(batch).to(Config.device)])
 
-  batch, seq_length, vec_size = post_decoder.shape
-  vectors_for_coherence = post_decoder.view(-1,vec_size) #todo fix bug we also take the would be masked vecotrs here
-  labels = torch.ones(batch*seq_length).to(Config.device)
-  scores,probs,class_predictions = lower_agent_level.coherence_checker.lower_forward(vectors_for_coherence, torch.cat([matrices*real_positions.unsqueeze(-1),post_decoder*real_positions.unsqueeze(-1)]))
-  coherence_losses = (scores.squeeze(-1) - labels) ** 2 + (bce_loss(probs.squeeze(-1), labels.ceil()) * 0.05)
-  real_positions=real_positions.view(-1)
-  coherence_losses = coherence_losses*real_positions
+    total_rcd_loss = bce_loss(class_predictions.squeeze(-1), predictions_labels)
 
-  predictions_labels = torch.cat([torch.zeros(batch).to(Config.device), torch.ones(batch).to(Config.device) ])
-
-  total_rcd_loss = bce_loss(class_predictions.squeeze(-1), predictions_labels)
-
-  return coherence_losses,total_rcd_loss.mean()
+    return coherence_losses, total_rcd_loss.mean()

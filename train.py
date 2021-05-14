@@ -1,10 +1,11 @@
 from src.checkpoints import Checkpoints
 from src.commands import Commands
-from src.config import Config, loss_object_to_main_loss, loss_object_to_reconstruction_weights_loss, loss_object_to_extra_coherence_weights_loss
+from src.config import Config, loss_object_to_main_loss, loss_object_to_reconstruction_weights_loss, \
+    loss_object_to_extra_coherence_weights_loss
 from src.datasets import BookDataset, DummyDataset, WikiDataset
 from src.logger import Logger
 from src.pre_processing import TreeTokenizer, worker_init_fn
-from src.utils import seed_torch,merge_dicts,map_nested_dicts
+from src.utils import seed_torch, merge_dicts, map_nested_dicts
 from src.model import AgentModel
 from torch.utils.data.dataloader import DataLoader
 import numpy as np
@@ -13,7 +14,6 @@ import time
 import madgrad  # is it any good?
 import torch.optim.lr_scheduler
 import math
-
 
 seed_torch(0)  # 0 learns 2 doesn't (before no cnn layer)
 
@@ -47,19 +47,20 @@ def train():
     generator_params = [param for name, param in model.named_parameters() if "generator" in name]
     discriminator_params = [param for name, param in model.named_parameters() if "discriminator" in name]
     coherence_params = [param for name, param in model.named_parameters() if "coherence" in name]
-    reconstruction_params = [param for name, param in model.named_parameters() if (("decompressor" in name) or ("decoder" in name))]
+    reconstruction_params = [param for name, param in model.named_parameters() if
+                             (("decompressor" in name) or ("decoder" in name))]
 
     if Config.optimizer == "Adam":
         main_optimizer = torch.optim.AdamW(main_params, Config.lr)
     else:
         main_optimizer = madgrad.MADGRAD(main_params, lr=Config.lr, momentum=Config.momentum)  # 0.01,0.9 is the default
-    #main_optimizer = torch.optim.AdamW(main_params, 0.001) #todo: for dummy only
+    # main_optimizer = torch.optim.AdamW(main_params, 0.001) #todo: for dummy only
 
-    lambda_lr = lambda batch: math.exp(math.log(0.5)/Config.half_life_steps) ** batch
-    scheduler = torch.optim.lr_scheduler.LambdaLR(main_optimizer,lambda_lr)
+    lambda_lr = lambda batch: math.exp(math.log(0.5) / Config.half_life_steps) ** batch
+    scheduler = torch.optim.lr_scheduler.LambdaLR(main_optimizer, lambda_lr)
 
-    #generator_optimizer = torch.optim.AdamW(generator_params, 0.001)
-    #discriminator_optimizer = torch.optim.AdamW(discriminator_params, 0.001)
+    # generator_optimizer = torch.optim.AdamW(generator_params, 0.001)
+    # discriminator_optimizer = torch.optim.AdamW(discriminator_params, 0.001)
 
     Logger.setup()
     Checkpoints.setup()
@@ -80,21 +81,21 @@ def train():
             model.train()
 
             will_reconstruct = PRINT_RECONSTRUCTED_TEXT and (
-                    (epoch % (Config.grad_acc_steps * Config.log_every) == 0 and step == 0) or
-                    (step % (Config.grad_acc_steps * Config.log_every) == 0 and step > 0)
+                (epoch % (Config.grad_acc_steps * Config.log_every) == 0 and step == 0) or
+                (step % (Config.grad_acc_steps * Config.log_every) == 0 and step > 0)
             )
 
             g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT,
                                                                       debug=will_reconstruct)
-            acc_loss_object = merge_dicts(loss_object,acc_loss_object)
+            acc_loss_object = merge_dicts(loss_object, acc_loss_object)
 
             main_loss = loss_object_to_main_loss(loss_object)
             r_loss = loss_object_to_reconstruction_weights_loss(loss_object)
             c_loss = loss_object_to_extra_coherence_weights_loss(loss_object)
 
             if GENERATE_TEXT:
-              pass
-                #todo: this is no longer up to date like the else part
+                pass
+                # todo: this is no longer up to date like the else part
             else:
                 [setattr(p, "requires_grad", False) for p in main_params]
                 [setattr(p, "requires_grad", True) for p in coherence_params]
@@ -104,21 +105,22 @@ def train():
                 (r_loss / Config.grad_acc_steps).backward(retain_graph=True)
                 [setattr(p, "requires_grad", True) for p in main_params]
                 (main_loss / Config.grad_acc_steps).backward()
-                #I want to clip on every step, how?
+                # I want to clip on every step, how?
                 if step % Config.grad_acc_steps == 0:
-                  torch.nn.utils.clip_grad_norm_(main_params, Config.grad_clip_value)
-                  main_optimizer.step()
-                  main_optimizer.zero_grad()
-                  scheduler.step()
-                  #log
-                  if step>0:
-                    acc_loss_object =  map_nested_dicts(acc_loss_object, lambda x: x/Config.grad_acc_steps)
-                  Logger.log_losses(g_loss, disc_loss, main_loss, acc_loss_object, step=global_step)
-                  Logger.log_l2_classifiers(model, step=global_step)
-                  acc_loss_object =  map_nested_dicts(acc_loss_object, lambda x: x*0.0)
-                  global_step += 1
+                    torch.nn.utils.clip_grad_norm_(main_params, Config.grad_clip_value)
+                    main_optimizer.step()
+                    main_optimizer.zero_grad()
+                    scheduler.step()
+                    # log
+                    if step > 0:
+                        acc_loss_object = map_nested_dicts(acc_loss_object, lambda x: x / Config.grad_acc_steps)
+                    Logger.log_losses(g_loss, disc_loss, main_loss, acc_loss_object, step=global_step)
+                    Logger.log_l2_classifiers(model, step=global_step)
+                    acc_loss_object = map_nested_dicts(acc_loss_object, lambda x: x * 0.0)
+                    global_step += 1
 
-            if (epoch % (Config.grad_acc_steps * Config.log_every) == 0 and step == 0) or (step % (Config.grad_acc_steps * Config.log_every) == 0 and step > 0):
+            if (epoch % (Config.grad_acc_steps * Config.log_every) == 0 and step == 0) or (
+                step % (Config.grad_acc_steps * Config.log_every) == 0 and step > 0):
                 print('Epoch', epoch, 'Batch', step)
                 print(loss_object)
                 print(main_loss)
@@ -149,8 +151,6 @@ def train():
                                 exit()
 
                 Checkpoints.save(model, epoch, global_step)
-
-
 
                 # current_time = time.time() - start_time
         # all_times.append(current_time)

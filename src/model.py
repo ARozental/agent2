@@ -33,7 +33,7 @@ class AgentModel(nn.Module):
         id_to_tokens = {node.distinct_lookup_id: node.get_padded_word_tokens() for node in node_batch}
 
         if Config.use_tpu:
-            num_dummy_distinct = Config.batch_sizes[0] - max_distinct_id
+            num_dummy_distinct = Config.node_sizes[0] - max_distinct_id
             for i in range(num_dummy_distinct):
                 id_to_tokens[i + max_distinct_id + 1] = [1] * Config.sequence_lengths[0]
         else:
@@ -80,7 +80,7 @@ class AgentModel(nn.Module):
 
             # todo: pndb_map = {md5 => tensor}
 
-            for batch_num, node_batch in enumerate(iter_even_split(real_nodes, Config.batch_sizes[level_num])):
+            for batch_num, node_batch in enumerate(iter_even_split(real_nodes, Config.node_sizes[level_num])):
                 num_dummy_nodes = len([True for node in node_batch if node.is_dummy])
                 total_dummy_nodes += num_dummy_nodes
 

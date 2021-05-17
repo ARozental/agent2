@@ -13,9 +13,9 @@ class Config:
     num_transformer_layers = [2, 2, 2, 2, 2, 2]  # [2,2,2,2]
     mlm_rate = 0.15  # 0.15 like BERT
     batch_size = 8  # How many books/articles/etc per batch.
-    batch_sizes = [4096, 4096, 1024, 1000, 1000]  # How many nodes to process at a time at each level
-    batch_sizes_dynamic = [[4096, 9216, 15360], [512, 1024, 3072]]  # Used for the TPU (TODO - Make these true dynamic)
-    dynamic_batch_sizes = True  # Used for the TPU
+    node_sizes = [4096, 4096, 1024, 1000, 1000]  # How many nodes to process at a time at each level
+    node_sizes_max = [8192, 1024]  # Used for the TPU; only used when "dynamic_node_sizes" is True
+    dynamic_node_sizes = True  # Used for the TPU to make it do 25%/50%/75%
     mini_batch_size = 256
 
     drop_rate = 0.0

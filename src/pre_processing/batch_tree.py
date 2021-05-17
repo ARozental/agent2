@@ -4,6 +4,8 @@ import numpy as np
 
 
 class BatchTree:
+    FIRST_RUN = True
+
     def __init__(self, batch_root):
         self.level_nodes = {i: [] for i in range(
             Config.agent_level + 1)}  # {0: [sorted nodes for words], 1: [sorted nodes for sentences]}
@@ -20,6 +22,7 @@ class BatchTree:
             [self.__batch_up_nodes1(c) for c in node.children]
 
     def batch_up_nodes(self):  # fills the self.level_nodes hash, called from tokenizer.batch_texts_to_trees(texts)
+        self.level_nodes = {i: [] for i in range(Config.agent_level + 1)}
         [self.__batch_up_nodes1(c) for c in self.batch_root.children]
 
     # TODO - Make this work for any number of levels, only works when Config.agent_level == 1
@@ -29,15 +32,30 @@ class BatchTree:
 
         assert Config.agent_level <= Config.levels['SENTENCE']
 
-        if Config.dynamic_batch_sizes:
-            num0 = len(self.level_nodes[0])
-            num1 = len(self.level_nodes[1])
-            # Dynamically change the batch_sizes to be the smallest size that will fit all of the nodes
-            Config.batch_sizes[0] = [val for val in Config.batch_sizes_dynamic[0] if num0 < val][0]
-            Config.batch_sizes[1] = [val for val in Config.batch_sizes_dynamic[1] if num1 < val][0]
+        if Config.dynamic_node_sizes:
+            if BatchTree.FIRST_RUN:  # On the first step of the model, do max batch size
+                Config.node_sizes = Config.node_sizes_max
+                BatchTree.FIRST_RUN = False
+            else:
+                # Dynamically change the node_sizes to be the smallest size that will fit all of the nodes
+                for level in range(Config.agent_level + 1):
+                    num_nodes = len(self.level_nodes[level])
+                    values = [int(Config.node_sizes_max[level] * percent) for percent in [0.25, 0.5, 0.75] if
+                              num_nodes < int(Config.node_sizes_max[level] * percent)]
+                    if len(values) == 0:
+                        Config.node_sizes[level] = Config.node_sizes_max[level]  # Set the max size
+                    else:
+                        Config.node_sizes[level] = values[0]  # Set the smallest value that fits
 
-        add0 = Config.batch_sizes[0] - len(self.level_nodes[0])
-        add1 = Config.batch_sizes[1] - len(self.level_nodes[1])
+        # Trim the nodes down to fit the node_sizes
+        # Need >= because the add0 and add1 need to be larger than 0; need to avoid having one be > 0 and one be == 0
+        # TODO - Make this better to do level by level (delete sentences to get level 1 done, then trim out words to get level 0 done)
+        while len(self.level_nodes[0]) >= Config.node_sizes[0] or len(self.level_nodes[1]) >= Config.node_sizes[1]:
+            self.batch_root.children = self.batch_root.children[:-1]
+            self.batch_up_nodes()
+
+        add0 = Config.node_sizes[0] - len(self.level_nodes[0])
+        add1 = Config.node_sizes[1] - len(self.level_nodes[1])
         assert add0 > 0
         assert add1 > 0
 

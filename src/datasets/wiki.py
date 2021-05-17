@@ -37,7 +37,7 @@ class WikiDataset(Dataset):
             self.data = list(range(self.max_num))
 
         if Config.use_tpu:
-            assert Config.dynamic_batch_sizes is True
+            assert Config.dynamic_node_sizes is True
 
     def init_tree_tokenizer(self):
         TreeTokenizer.split_functions = [

@@ -93,14 +93,14 @@ class AgentModel(nn.Module):
                             level_num].get_children(
                             node_batch,
                             self.char_embedding_layer.weight,
-                            previous_vectors)
+                            previous_vectors, debug=debug)
                 else:
                     matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy = \
                         self.agent_levels[
                             level_num].get_children(
                             node_batch,
                             self.char_embedding_layer.weight,
-                            previous_vectors)
+                            previous_vectors, debug=debug)
                     num_dummy += num_dummy0_embed
 
                 if Config.use_tpu:

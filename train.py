@@ -40,9 +40,11 @@ def train(index, flags):
     if Config.use_tpu and not xm.is_master_ordinal():
         xm.rendezvous('download_only_once')
 
-    # dataset = DummyDataset(max_num=None)
-    # dataset = BookDataset(no_stats=True, max_num=2)
-    dataset = WikiDataset(max_num=None)
+    if Config.use_dummy_dataset:
+        dataset = DummyDataset(max_num=None)
+    else:
+        # dataset = BookDataset(no_stats=True, max_num=2)
+        dataset = WikiDataset(max_num=None)
 
     if Config.use_tpu and xm.is_master_ordinal():
         xm.rendezvous('download_only_once')

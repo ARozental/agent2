@@ -68,6 +68,8 @@ class Config:
     gpu_num = 0
     device = None  # Will be set in setup()
 
+    use_dummy_dataset = False
+
     @staticmethod
     def setup_device():
         if Config.use_tpu:

@@ -1,5 +1,5 @@
-import torch.nn as nn
 from src.config import Config
+import torch.nn as nn
 import torch
 
 

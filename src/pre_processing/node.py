@@ -34,6 +34,8 @@ class Node:
         self.root_md5 = root_md5
         self.has_eos = has_eos
 
+        self.is_dummy = False
+
     def is_join(self):
         return self.tokens == -1
 

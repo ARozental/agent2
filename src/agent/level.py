@@ -51,7 +51,7 @@ class AgentLevel(nn.Module):
         # needed to make sure w1 can never be negative
         return F.elu(dot * self.join_classifier_w * torch.sign(self.join_classifier_w)) + self.join_classifier_b
 
-    def get_children(self, node_batch, char_embedding=None):
+    def get_children(self, node_batch, char_embedding=None, previous_vectors=None, debug=False):
         max_length = Config.sequence_lengths[self.level]
 
         if self.level == 0:  # words => get token vectors
@@ -66,96 +66,90 @@ class AgentLevel(nn.Module):
             )
 
             # lookup_ids is also labels
-            return matrices, real_positions, eos_positions, None, char_embedding, lookup_ids
+            return matrices, real_positions, eos_positions, None, char_embedding, lookup_ids, None, 0
         else:
             if self.level == 1:
                 id_name = 'distinct_lookup_id'
             else:
                 id_name = 'id'
+                raise ValueError('Anything above level 1 is not implemented and tested yet.')
 
             add_value = 2 + int(Config.join_texts)
+
+            if self.level == 1:
+                num_dummy = 0
+
+                if Config.use_tpu:
+                    total_possible = len(node_batch) * max_length
+                    extra_dummy = total_possible - (previous_vectors.size(0) - add_value)
+                    if extra_dummy > 0:
+                        previous_vectors = torch.cat(
+                            (
+                                previous_vectors,
+                                torch.stack([self.pad_vector] * extra_dummy)
+                            ), 0)
+                        num_dummy += extra_dummy
+                embedding = torch.cat(
+                    (
+                        torch.stack(
+                            [self.eos_vector] +
+                            [self.pad_vector] +
+                            ([self.join_vector] if Config.join_texts else [])
+                        ),
+                        previous_vectors
+                    ), dim=0)
+            else:
+                # THIS IS NOT IMPLEMENTED YET
+                embedding_ids = [[child.batch_index for child in node.children] for node in node_batch]
+                embedding = torch.cat(
+                    (
+                        torch.stack(
+                            [self.eos_vector] +
+                            [self.pad_vector] +
+                            ([self.join_vector] if Config.join_texts else [])
+                        ),
+                        previous_vectors
+                    ), dim=0)
+                num_dummy = len([True for node in node_batch for child in node.children if child.is_dummy])
 
             masks = [[False] * (len(node.children) + 1) for node in node_batch]
             eos_positions = [[0.0] * len(node.children) + [1.0] for node in node_batch]
             join_positions = [[1 if child.is_join() else 0 for child in node.children] for node in node_batch]
-            all_ids = [[getattr(child, id_name) + add_value for child in node.children] + [0] for node in node_batch]
-            matrices = [[child.vector for child in node.children] + [self.eos_vector] for node in node_batch]
+
+            all_ids = [[2 if child.is_join() else getattr(child, id_name) + add_value for child in node.children] + [0]
+                       for node in node_batch]  # [0] is EOS, 2 is JOIN
 
             masks = [item + [True] * (max_length - len(item)) for item in masks]
             eos_positions = [item + [0.0] * (max_length - len(item)) for item in eos_positions]
             join_positions = [item + [0.0] * (max_length - len(item)) for item in join_positions]
-            all_ids = [item + [1] * (max_length - len(item)) for item in all_ids]
-            matrices = [torch.stack(item + [self.pad_vector] * (max_length - len(item))) for item in matrices]
+            all_ids = [item + [1] * (max_length - len(item)) for item in all_ids]  # 1 is PAD
 
             # These arrays may be longer than the max_length because they assume that the EoS token exists
             # But some sentences, etc don't have the EoS at all if they were split
             masks = [item[:max_length] for item in masks]
             eos_positions = [item[:max_length] for item in eos_positions]
+            join_positions = [item[:max_length] for item in join_positions]
             all_ids = [item[:max_length] for item in all_ids]
-            matrices = [item[:max_length] for item in matrices]
 
-            all_children = [child for node in node_batch for child in node.children]
             mask = torch.tensor(masks).to(Config.device)
             eos_positions = torch.tensor(eos_positions).to(Config.device)
             join_positions = torch.tensor(join_positions).to(Config.device)
 
             # [sentences in node_batch, max words in sentence, word vec size]
-            matrices = torch.stack(matrices).to(Config.device)
+            all_ids = [torch.LongTensor(item).to(Config.device) for item in all_ids]
+            all_ids = torch.stack(all_ids).to(Config.device)
 
-            # 0 for EoS, 1 for pad, 2 is for join (so start counting at 1 or 2)
-            all_children_ids = [i for x in all_ids for i in x if i > add_value - 1]
-            all_children_ids = list(dict.fromkeys(all_children_ids))
-            id_to_place = {child_id: i + add_value for i, child_id in enumerate(all_children_ids)}
-            id_to_place[0] = 0
-            id_to_place[1] = 1
-            if Config.join_texts:
-                id_to_place[2] = 2
+            matrices = torch.index_select(embedding, 0, all_ids.flatten())
+            matrices = matrices.reshape((all_ids.size(0), all_ids.size(1), matrices.size(1)))
 
-            labels = torch.tensor([[id_to_place[i] for i in x] for x in all_ids]).to(Config.device)
-
-            if self.level == 1:
-                id_to_vec = {getattr(child, id_name): child.vector for node in node_batch for child in node.children}
-                # Subtract add_value to get to the real id
-                child_vectors = [id_to_vec[child_id - add_value] for child_id in all_children_ids]
-            else:
-                child_vectors = [child.vector for child in all_children]
-
-            embedding = torch.stack(
-                [self.eos_vector] +
-                [self.pad_vector] +
-                ([self.join_vector] if Config.join_texts else []) +
-                child_vectors
-            ).to(Config.device)
+            labels = all_ids  # torch.tensor(all_ids).to(Config.device)
 
             real_positions = (1 - mask.float())
-            return matrices, real_positions, eos_positions, join_positions, embedding, labels
+            vectors = self.compressor(self.encoder(matrices, real_positions, eos_positions), mask)
+            if debug:
+                [n.set_vector(v) for n, v in zip(node_batch, vectors)]
 
-    def realize_vectors(self, node_batch):
-        # todo: realize join vectors here
-        max_length = Config.sequence_lengths[self.level]
-        masks = [[False] * (len(node.children) + 1) for node in node_batch]
-        eos_positions = [[0.0] * len(node.children) + [1.0] for node in node_batch]
-        matrices = [[child.vector for child in node.children] + [self.eos_vector] for node in node_batch]
-
-        masks = [item + [True] * (max_length - len(item)) for item in masks]
-        eos_positions = [item + [0.0] * (max_length - len(item)) for item in eos_positions]
-        matrices = [torch.stack(item + [self.pad_vector] * (max_length - len(item))) for item in matrices]
-
-        # These arrays may be longer than the max_length because they assume that the EoS token exists
-        # But some sentences, etc don't have the EoS at all if they were split
-        masks = [item[:max_length] for item in masks]
-        eos_positions = [item[:max_length] for item in eos_positions]
-        matrices = [item[:max_length] for item in matrices]
-
-        mask = torch.tensor(masks).to(Config.device)
-        real_positions = (1 - mask.float())
-        eos_positions = torch.tensor(eos_positions).to(Config.device)
-
-        # [sentences_in_node_batch, max_words_in sentence, word vec size]
-        matrices = torch.stack(matrices).to(Config.device)
-
-        vectors = self.compressor(self.encoder(matrices, real_positions, eos_positions), mask)
-        [n.set_vector(v) for n, v in zip(node_batch, vectors)]
+            return matrices, real_positions, eos_positions, join_positions, embedding, labels, vectors, num_dummy
 
     def vecs_to_children_vecs(self, vecs):
         decompressed = self.decompressor(vecs)

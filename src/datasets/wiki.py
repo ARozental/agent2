@@ -1,3 +1,4 @@
+from src.config import Config
 from src.pre_processing import Splitters, TreeTokenizer
 from src.pre_processing.dataset import Dataset
 from datasets import load_dataset
@@ -34,6 +35,9 @@ class WikiDataset(Dataset):
             self.data = list(range(len(self.dataset['train'])))
         else:
             self.data = list(range(self.max_num))
+
+        if Config.use_tpu:
+            assert Config.dynamic_node_sizes is True
 
     def init_tree_tokenizer(self):
         TreeTokenizer.split_functions = [

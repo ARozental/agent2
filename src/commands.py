@@ -20,11 +20,28 @@ class Commands:
         parser.add_argument('--gpu', type=int, default=0,
                             help='the CUDA GPU to place the model on')
 
+        parser.add_argument('--tpu', action='store_true', default=False,
+                            help='Whether to use a single TPU core')
+
+        parser.add_argument('--tpu-all', action='store_true', default=False,
+                            help='Whether to use all TPU cores')
+
+        parser.add_argument('--debug-tpu', action='store_true', default=False,
+                            help='Whether or not to print out TPU metrics')
+
+        parser.add_argument('--dummy', action='store_true', default=False,
+                            help='Whether to use the dummy dataset')
+
         args = parser.parse_args()
 
         if args.config is not None:
             Commands.load_config(args.config)
         Config.gpu_num = args.gpu
+        Config.use_tpu = args.tpu or args.tpu_all
+        Config.tpu_all = args.tpu_all
+        Config.debug_tpu = args.debug_tpu
+        if args.dummy:
+            Config.use_dummy_dataset = True
         if args.skip is not None:
             Config.skip_batches = args.skip
 

@@ -1,7 +1,7 @@
 import torch
 import json
 import sys
-from src.utils import inverse_loss, cap_loss
+
 
 class Config:
     sequence_lengths = [16, 16, 6, 3, 4]  # [10,12,6,20,20]
@@ -12,7 +12,9 @@ class Config:
     num_transformer_layers = [2, 2, 2, 2, 2, 2]  # [2,2,2,2]
     mlm_rate = 0.15  # 0.15 like BERT
     batch_size = 8  # How many books/articles/etc per batch.
-    batch_sizes = [4096, 4096, 1024, 1000, 1000]  # How many nodes to process at a time at each level
+    node_sizes = [4096, 4096, 1024, 1000, 1000]  # How many nodes to process at a time at each level
+    node_sizes_max = [8192, 1024]  # Used for the TPU; only used when "dynamic_node_sizes" is True
+    dynamic_node_sizes = True  # Used for the TPU to make it do 25%/50%/75%
     mini_batch_size = 256
 
     drop_rate = 0.0
@@ -27,7 +29,6 @@ class Config:
     # PNDB - None is off; integer for number of questions
     use_pndb1 = None
     use_pndb2 = None
-
 
     # smoothing
     # max_typo_loss = 10.0
@@ -61,69 +62,26 @@ class Config:
 
     # Run configuration below (keeping device here makes it easier to use throughout all of the code)
     use_cuda = True
+    use_tpu = False
+    use_all_tpu_cores = False
+    debug_tpu = False
     gpu_num = 0
     device = None  # Will be set in setup()
 
+    use_dummy_dataset = False
+
     @staticmethod
     def setup_device():
-        if Config.use_cuda and torch.cuda.is_available():
+        if Config.use_tpu:
+            return  # Don't do anything because needs to be done inline to support all cores
+        elif Config.use_cuda and torch.cuda.is_available():
             Config.device = torch.device('cuda', Config.gpu_num)
         else:
             Config.device = torch.device('cpu')
 
-
-    cnn_padding = 2 # kernal=2*padding+1
+    cnn_padding = 2  # kernal=2*padding+1
     reconstruction_d = 0.0
-    main_d= 0.03
+    main_d = 0.03
     main_rcd = 0.03
     main_rm = 0.1
     main_rmd = 0.03
-
-
-
-def loss_object_to_main_loss(obj):
-  loss = obj[0]['r'] * 0.0
-  for l in obj.keys():
-    loss += obj[l]['m']  * 0.1
-    #loss += obj[l]['md'] * 0.1 #off from code
-    loss += obj[l]['c']  * 1.0
-    loss += obj[l]['r']  * 0.1
-    loss += obj[l]['e']  * 0.1
-    loss += obj[l]['j']  * 0.001   #do we even need it??
-    loss += obj[l]['d']  * Config.main_d #moved here as a test
-
-
-
-    loss += obj[l]['rc'] * 1.0
-    loss += obj[l]['re'] * 0.1
-    loss += obj[l]['rj'] * 0.01
-    loss += obj[l]['rmd']* Config.main_rmd
-
-    if l>0:
-      loss += inverse_loss(obj[l]['rcd']) * Config.main_rcd   #negative on the main weights
-    loss += obj[l]['rm'] * Config.main_rm
-
-
-
-  return loss
-
-def loss_object_to_reconstruction_weights_loss(obj):
-  loss = obj[0]['r'] * 0.0
-  for l in obj.keys():
-    loss += obj[l]['rm'] * (-Config.main_rm)
-    loss += obj[l]['rmd'] * (-Config.main_rmd)
-
-
-  return loss
-
-def loss_object_to_extra_coherence_weights_loss(obj):
-  loss = obj[0]['r'] * 0.0
-  for l in obj.keys():
-    loss += cap_loss(obj[l]['rcd']) * 1
-  return loss
-
-  def map_nested_dicts(ob, func):
-    if isinstance(ob, collections.Mapping):
-      return {k: map_nested_dicts(v, func) for k, v in ob.iteritems()}
-    else:
-      return func(ob)

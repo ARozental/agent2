@@ -28,8 +28,9 @@ def calc_reconstruction_loss(agent_level, matrices, decompressed, real_positions
 
     # works :) with *10?, maybe we won't need the *10 when there is a real dataset, verify the norm doesn't go crazy because of this line later
 
-    reconstruction_diff = (((matrices - post_decoder) * real_positions.unsqueeze(-1)).norm(p=1, dim=[1, 2]))
-    reconstruction_diff = reconstruction_diff / ((matrices * real_positions.unsqueeze(-1)).norm(p=1, dim=[1, 2]))
+    # norm(p=1) is not supported on the TPU
+    reconstruction_diff = ((matrices - post_decoder) * real_positions.unsqueeze(-1)).norm(dim=[1, 2])
+    reconstruction_diff = reconstruction_diff / ((matrices * real_positions.unsqueeze(-1)).norm(dim=[1, 2]))
 
     if agent_level.level == 0:
         logits = logits + agent_level.token_bias
@@ -57,12 +58,12 @@ def calc_reconstruction_loss(agent_level, matrices, decompressed, real_positions
 
     if agent_level.level > 0:
         rc_loss, rcd_loss = calc_lower_rc_loss(agent_level, reencoded_matrices, real_positions,
-                                                     agent_level.previous_level,
-                                                     post_decoder, matrices)
-    else:
-        rc_loss, rcd_loss = calc_rc_loss(agent_level, reencoded_matrices, real_positions,
                                                agent_level.previous_level,
                                                post_decoder, matrices)
+    else:
+        rc_loss, rcd_loss = calc_rc_loss(agent_level, reencoded_matrices, real_positions,
+                                         agent_level.previous_level,
+                                         post_decoder, matrices)
 
     if Config.join_texts and agent_level.level > 0:
         rj_loss = calc_join_loss(agent_level, post_decoder, join_positions)

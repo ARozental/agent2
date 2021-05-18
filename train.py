@@ -89,8 +89,6 @@ def train(index, flags):
     acc_loss_object = {0: {}, 1: {}}
     for epoch in range(10001):
         # print('Epoch', epoch + 1)
-        if Config.use_tpu and Config.debug_tpu:
-            start_time = time.time()
 
         if Config.use_tpu and Config.use_all_tpu_cores:
             parallel_loader = pl.ParallelLoader(dataloader, [Config.device]).per_device_loader(Config.device)
@@ -102,6 +100,9 @@ def train(index, flags):
             if Config.skip_batches is not None and (epoch == 0 and step < Config.skip_batches):
                 global_step += 1
                 continue
+
+            if Config.use_tpu and Config.debug_tpu and (step == 0 or (step - 1) % Config.grad_acc_steps == 0):
+                start_time = time.time()
 
             model.train()
 
@@ -154,8 +155,11 @@ def train(index, flags):
                     acc_loss_object = map_nested_dicts(acc_loss_object, lambda x: x * 0.0)
                     global_step += 1
 
-            if (epoch % (Config.grad_acc_steps * Config.log_every) == 0 and step == 0) or (
-                step % (Config.grad_acc_steps * Config.log_every) == 0 and step > 0):
+            # TODO - Take out the TPU blocker once printing reconstructed is working on TPU
+            if not Config.use_tpu and (
+                (epoch % (Config.grad_acc_steps * Config.log_every) == 0 and step == 0) or
+                (step % (Config.grad_acc_steps * Config.log_every) == 0 and step > 0)
+            ):
                 print('Epoch', epoch, 'Batch', step)
                 print(loss_object)
                 print(main_loss)
@@ -166,7 +170,7 @@ def train(index, flags):
                     print(generated)
                     Logger.log_text(generated, step=global_step)
 
-                if PRINT_RECONSTRUCTED_TEXT and not Config.use_tpu:  # TODO - Take out the TPU once working
+                if PRINT_RECONSTRUCTED_TEXT:
                     nodes = batch.batch_root.children
                     expected = [TreeTokenizer.deep_detokenize(node.build_struct(return_eos=True)[0], Config.agent_level)
                                 for node in nodes]

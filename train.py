@@ -16,6 +16,8 @@ import madgrad  # is it any good?
 import torch.optim.lr_scheduler
 import math
 
+Commands.parse_arguments()
+
 if Config.use_tpu:
     import torch_xla.core.xla_model as xm
     import torch_xla.debug.profiler as xp
@@ -27,7 +29,6 @@ seed_torch(0)  # 0 learns 2 doesn't (before no cnn layer)
 GENERATE_TEXT = False
 PRINT_RECONSTRUCTED_TEXT = True
 
-Commands.parse_arguments()
 Config.setup_device()
 
 

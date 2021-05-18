@@ -70,7 +70,9 @@ class Config:
 
     @staticmethod
     def setup_device():
-        if Config.use_cuda and torch.cuda.is_available():
+        if Config.use_tpu:
+            return  # Don't do anything because needs to be done inline to support all cores
+        elif Config.use_cuda and torch.cuda.is_available():
             Config.device = torch.device('cuda', Config.gpu_num)
         else:
             Config.device = torch.device('cpu')
@@ -81,6 +83,3 @@ class Config:
     main_rcd = 0.03
     main_rm = 0.1
     main_rmd = 0.03
-
-
-

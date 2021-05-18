@@ -20,13 +20,13 @@ class Commands:
         parser.add_argument('--gpu', type=int, default=0,
                             help='the CUDA GPU to place the model on')
 
-        parser.add_argument('--tpu', type=bool, default=False,
+        parser.add_argument('--tpu', action='store_true', default=False,
                             help='Whether to use a single TPU core')
 
-        parser.add_argument('--tpu-all', type=bool, default=False,
+        parser.add_argument('--tpu-all', action='store_true', default=False,
                             help='Whether to use all TPU cores')
 
-        parser.add_argument('--debug-tpu', type=bool, default=False,
+        parser.add_argument('--debug-tpu', action='store_true', default=False,
                             help='Whether or not to print out TPU metrics')
 
         args = parser.parse_args()

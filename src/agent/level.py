@@ -144,11 +144,11 @@ class AgentLevel(nn.Module):
 
             labels = all_ids  # torch.tensor(all_ids).to(Config.device)
 
-            vectors = self.compressor(self.encoder(matrices, mask, eos_positions), mask)
+            real_positions = (1 - mask.float())
+            vectors = self.compressor(self.encoder(matrices, real_positions, eos_positions), mask)
             if debug:
                 [n.set_vector(v) for n, v in zip(node_batch, vectors)]
 
-            real_positions = (1 - mask.float())
             return matrices, real_positions, eos_positions, join_positions, embedding, labels, vectors, num_dummy
 
     def vecs_to_children_vecs(self, vecs):

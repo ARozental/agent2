@@ -39,7 +39,7 @@ class BatchTree:
 
         if Config.dynamic_node_sizes:
             if BatchTree.FIRST_RUN:  # On the first step of the model, do max batch size
-                Config.node_sizes = Config.node_sizes_max
+                Config.node_sizes = Config.node_sizes_max.copy()
                 BatchTree.FIRST_RUN = False
             else:
                 # Dynamically change the node_sizes to be the smallest size that will fit all of the nodes

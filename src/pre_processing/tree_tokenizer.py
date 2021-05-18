@@ -163,20 +163,23 @@ class TreeTokenizer:
     @classmethod
     def batch_texts_to_trees(cls, texts):  # todo: why is it called twice??
         # input: ["I like big butts. I can not lie.","You other brothers can't deny"]
-        #print("l1", len(texts))
-        texts_md5s = [[item.strip(),md5(text)] for text in texts for item in cls.parse_extra_levels(text)]
+        # print("l1", len(texts))
+        texts_md5s = [[item.strip(), md5(text)] for text in texts for item in cls.parse_extra_levels(text)]
 
-        texts = [x[0] for x in texts_md5s[:Config.mini_batch_size]] #todo: fix that mini batch size thingy
+        texts = [x[0] for x in texts_md5s[:Config.mini_batch_size]]  # todo: fix that mini batch size thingy
         md5s = [x[1] for x in texts_md5s[:Config.mini_batch_size]]
 
-        #texts = [item.strip() for text in texts for item in cls.parse_extra_levels(text)]
+        # texts = [item.strip() for text in texts for item in cls.parse_extra_levels(text)]
         structs = [cls.text_to_tree_struct(text, level=Config.agent_level) for text in texts]
         batch_root = Node(level=Config.agent_level + 1)
         batch_root.id = 0
-        batch_root.expand_struct(structs,md5s)
+        batch_root.expand_struct(structs, md5s)
         batch_tree = BatchTree(batch_root)
         batch_tree.batch_up_nodes()
-        batch_tree.fill_dummy_nodes()
+        if Config.use_tpu:
+            batch_tree.fill_dummy_nodes()
+        else:
+            batch_tree.trim_nodes()
         batch_tree.make_distinct_words()
 
         return batch_tree

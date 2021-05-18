@@ -25,11 +25,16 @@ class BatchTree:
         self.level_nodes = {i: [] for i in range(Config.agent_level + 1)}
         [self.__batch_up_nodes1(c) for c in self.batch_root.children]
 
+    def trim_nodes(self):
+        # Trim the nodes down to fit the node_sizes
+        # Need >= because the add0 and add1 need to be larger than 0; need to avoid having one be > 0 and one be == 0
+        # TODO - Make this better to do level by level (delete sentences to get level 1 done, then trim out words to get level 0 done)
+        while len(self.level_nodes[0]) >= Config.node_sizes[0] or len(self.level_nodes[1]) >= Config.node_sizes[1]:
+            self.batch_root.children = self.batch_root.children[:-1]
+            self.batch_up_nodes()
+
     # TODO - Make this work for any number of levels, only works when Config.agent_level == 1
     def fill_dummy_nodes(self):
-        if not Config.use_tpu:  # This is only for the TPU
-            return
-
         assert Config.agent_level <= Config.levels['SENTENCE']
 
         if Config.dynamic_node_sizes:
@@ -47,12 +52,7 @@ class BatchTree:
                     else:
                         Config.node_sizes[level] = values[0]  # Set the smallest value that fits
 
-        # Trim the nodes down to fit the node_sizes
-        # Need >= because the add0 and add1 need to be larger than 0; need to avoid having one be > 0 and one be == 0
-        # TODO - Make this better to do level by level (delete sentences to get level 1 done, then trim out words to get level 0 done)
-        while len(self.level_nodes[0]) >= Config.node_sizes[0] or len(self.level_nodes[1]) >= Config.node_sizes[1]:
-            self.batch_root.children = self.batch_root.children[:-1]
-            self.batch_up_nodes()
+        self.trim_nodes()
 
         add0 = Config.node_sizes[0] - len(self.level_nodes[0])
         add1 = Config.node_sizes[1] - len(self.level_nodes[1])

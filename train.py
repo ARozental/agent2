@@ -143,17 +143,18 @@ def train(index, flags):
                         main_optimizer.step()
                     main_optimizer.zero_grad()
                     scheduler.step()
+                    global_step += 1
 
                     if Config.use_tpu:
                         xm.mark_step()
 
                     # log
-                    if step > 0:
-                        acc_loss_object = map_nested_dicts(acc_loss_object, lambda x: x / Config.grad_acc_steps)
-                    Logger.log_losses(g_loss, disc_loss, main_loss, acc_loss_object, step=global_step)
-                    Logger.log_l2_classifiers(model, step=global_step)
-                    acc_loss_object = map_nested_dicts(acc_loss_object, lambda x: x * 0.0)
-                    global_step += 1
+                    if not Config.use_tpu:
+                        if step > 0:
+                            acc_loss_object = map_nested_dicts(acc_loss_object, lambda x: x / Config.grad_acc_steps)
+                        Logger.log_losses(g_loss, disc_loss, main_loss, acc_loss_object, step=global_step)
+                        Logger.log_l2_classifiers(model, step=global_step)
+                        acc_loss_object = map_nested_dicts(acc_loss_object, lambda x: x * 0.0)
 
             # TODO - Take out the TPU blocker once printing reconstructed is working on TPU
             if not Config.use_tpu and (
@@ -191,7 +192,7 @@ def train(index, flags):
 
                 Checkpoints.save(model, epoch, global_step)
 
-            if Config.use_tpu and Config.debug_tpu:
+            if Config.use_tpu and Config.debug_tpu and step % Config.grad_acc_steps == 0:
                 current_time = time.time() - start_time
                 if global_step > 10:
                     all_times.append(current_time)

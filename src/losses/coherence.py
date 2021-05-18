@@ -64,9 +64,9 @@ def calc_rc_loss(agent_level, reencoded_matrices, real_positions, lower_agent_le
     # scores, probs,class_predictions = agent_level.coherence_checker(vectors_for_coherence)
     # coherence_losses = (scores.squeeze(-1) - labels) ** 2 + (bce_loss(probs.squeeze(-1), labels.ceil()) * 0.05)
 
-    total_rcd_loss = torch.tensor(0.0).to(Config.device)
+    rcd_loss = torch.zeros(batch).to(Config.device)
     coherence_losses = torch.zeros(batch).to(Config.device)
-    return coherence_losses, total_rcd_loss
+    return coherence_losses, rcd_loss
 
 
 def calc_lower_rc_loss(agent_level, reencoded_matrices, real_positions, lower_agent_level, matrices, post_decoder):
@@ -86,6 +86,6 @@ def calc_lower_rc_loss(agent_level, reencoded_matrices, real_positions, lower_ag
 
     predictions_labels = torch.cat([torch.zeros(batch).to(Config.device), torch.ones(batch).to(Config.device)])
 
-    total_rcd_loss = bce_loss(class_predictions.squeeze(-1), predictions_labels)
+    rcd_loss = bce_loss(class_predictions.squeeze(-1), predictions_labels)
 
-    return coherence_losses, total_rcd_loss.mean()
+    return coherence_losses, rcd_loss

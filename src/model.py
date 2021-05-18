@@ -111,7 +111,8 @@ class AgentModel(nn.Module):
                 else:
                     dummy_logit_bias = None
 
-                mlm_loss, mlm_diff_loss = calc_mlm_loss(self.agent_levels[level_num], matrices, real_positions, eos_positions,
+                mlm_loss, mlm_diff_loss = calc_mlm_loss(self.agent_levels[level_num], matrices, real_positions,
+                                                        eos_positions,
                                                         embedding_matrix,
                                                         labels, num_dummy=num_dummy, dummy_logit_bias=dummy_logit_bias)
 
@@ -121,7 +122,7 @@ class AgentModel(nn.Module):
 
                 decompressed = self.agent_levels[level_num].decompressor(vectors)
 
-                reconstruction_diff_loss, reconstruction_loss, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss, total_rcd_loss = \
+                reconstruction_diff_loss, reconstruction_loss, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss, rcd_loss = \
                     calc_reconstruction_loss(
                         self.agent_levels[level_num],
                         matrices, decompressed, real_positions,
@@ -150,14 +151,13 @@ class AgentModel(nn.Module):
                     "j": (join_loss * loss_keeper).sum(),
                     "d": (reconstruction_diff_loss * loss_keeper).sum(),
 
-                    # TODO - NEED TO IMPLEMENT
-                    # "rc": rc_loss.sum(),
-                    # "re": re_loss.sum(),
-                    # "rj": rj_loss.sum(),
-                    # "rm": rm_loss.sum(),
-                    # "rmd": rm_diff_loss.sum(),
-                    # "cd": total_cd_loss,
-                    # "rcd": total_rcd_loss
+                    "rc": rc_loss.sum(),  # TODO - Need to add loss_keeper to this
+                    "re": (re_loss * loss_keeper).sum(),
+                    "rj": (rj_loss * loss_keeper).sum(),
+                    "rm": (rm_loss * loss_keeper).sum(),
+                    "rmd": (rm_diff_loss * loss_keeper).sum(),
+                    "cd": (cd_loss * loss_keeper).mean(),  # This is disabled in coherence loss
+                    "rcd": rcd_loss.mean(),  # TODO - Need to add loss_keeper to this
                 }
 
                 if level_num not in loss_object:  # On the first node_batch

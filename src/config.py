@@ -63,6 +63,8 @@ class Config:
     # Run configuration below (keeping device here makes it easier to use throughout all of the code)
     use_cuda = True
     use_tpu = False
+    use_all_tpu_cores = True
+    debug_tpu = False
     gpu_num = 0
     device = None  # Will be set in setup()
 

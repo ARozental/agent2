@@ -6,7 +6,7 @@ from src.losses.calc import loss_object_to_main_loss, loss_object_to_reconstruct
 from src.datasets import BookDataset, DummyDataset, WikiDataset
 from src.logger import Logger
 from src.pre_processing import TreeTokenizer, worker_init_fn
-from src.utils import seed_torch, merge_dicts, map_nested_dicts
+from src.utils import seed_torch, merge_dicts, map_nested_dicts, metsumm
 from src.model import AgentModel
 from torch.utils.data.dataloader import DataLoader
 import numpy as np
@@ -15,6 +15,12 @@ import time
 import madgrad  # is it any good?
 import torch.optim.lr_scheduler
 import math
+
+if Config.use_tpu:
+    import torch_xla.core.xla_model as xm
+    import torch_xla.debug.profiler as xp
+    import torch_xla.distributed.xla_multiprocessing as xmp
+    import torch_xla.distributed.parallel_loader as pl
 
 seed_torch(0)  # 0 learns 2 doesn't (before no cnn layer)
 
@@ -26,10 +32,19 @@ Config.setup_device()
 
 
 # Need to wrap in a function for the child workers
-def train():
+def train(index, flags):
+    if Config.use_tpu:
+        Config.device = xm.xla_device()
+
+    if Config.use_tpu and not xm.is_master_ordinal():
+        xm.rendezvous('download_only_once')
+
     # dataset = DummyDataset(max_num=None)
     # dataset = BookDataset(no_stats=True, max_num=2)
     dataset = WikiDataset(max_num=None)
+
+    if Config.use_tpu and xm.is_master_ordinal():
+        xm.rendezvous('download_only_once')
 
     dataloader = DataLoader(
         dataset,
@@ -71,9 +86,15 @@ def train():
     acc_loss_object = {0: {}, 1: {}}
     for epoch in range(10001):
         # print('Epoch', epoch + 1)
-        # start_time = time.time()
+        if Config.use_tpu and Config.debug_tpu:
+            start_time = time.time()
 
-        for step, batch in enumerate(dataloader):
+        if Config.use_tpu and Config.use_all_tpu_cores:
+            parallel_loader = pl.ParallelLoader(dataloader, [Config.device]).per_device_loader(Config.device)
+        else:
+            parallel_loader = dataloader
+
+        for step, batch in enumerate(parallel_loader):
             # This is not the most efficient, but needs to be done to not skip these examples in future epochs
             if Config.skip_batches is not None and (epoch == 0 and step < Config.skip_batches):
                 global_step += 1
@@ -85,6 +106,9 @@ def train():
                 (epoch % (Config.grad_acc_steps * Config.log_every) == 0 and step == 0) or
                 (step % (Config.grad_acc_steps * Config.log_every) == 0 and step > 0)
             )
+
+            if Config.use_tpu:
+                will_reconstruct = False  # Remove this once have the decode working on TPU
 
             g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT,
                                                                       debug=will_reconstruct)
@@ -109,9 +133,16 @@ def train():
                 # I want to clip on every step, how?
                 if step % Config.grad_acc_steps == 0:
                     torch.nn.utils.clip_grad_norm_(main_params, Config.grad_clip_value)
-                    main_optimizer.step()
+                    if Config.use_tpu and Config.use_all_tpu_cores:
+                        xm.optimizer_step(main_optimizer)
+                    else:
+                        main_optimizer.step()
                     main_optimizer.zero_grad()
                     scheduler.step()
+
+                    if Config.use_tpu:
+                        xm.mark_step()
+
                     # log
                     if step > 0:
                         acc_loss_object = map_nested_dicts(acc_loss_object, lambda x: x / Config.grad_acc_steps)
@@ -153,10 +184,26 @@ def train():
 
                 Checkpoints.save(model, epoch, global_step)
 
+            if Config.use_tpu and Config.debug_tpu:
+                current_time = time.time() - start_time
+                if global_step > 10:
+                    all_times.append(current_time)
+                    print('Step', global_step, 'completed in', round(current_time, 3), 'average',
+                          round(np.mean(all_times), 3))
+                else:
+                    print('Step', global_step, 'completed in', round(current_time, 3))
+                metsumm(global_step)
+                print('')
+                print('')
+
                 # current_time = time.time() - start_time
         # all_times.append(current_time)
         # print('Epoch', epoch + 1, 'completed in', round(current_time, 3), 'average', round(np.mean(all_times), 3))
 
 
 if __name__ == '__main__':
-    train()
+    if Config.use_tpu and Config.use_all_tpu_cores:
+        flags = {}
+        xmp.spawn(train, args=(flags,), nprocs=8, start_method='fork')
+    else:
+        train(None, None)

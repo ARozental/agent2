@@ -1,4 +1,4 @@
-from src.pre_processing import Node
+from src.pre_processing.node import Node
 from src.config import Config
 import numpy as np
 

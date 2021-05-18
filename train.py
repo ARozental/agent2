@@ -1,6 +1,7 @@
 from src.checkpoints import Checkpoints
 from src.commands import Commands
-from src.config import Config, loss_object_to_main_loss, loss_object_to_reconstruction_weights_loss, \
+from src.config import Config
+from src.losses.calc import loss_object_to_main_loss, loss_object_to_reconstruction_weights_loss, \
     loss_object_to_extra_coherence_weights_loss
 from src.datasets import BookDataset, DummyDataset, WikiDataset
 from src.logger import Logger

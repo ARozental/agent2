@@ -152,13 +152,13 @@ class AgentModel(nn.Module):
                     "j": (join_loss * loss_keeper).sum(),
                     "d": (reconstruction_diff_loss * loss_keeper).sum(),
 
-                    "rc": rc_loss.sum(),  # TODO - Need to add loss_keeper to this
+                    "rc": (rc_loss.view(matrices.shape[:2]) * loss_keeper.unsqueeze(-1)).sum(),
                     "re": (re_loss * loss_keeper).sum(),
                     "rj": (rj_loss * loss_keeper).sum(),
                     "rm": (rm_loss * loss_keeper).sum(),
                     "rmd": (rm_diff_loss * loss_keeper).sum(),
                     "cd": (cd_loss * loss_keeper).mean(),  # This is disabled in coherence loss
-                    "rcd": rcd_loss.mean(),  # TODO - Need to add loss_keeper to this
+                    "rcd": (rcd_loss.view(-1, 2) * loss_keeper.unsqueeze(-1)).mean(),  # TODO - Check if correct
                 }
 
                 if level_num not in loss_object:  # On the first node_batch

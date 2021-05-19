@@ -89,7 +89,7 @@ def train(index, flags):
     acc_loss_object = {0: {}, 1: {}}
     for epoch in range(10001):
         # print('Epoch', epoch + 1)
-
+        
         if Config.use_tpu and Config.use_all_tpu_cores:
             parallel_loader = pl.ParallelLoader(dataloader, [Config.device]).per_device_loader(Config.device)
         else:
@@ -177,7 +177,7 @@ def train(index, flags):
                     print(generated)
                     Logger.log_text(generated, step=global_step)
 
-                if PRINT_RECONSTRUCTED_TEXT:
+                if PRINT_RECONSTRUCTED_TEXT and not Config.use_tpu:  # TODO - Take out the TPU once working
                     nodes = batch.batch_root.children
                     expected = [TreeTokenizer.deep_detokenize(node.build_struct(return_eos=True)[0], Config.agent_level)
                                 for node in nodes]

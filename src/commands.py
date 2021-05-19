@@ -15,7 +15,7 @@ class Commands:
                             help='the name of the json file in `configs/` to load')
 
         parser.add_argument('--log', action='store_true', default=False,
-                            help='Turn on "log_experiment" into Tensorboard')
+                            help='Turn on "log_experiment" for Tensorboard')
 
         parser.add_argument('--skip', type=int, default=None,
                             help='value for the `skip_batches` config')

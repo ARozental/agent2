@@ -28,8 +28,8 @@ def calc_reconstruction_loss(agent_level, matrices, decompressed, real_positions
 
     # works :) with *10?, maybe we won't need the *10 when there is a real dataset, verify the norm doesn't go crazy because of this line later
 
-    reconstruction_diff = (((matrices - post_decoder) * real_positions.unsqueeze(-1)).norm(p=1, dim=[1, 2]))
-    reconstruction_diff = reconstruction_diff / ((matrices * real_positions.unsqueeze(-1)).norm(p=1, dim=[1, 2]))
+    reconstruction_diff = (((matrices - post_decoder) * real_positions.unsqueeze(-1)).norm(dim=[1, 2]))
+    reconstruction_diff = reconstruction_diff / ((matrices * real_positions.unsqueeze(-1)).norm(dim=[1, 2]))
 
     if agent_level.level == 0:
         logits = logits + agent_level.token_bias

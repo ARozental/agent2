@@ -32,6 +32,9 @@ class Commands:
         parser.add_argument('--dummy', action='store_true', default=False,
                             help='Whether to use the dummy dataset')
 
+        parser.add_argument('--gcs', action='store_true', default=False,
+                            help='Use the GCS Bucket')
+
         args = parser.parse_args()
 
         if args.config is not None:
@@ -44,6 +47,9 @@ class Commands:
             Config.use_dummy_dataset = True
         if args.skip is not None:
             Config.skip_batches = args.skip
+
+        if args.gcs:
+            Config.storage_location = 'gs://agent_output/'
 
     @staticmethod
     def load_config(filename):

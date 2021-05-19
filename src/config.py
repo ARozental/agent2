@@ -42,6 +42,7 @@ class Config:
     skip_batches = None  # How many batches to skip (additional on top of the checkpoint)
     use_checkpoint = None  # Load saved model and dataset step from a checkpoint
 
+    storage_location = None  # Where the root storage is (put "gs://" into here for Google Cloud)
     log_experiment = False  # Log into tensorboard?
     log_every = 100  # Log the reconstructed text every x epochs/batches
     save_every = None  # Save the model every x epochs/batches; None never saves

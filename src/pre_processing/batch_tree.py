@@ -61,11 +61,11 @@ class BatchTree:
 
         children_per = np.array_split(range(add0), add1)
         for num_per in children_per:
-            dummy_parent = Node(level=1, tokens=[0])
+            dummy_parent = Node(level=1, tokens=[2])
             dummy_parent.is_dummy = True
             dummy_parent.children = []
             for i in range(len(num_per)):
-                dummy_child = Node(level=0, tokens=[0])
+                dummy_child = Node(level=0, tokens=[2])
                 dummy_child.is_dummy = True
                 self.level_nodes[0].append(dummy_child)
                 dummy_parent.children.append(dummy_child)

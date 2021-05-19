@@ -35,7 +35,7 @@ class AgentModel(nn.Module):
         if Config.use_tpu:
             num_dummy_distinct = Config.node_sizes[0] - max_distinct_id
             for i in range(num_dummy_distinct):
-                id_to_tokens[i + max_distinct_id + 1] = [1] * Config.sequence_lengths[0]
+                id_to_tokens[i + max_distinct_id + 1] = [4] + ([Config.pad_token_id] * (Config.sequence_lengths[0] - 1))
         else:
             num_dummy_distinct = 0
 

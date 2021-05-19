@@ -3,6 +3,7 @@ from src.config import Config
 
 from torch.utils.tensorboard import SummaryWriter
 import pandas as pd
+import os
 
 
 class Logger:
@@ -31,7 +32,25 @@ class Logger:
     @classmethod
     def setup(cls):
         if Config.log_experiment:
-            cls.writer = SummaryWriter(log_dir=Config.exp_folder)
+            log_dir = []
+            if Config.storage_location is not None:
+                log_dir.append(Config.storage_location)
+                if Config.exp_folder is None:
+                    # Taken from PyTorch SummaryWriter source
+                    import socket
+                    from datetime import datetime
+                    current_time = datetime.now().strftime('%b%d_%H-%M-%S')
+                    log_dir.append(os.path.join('runs', current_time + '_' + socket.gethostname()))
+
+            if Config.exp_folder is not None:
+                log_dir.append(Config.exp_folder)
+
+            if len(log_dir) == 0:
+                log_dir = None
+            else:
+                log_dir = os.path.join(*log_dir)
+
+            cls.writer = SummaryWriter(log_dir=log_dir)
 
     @classmethod
     def log_losses(cls, g_loss, disc_loss, main_loss, loss_object, step):

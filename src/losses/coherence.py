@@ -64,8 +64,8 @@ def calc_rc_loss(agent_level, reencoded_matrices, real_positions, lower_agent_le
     # scores, probs,class_predictions = agent_level.coherence_checker(vectors_for_coherence)
     # coherence_losses = (scores.squeeze(-1) - labels) ** 2 + (bce_loss(probs.squeeze(-1), labels.ceil()) * 0.05)
 
-    rcd_loss = torch.zeros(batch).to(Config.device)
-    coherence_losses = torch.zeros(batch).to(Config.device)
+    rcd_loss = torch.zeros(batch * 2).to(Config.device)
+    coherence_losses = torch.zeros(batch * seq_length).to(Config.device)
     return coherence_losses, rcd_loss
 
 

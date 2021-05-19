@@ -35,7 +35,7 @@ class AgentModel(nn.Module):
         if Config.use_tpu:
             num_dummy_distinct = Config.node_sizes[0] - max_distinct_id
             for i in range(num_dummy_distinct):
-                id_to_tokens[i + max_distinct_id + 1] = [1] * Config.sequence_lengths[0]
+                id_to_tokens[i + max_distinct_id + 1] = [4] + ([Config.pad_token_id] * (Config.sequence_lengths[0] - 1))
         else:
             num_dummy_distinct = 0
 
@@ -139,7 +139,8 @@ class AgentModel(nn.Module):
                     join_loss = torch.tensor([0.0] * matrices.size(0)).to(Config.device)
 
                 loss_keeper = np.ones(matrices.size(0))
-                loss_keeper[-1 * num_dummy_nodes:] = 0
+                if num_dummy_nodes > 0:
+                    loss_keeper[-1 * num_dummy_nodes:] = 0
                 loss_keeper = torch.tensor(loss_keeper, device=Config.device)
 
                 losses = {
@@ -151,13 +152,13 @@ class AgentModel(nn.Module):
                     "j": (join_loss * loss_keeper).sum(),
                     "d": (reconstruction_diff_loss * loss_keeper).sum(),
 
-                    "rc": rc_loss.sum(),  # TODO - Need to add loss_keeper to this
+                    "rc": (rc_loss.view(matrices.shape[:2]) * loss_keeper.unsqueeze(-1)).sum(),
                     "re": (re_loss * loss_keeper).sum(),
                     "rj": (rj_loss * loss_keeper).sum(),
                     "rm": (rm_loss * loss_keeper).sum(),
                     "rmd": (rm_diff_loss * loss_keeper).sum(),
                     "cd": (cd_loss * loss_keeper).mean(),  # This is disabled in coherence loss
-                    "rcd": rcd_loss.mean(),  # TODO - Need to add loss_keeper to this
+                    "rcd": (rcd_loss.view(-1, 2) * loss_keeper.unsqueeze(-1)).mean(),  # TODO - Check if correct
                 }
 
                 if level_num not in loss_object:  # On the first node_batch

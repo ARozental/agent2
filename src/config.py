@@ -12,9 +12,9 @@ class Config:
     num_transformer_layers = [2, 2, 2, 2, 2, 2]  # [2,2,2,2]
     mlm_rate = 0.15  # 0.15 like BERT
     batch_size = 8  # How many books/articles/etc per batch.
-    node_sizes = [4096, 4096, 1024, 1000, 1000]  # How many nodes to process at a time at each level
+    node_sizes = [5120, 512, 1024, 1000, 1000]  # How many nodes to process at a time at each level
     node_sizes_max = [8192, 1024]  # Used for the TPU; only used when "dynamic_node_sizes" is True
-    dynamic_node_sizes = True  # Used for the TPU to make it do 25%/50%/75%
+    dynamic_node_sizes = False  # Used for the TPU to make it do 25%/50%/75%
     mini_batch_size = 256
 
     drop_rate = 0.0
@@ -42,6 +42,7 @@ class Config:
     skip_batches = None  # How many batches to skip (additional on top of the checkpoint)
     use_checkpoint = None  # Load saved model and dataset step from a checkpoint
 
+    storage_location = None  # Where the root storage is (put "gs://" into here for Google Cloud)
     log_experiment = False  # Log into tensorboard?
     log_every = 100  # Log the reconstructed text every x epochs/batches
     save_every = None  # Save the model every x epochs/batches; None never saves

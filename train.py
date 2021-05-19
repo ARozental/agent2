@@ -148,13 +148,19 @@ def train(index, flags):
                     if Config.use_tpu:
                         xm.mark_step()
 
-                    # log
-                    if not Config.use_tpu:
-                        if step > 0:
-                            acc_loss_object = map_nested_dicts(acc_loss_object, lambda x: x / Config.grad_acc_steps)
+                    if step > 0:
+                        acc_loss_object = map_nested_dicts(acc_loss_object, lambda x: x / Config.grad_acc_steps)
+
+                    # Log
+                    if Config.use_tpu:
+                        xm.add_step_closure(Logger.log_losses,
+                                            args=(g_loss, disc_loss, main_loss, acc_loss_object, global_step))
+                        xm.add_step_closure(Logger.log_l2_classifiers, args=(model, global_step))
+                    else:
                         Logger.log_losses(g_loss, disc_loss, main_loss, acc_loss_object, step=global_step)
                         Logger.log_l2_classifiers(model, step=global_step)
-                        acc_loss_object = map_nested_dicts(acc_loss_object, lambda x: x * 0.0)
+
+                    acc_loss_object = map_nested_dicts(acc_loss_object, lambda x: x * 0.0)
 
             # TODO - Take out the TPU blocker once printing reconstructed is working on TPU
             if not Config.use_tpu and (

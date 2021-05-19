@@ -139,7 +139,8 @@ class AgentModel(nn.Module):
                     join_loss = torch.tensor([0.0] * matrices.size(0)).to(Config.device)
 
                 loss_keeper = np.ones(matrices.size(0))
-                loss_keeper[-1 * num_dummy_nodes:] = 0
+                if num_dummy_nodes > 0:
+                    loss_keeper[-1 * num_dummy_nodes:] = 0
                 loss_keeper = torch.tensor(loss_keeper, device=Config.device)
 
                 losses = {

@@ -54,6 +54,9 @@ class Checkpoints:
         if Config.storage_location is not None:  # TODO - Implement Google Cloud Storage
             return None
 
+        if not os.path.exists(cls.MODEL_FOLDER):
+            return None
+
         checkpoint_file = None
         checkpoint_epoch = -1
         checkpoint_step = -1

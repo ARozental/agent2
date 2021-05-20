@@ -1,7 +1,7 @@
 from src.config import Config
 from src.pre_processing import Splitters, TreeTokenizer
 from src.pre_processing.dataset import Dataset
-from datasets import load_dataset
+from datasets import load_dataset, load_from_disk
 import os
 import re
 
@@ -29,7 +29,15 @@ class WikiDataset(Dataset):
 
         dir_path = os.path.dirname(os.path.realpath(__file__))
         tmp_folder = os.path.join(dir_path, '..', '..', 'tmp', 'huggingface')
-        self.dataset = load_dataset('wiki40b', 'en', cache_dir=tmp_folder)
+
+        if os.path.exists(tmp_folder) or Config.storage_location is None:
+            self.dataset = load_dataset('wiki40b', 'en', cache_dir=tmp_folder)
+        elif Config.storage_location is not None:
+            import gcsfs
+            gcs = gcsfs.GCSFileSystem()
+            location = Config.storage_location.replace('gs://', 'gcs://')
+            self.dataset = load_from_disk(os.path.join(location, 'tmp', 'huggingface', 'wiki40b/en/1.1.0/'), fs=gcs)
+
         self.max_num = max_num
         if self.max_num is None:
             self.data = list(range(len(self.dataset['train'])))

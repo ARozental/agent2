@@ -1,10 +1,14 @@
 from src.config import Config
+from src.storage import Storage
+from fsspec.implementations.local import LocalFileSystem
+import gcsfs
 import torch
 import json
 import os
 
 
 class Checkpoints:
+    fs = None
     MODELS = None
     MODEL_FOLDER = None
 
@@ -15,16 +19,21 @@ class Checkpoints:
             models.insert(0, Config.storage_location)
         cls.MODELS = os.path.join(*models)
 
+        if Config.storage_location is not None:
+            cls.fs = gcsfs.GCSFileSystem()
+        else:
+            cls.fs = LocalFileSystem()
+
         cls.MODEL_FOLDER = os.path.join(cls.MODELS, Config.model_folder)
         if Config.save_every is None:
             return
 
-        if not os.path.exists(cls.MODEL_FOLDER):
-            os.makedirs(cls.MODEL_FOLDER)
+        if not cls.fs.exists(cls.MODEL_FOLDER):
+            cls.fs.makedirs(cls.MODEL_FOLDER)
 
         config_file = os.path.join(cls.MODEL_FOLDER, 'config.json')
 
-        if os.path.exists(config_file):  # The config.json already exists
+        if cls.fs.exists(config_file):  # The config.json already exists
             return
 
         # Write config to the folder
@@ -38,7 +47,7 @@ class Checkpoints:
 
             config[attr] = getattr(Config, attr)
 
-        with open(config_file, 'w') as f:
+        with cls.fs.open(config_file, 'w') as f:
             json.dump(config, f)
 
     @classmethod
@@ -47,20 +56,19 @@ class Checkpoints:
             return
 
         if step > 0 and step % Config.save_every == 0:
-            torch.save(model.state_dict(), os.path.join(cls.MODEL_FOLDER, str(epoch) + '.' + str(step)))
+            with cls.fs.open(os.path.join(cls.MODEL_FOLDER, str(epoch) + '.' + str(step)), 'w') as f:
+                torch.save(model.state_dict(), f)
 
     @classmethod
     def find_existing_model(cls):
-        if Config.storage_location is not None:  # TODO - Implement Google Cloud Storage
-            return None
-
-        if not os.path.exists(cls.MODEL_FOLDER):
+        if not cls.fs.exists(cls.MODEL_FOLDER):
             return None
 
         checkpoint_file = None
         checkpoint_epoch = -1
         checkpoint_step = -1
-        for filename in os.listdir(cls.MODEL_FOLDER):
+        for file in cls.fs.listdir(cls.MODEL_FOLDER):
+            filename = os.path.basename(file['name'])
             if filename == 'config.json':
                 continue
 
@@ -101,10 +109,11 @@ class Checkpoints:
             return
 
         file = os.path.join(cls.MODELS, checkpoint_file)
-        if not os.path.exists(file):
+        if not cls.fs.exists(file):
             raise ValueError('The corresponding model folder for loading a checkpoint does not exist.')
 
-        model.load_state_dict(torch.load(file))  # Load model weights
+        with cls.fs.open(file) as f:
+            model.load_state_dict(torch.load(f))  # Load model weights
 
         # Calculate stopping point of checkpoint (Epoch is position 0 but can ignore it)
         step = int(checkpoint_file.split('.')[1]) + 1

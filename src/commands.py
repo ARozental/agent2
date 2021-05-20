@@ -56,6 +56,9 @@ class Commands:
         if args.skip is not None:
             Config.skip_batches = args.skip
 
+        if args.log:
+            Config.log_experiment = True
+
         if args.gcs:
             Config.storage_location = 'gs://agent_output/'
 

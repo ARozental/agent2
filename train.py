@@ -134,6 +134,10 @@ def train(index, flags):
                 (r_loss / Config.grad_acc_steps).backward(retain_graph=True)
                 [setattr(p, "requires_grad", True) for p in main_params]
                 (main_loss / Config.grad_acc_steps).backward()
+
+                if Config.use_tpu:
+                    xm.mark_step()
+
                 # I want to clip on every step, how?
                 if step % Config.grad_acc_steps == 0:
                     torch.nn.utils.clip_grad_norm_(main_params, Config.grad_clip_value)
@@ -145,7 +149,7 @@ def train(index, flags):
                     scheduler.step()
                     global_step += 1
 
-                    if Config.use_tpu:
+                    if Config.use_tpu and not Config.use_all_tpu_cores:
                         xm.mark_step()
 
                     if step > 0:

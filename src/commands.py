@@ -46,7 +46,7 @@ class Commands:
         if args.config is not None:
             Commands.load_config(args.config)
         if args.exp_folder is not None:
-            Commands.exp_folder = args.exp_folder
+            Config.exp_folder = args.exp_folder
         Config.gpu_num = args.gpu
         Config.use_tpu = args.tpu or args.tpu_all
         Config.tpu_all = args.tpu_all

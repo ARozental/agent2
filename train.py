@@ -232,17 +232,18 @@ def train(index, flags, training_started):
 
             if Config.use_tpu and Config.debug_tpu and step % Config.grad_acc_steps == 0:
                 current_time = time.time() - start_time
+                current_model_time = total_model_time
                 start_time = time.time()
                 total_model_time = 0
                 if global_step > 10:
                     all_times.append(current_time)
-                    all_model_times.append(total_model_time)
+                    all_model_times.append(current_model_time)
                     print('Step', global_step, 'completed.')
                     print('Total time', round(current_time, 3), 'Average', round(np.mean(all_times), 3))
-                    print('Model time', round(current_time, 3), 'Average', round(np.mean(all_model_times), 3))
+                    print('Model time', round(current_model_time, 3), 'Average', round(np.mean(all_model_times), 3))
                 else:
                     print('Step', global_step, 'completed. Total time', round(current_time, 3), 'Model time',
-                          round(total_model_time, 3))
+                          round(current_model_time, 3))
                 metsumm(global_step)
                 print('')
                 print('')

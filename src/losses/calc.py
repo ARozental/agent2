@@ -39,9 +39,3 @@ def loss_object_to_extra_coherence_weights_loss(obj):
     for l in obj.keys():
         loss += cap_loss(obj[l]['rcd']) * 1
     return loss
-
-    def map_nested_dicts(ob, func):
-        if isinstance(ob, collections.Mapping):
-            return {k: map_nested_dicts(v, func) for k, v in ob.iteritems()}
-        else:
-            return func(ob)

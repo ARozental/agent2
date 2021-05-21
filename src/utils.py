@@ -117,14 +117,6 @@ def cap_loss(loss):
 def merge_dicts(d1, d2):
     ""
     res = {}
-    levels = d1.keys()
-    for l in levels:
-        res[l] = {k: d1[l].get(k, 0) + d2[l].get(k, 0) for k in set(d1[l])}
+    for level in d1.keys():
+        res[level] = {k: d1[level].get(k, 0) + d2[level].get(k, 0) for k in d1[level].keys()}
     return res
-
-
-def map_nested_dicts(ob, func):
-    if isinstance(ob, collections.Mapping):
-        return {k: map_nested_dicts(v, func) for k, v in ob.items()}
-    else:
-        return func(ob)

@@ -7,7 +7,7 @@ from src.datasets import BookDataset, DummyDataset, WikiDataset
 from src.logger import Logger
 from src.pre_processing import TreeTokenizer, worker_init_fn
 from src.storage import Storage
-from src.utils import seed_torch, merge_dicts, map_nested_dicts, metsumm
+from src.utils import seed_torch, merge_dicts, metsumm
 from src.model import AgentModel
 from torch.utils.data.dataloader import DataLoader
 import numpy as np
@@ -88,22 +88,23 @@ def train(index, flags):
     Checkpoints.load(model)
     all_times = []
     global_step = 0
-    acc_loss_object = {0: {}, 1: {}}
     for epoch in range(10001):
         # print('Epoch', epoch + 1)
-        
+
         if Config.use_tpu and Config.use_all_tpu_cores:
             parallel_loader = pl.ParallelLoader(dataloader, [Config.device]).per_device_loader(Config.device)
         else:
             parallel_loader = dataloader
 
+        total_loss = 0
+        total_loss_object = None
         for step, batch in enumerate(parallel_loader):
             # This is not the most efficient, but needs to be done to not skip these examples in future epochs
             if Config.skip_batches is not None and (epoch == 0 and step < Config.skip_batches):
                 global_step += 1
                 continue
 
-            if Config.use_tpu and Config.debug_tpu and (step == 0 or (step - 1) % Config.grad_acc_steps == 0):
+            if Config.use_tpu and Config.debug_tpu and i % Config.grad_acc_steps == 0:
                 start_time = time.time()
 
             model.train()
@@ -118,11 +119,22 @@ def train(index, flags):
 
             g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT,
                                                                       debug=will_reconstruct)
-            acc_loss_object = merge_dicts(loss_object, acc_loss_object)
 
-            main_loss = loss_object_to_main_loss(loss_object)
-            r_loss = loss_object_to_reconstruction_weights_loss(loss_object)
-            c_loss = loss_object_to_extra_coherence_weights_loss(loss_object)
+            main_loss = loss_object_to_main_loss(loss_object) / Config.grad_acc_steps
+            r_loss = loss_object_to_reconstruction_weights_loss(loss_object) / Config.grad_acc_steps
+            c_loss = loss_object_to_extra_coherence_weights_loss(loss_object) / Config.grad_acc_steps
+
+            # Divide by grad_acc_steps & detach from the graph
+            loss_object = {
+                level_num: {key: value.detach() / Config.grad_acc_steps for key, value in level.items()}
+                for level_num, level in loss_object.items()
+            }
+
+            # Sum up the loss objects
+            if total_loss_object is None:
+                total_loss_object = loss_object
+            else:
+                total_loss_object = merge_dicts(total_loss_object, loss_object)
 
             if GENERATE_TEXT:
                 pass
@@ -130,18 +142,20 @@ def train(index, flags):
             else:
                 [setattr(p, "requires_grad", False) for p in main_params]
                 [setattr(p, "requires_grad", True) for p in coherence_params]
-                (c_loss / Config.grad_acc_steps).backward(retain_graph=True)
+                c_loss.backward(retain_graph=True)
                 [setattr(p, "requires_grad", False) for p in coherence_params]
                 [setattr(p, "requires_grad", True) for p in reconstruction_params]
-                (r_loss / Config.grad_acc_steps).backward(retain_graph=True)
+                r_loss.backward(retain_graph=True)
                 [setattr(p, "requires_grad", True) for p in main_params]
-                (main_loss / Config.grad_acc_steps).backward()
+                main_loss.backward()
+
+                total_loss += main_loss.detach()
 
                 if Config.use_tpu:
                     xm.mark_step()
 
                 # I want to clip on every step, how?
-                if step % Config.grad_acc_steps == 0:
+                if (step + 1) % Config.grad_acc_steps == 0:  # (step + 1) so that don't break on step 0 when acc is > 1
                     torch.nn.utils.clip_grad_norm_(main_params, Config.grad_clip_value)
                     if Config.use_tpu and Config.use_all_tpu_cores:
                         xm.optimizer_step(main_optimizer)
@@ -154,19 +168,17 @@ def train(index, flags):
                     if Config.use_tpu and not Config.use_all_tpu_cores:
                         xm.mark_step()
 
-                    if step > 0:
-                        acc_loss_object = map_nested_dicts(acc_loss_object, lambda x: x / Config.grad_acc_steps)
-
                     # Log
                     if Config.use_tpu:
                         xm.add_step_closure(Logger.log_losses,
-                                            args=(g_loss, disc_loss, main_loss, acc_loss_object, global_step))
+                                            args=(g_loss, disc_loss, total_loss, total_loss_object, global_step))
                         xm.add_step_closure(Logger.log_l2_classifiers, args=(model, global_step))
                     else:
-                        Logger.log_losses(g_loss, disc_loss, main_loss, acc_loss_object, step=global_step)
+                        Logger.log_losses(g_loss, disc_loss, main_loss, total_loss_object, step=global_step)
                         Logger.log_l2_classifiers(model, step=global_step)
 
-                    acc_loss_object = map_nested_dicts(acc_loss_object, lambda x: x * 0.0)
+                    total_loss_object = None
+                    total_loss = 0
 
             # TODO - Take out the TPU blocker once printing reconstructed is working on TPU
             if not Config.use_tpu and (

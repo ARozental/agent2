@@ -196,7 +196,7 @@ def train(index, flags, training_started):
                 (step % (Config.grad_acc_steps * Config.log_every) == 0 and step > 0)
             ):
                 print('Epoch', epoch, 'Batch', step)
-                # print(loss_object)
+                print(loss_object)
                 print(main_loss)
                 model.eval()
 
@@ -249,6 +249,10 @@ def target_fn(training_started):
     xmp.spawn(train, args=({}, training_started,), nprocs=8, start_method='fork')
 
 
+def target_single_fn(training_started):
+    train(None, None, training_started)
+
+
 if __name__ == '__main__':
     if Config.use_tpu and Config.use_all_tpu_cores:
         if Config.debug_tpu:
@@ -272,4 +276,22 @@ if __name__ == '__main__':
             flags = {}
             xmp.spawn(train, args=(flags, None,), nprocs=8, start_method='fork')
     else:
-        train(None, None, None)
+        if Config.debug_tpu:
+            if not Config.log_experiment:
+                raise ValueError('"log_experiment" needs to be turned on for the debugger to write to Tensorboard.')
+
+            import multiprocessing
+
+            training_started = multiprocessing.Event()
+            p = multiprocessing.Process(target=target_single_fn, args=(training_started,))
+            p.start()
+
+            training_started.wait(120 * 10)
+
+            import re
+
+            tpu_ip = re.match('grpc\://((\d{1,3}\.){3}\d{1,3})\:\d{4}', os.environ.get('TPU_NAME')).group(1)
+            xp.trace('localhost:9012', Logger.get_log_dir())  # client side profiling
+            xp.trace(f'{tpu_ip}:8466', Logger.get_log_dir())  # need GCS bucket for all traces to be written
+        else:
+            train(None, None, None)

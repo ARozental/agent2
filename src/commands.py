@@ -49,7 +49,7 @@ class Commands:
             Config.exp_folder = args.exp_folder
         Config.gpu_num = args.gpu
         Config.use_tpu = args.tpu or args.tpu_all
-        Config.tpu_all = args.tpu_all
+        Config.use_all_tpu_cores = args.tpu_all
         Config.debug_tpu = args.debug_tpu
         if args.dummy:
             Config.use_dummy_dataset = True

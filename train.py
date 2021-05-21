@@ -26,7 +26,7 @@ if Config.use_tpu:
     import torch_xla.distributed.xla_multiprocessing as xmp
     import torch_xla.distributed.parallel_loader as pl
 
-    if Config.debug_tpu:
+    if Config.profile_tpu:
         os.environ['XLA_HLO_DEBUG'] = '1'
 else:
     from src.dummy_debug import DummyDebug as xp
@@ -88,7 +88,7 @@ def train(index, flags, training_started):
     # generator_optimizer = torch.optim.AdamW(generator_params, 0.001)
     # discriminator_optimizer = torch.optim.AdamW(discriminator_params, 0.001)
 
-    if Config.debug_tpu:
+    if Config.profile_tpu:
         server = xp.start_server(9012)
 
     Storage.setup()
@@ -108,7 +108,7 @@ def train(index, flags, training_started):
         total_loss = 0
         total_loss_object = None
         for step, batch in enumerate(parallel_loader):
-            if Config.debug_tpu and step == 4:
+            if Config.profile_tpu and step == 4:
                 training_started.set()
 
             # This is not the most efficient, but needs to be done to not skip these examples in future epochs
@@ -255,9 +255,9 @@ def target_single_fn(training_started):
 
 if __name__ == '__main__':
     if Config.use_tpu and Config.use_all_tpu_cores:
-        if Config.debug_tpu:
+        if Config.profile_tpu:
             if not Config.log_experiment:
-                raise ValueError('"log_experiment" needs to be turned on for the debugger to write to Tensorboard.')
+                raise ValueError('"log_experiment" needs to be turned on for the profiler to write to Tensorboard.')
 
             import multiprocessing
 
@@ -276,7 +276,7 @@ if __name__ == '__main__':
             flags = {}
             xmp.spawn(train, args=(flags, None,), nprocs=8, start_method='fork')
     else:
-        if Config.debug_tpu:
+        if Config.profile_tpu:
             if not Config.log_experiment:
                 raise ValueError('"log_experiment" needs to be turned on for the debugger to write to Tensorboard.')
 

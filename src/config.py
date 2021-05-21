@@ -66,6 +66,7 @@ class Config:
     use_tpu = False
     use_all_tpu_cores = False
     debug_tpu = False
+    profile_tpu = False
     gpu_num = 0
     device = None  # Will be set in setup()
 

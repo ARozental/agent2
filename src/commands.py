@@ -35,6 +35,9 @@ class Commands:
         parser.add_argument('--debug-tpu', action='store_true', default=False,
                             help='Whether or not to print out TPU metrics')
 
+        parser.add_argument('--profile-tpu', action='store_true', default=False,
+                            help='Whether or not to profile the TPU')
+
         parser.add_argument('--dummy', action='store_true', default=False,
                             help='Whether to use the dummy dataset')
 
@@ -51,6 +54,7 @@ class Commands:
         Config.use_tpu = args.tpu or args.tpu_all
         Config.use_all_tpu_cores = args.tpu_all
         Config.debug_tpu = args.debug_tpu
+        Config.profile_tpu = args.profile_tpu
         if args.dummy:
             Config.use_dummy_dataset = True
         if args.skip is not None:

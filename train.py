@@ -104,7 +104,7 @@ def train(index, flags):
                 global_step += 1
                 continue
 
-            if Config.use_tpu and Config.debug_tpu and i % Config.grad_acc_steps == 0:
+            if Config.use_tpu and Config.debug_tpu and step % Config.grad_acc_steps == 0:
                 start_time = time.time()
 
             model.train()

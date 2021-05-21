@@ -98,6 +98,7 @@ def train(index, flags, training_started):
     Checkpoints.setup()
     Checkpoints.load(model)
     all_times = []
+    all_model_times = []
     global_step = 0
     for epoch in range(10001):
         # print('Epoch', epoch + 1)
@@ -109,6 +110,8 @@ def train(index, flags, training_started):
 
         total_loss = 0
         total_loss_object = None
+        total_model_time = 0
+        start_time = time.time()
         for step, batch in enumerate(parallel_loader):
             if Config.profile_tpu and step == 4:
                 training_started.set()
@@ -118,9 +121,7 @@ def train(index, flags, training_started):
                 global_step += 1
                 continue
 
-            if Config.use_tpu and Config.debug_tpu and step % Config.grad_acc_steps == 0:
-                start_time = time.time()
-
+            current_model_time = time.time()
             model.train()
 
             will_reconstruct = PRINT_RECONSTRUCTED_TEXT and (
@@ -191,6 +192,7 @@ def train(index, flags, training_started):
 
                     total_loss_object = None
                     total_loss = 0
+            total_model_time += time.time() - current_model_time
 
             # TODO - Take out the TPU blocker once printing reconstructed is working on TPU
             if not Config.use_tpu and (
@@ -230,12 +232,17 @@ def train(index, flags, training_started):
 
             if Config.use_tpu and Config.debug_tpu and step % Config.grad_acc_steps == 0:
                 current_time = time.time() - start_time
+                start_time = time.time()
+                total_model_time = 0
                 if global_step > 10:
                     all_times.append(current_time)
-                    print('Step', global_step, 'completed in', round(current_time, 3), 'average',
-                          round(np.mean(all_times), 3))
+                    all_model_times.append(total_model_time)
+                    print('Step', global_step, 'completed.')
+                    print('Total time', round(current_time, 3), 'Average', round(np.mean(all_times), 3))
+                    print('Model time', round(current_time, 3), 'Average', round(np.mean(all_model_times), 3))
                 else:
-                    print('Step', global_step, 'completed in', round(current_time, 3))
+                    print('Step', global_step, 'completed. Total time', round(current_time, 3), 'Model time',
+                          round(total_model_time, 3))
                 metsumm(global_step)
                 print('')
                 print('')

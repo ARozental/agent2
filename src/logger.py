@@ -1,5 +1,6 @@
 from src.pre_processing import TreeTokenizer
 from src.config import Config
+from src.storage import Storage
 
 from torch.utils.tensorboard import SummaryWriter
 import pandas as pd
@@ -118,4 +119,5 @@ class Logger:
             'rm_diff': node.rm_diff_loss.item(),
         }), ignore_index=True)
 
-        Logger.viz.to_csv(Config.viz_file, index=False)
+        with Storage.fs.open(Config.viz_file, 'w') as f:
+            Logger.viz.to_csv(f, index=False)

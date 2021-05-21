@@ -6,6 +6,7 @@ from src.losses.calc import loss_object_to_main_loss, loss_object_to_reconstruct
 from src.datasets import BookDataset, DummyDataset, WikiDataset
 from src.logger import Logger
 from src.pre_processing import TreeTokenizer, worker_init_fn
+from src.storage import Storage
 from src.utils import seed_torch, merge_dicts, map_nested_dicts, metsumm
 from src.model import AgentModel
 from torch.utils.data.dataloader import DataLoader
@@ -81,6 +82,7 @@ def train(index, flags):
     # generator_optimizer = torch.optim.AdamW(generator_params, 0.001)
     # discriminator_optimizer = torch.optim.AdamW(discriminator_params, 0.001)
 
+    Storage.setup()
     Logger.setup()
     Checkpoints.setup()
     Checkpoints.load(model)

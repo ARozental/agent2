@@ -192,7 +192,7 @@ def train(index, flags, training_started):
 
                     total_loss_object = None
                     total_loss = 0
-            total_model_time += time.time() - current_model_time
+            total_model_time += (time.time() - current_model_time)
 
             # TODO - Take out the TPU blocker once printing reconstructed is working on TPU
             if not Config.use_tpu and (

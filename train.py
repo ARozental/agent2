@@ -22,12 +22,14 @@ Commands.parse_arguments()
 
 if Config.use_tpu:
     import torch_xla.core.xla_model as xm
-    import torch_xla.debug.profiler as xp
     import torch_xla.distributed.xla_multiprocessing as xmp
     import torch_xla.distributed.parallel_loader as pl
 
     if Config.profile_tpu:
         os.environ['XLA_HLO_DEBUG'] = '1'
+        import torch_xla.debug.profiler as xp
+    else:
+        from src.dummy_debug import DummyDebug as xp
 else:
     from src.dummy_debug import DummyDebug as xp
 

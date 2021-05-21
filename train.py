@@ -16,6 +16,7 @@ import time
 import madgrad  # is it any good?
 import torch.optim.lr_scheduler
 import math
+import os
 
 Commands.parse_arguments()
 
@@ -25,16 +26,21 @@ if Config.use_tpu:
     import torch_xla.distributed.xla_multiprocessing as xmp
     import torch_xla.distributed.parallel_loader as pl
 
+    if Config.debug_tpu:
+        os.environ['XLA_HLO_DEBUG'] = '1'
+else:
+    from src.dummy_debug import DummyDebug as xp
+
 seed_torch(0)  # 0 learns 2 doesn't (before no cnn layer)
 
 GENERATE_TEXT = False
-PRINT_RECONSTRUCTED_TEXT = True
+PRINT_RECONSTRUCTED_TEXT = False
 
 Config.setup_device()
 
 
 # Need to wrap in a function for the child workers
-def train(index, flags):
+def train(index, flags, training_started):
     if Config.use_tpu:
         Config.device = xm.xla_device()
 
@@ -82,6 +88,9 @@ def train(index, flags):
     # generator_optimizer = torch.optim.AdamW(generator_params, 0.001)
     # discriminator_optimizer = torch.optim.AdamW(discriminator_params, 0.001)
 
+    if Config.debug_tpu:
+        server = xp.start_server(9012)
+
     Storage.setup()
     Logger.setup()
     Checkpoints.setup()
@@ -99,6 +108,9 @@ def train(index, flags):
         total_loss = 0
         total_loss_object = None
         for step, batch in enumerate(parallel_loader):
+            if Config.debug_tpu and step == 4:
+                training_started.set()
+
             # This is not the most efficient, but needs to be done to not skip these examples in future epochs
             if Config.skip_batches is not None and (epoch == 0 and step < Config.skip_batches):
                 global_step += 1
@@ -117,44 +129,42 @@ def train(index, flags):
             if Config.use_tpu:
                 will_reconstruct = False  # Remove this once have the decode working on TPU
 
-            g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT,
-                                                                      debug=will_reconstruct)
+            with xp.StepTrace('train_loop', step_num=step):
+                with xp.Trace('build_graph'):
+                    g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT,
+                                                                              debug=will_reconstruct)
 
-            main_loss = loss_object_to_main_loss(loss_object) / Config.grad_acc_steps
-            r_loss = loss_object_to_reconstruction_weights_loss(loss_object) / Config.grad_acc_steps
-            c_loss = loss_object_to_extra_coherence_weights_loss(loss_object) / Config.grad_acc_steps
+                    main_loss = loss_object_to_main_loss(loss_object) / Config.grad_acc_steps
+                    r_loss = loss_object_to_reconstruction_weights_loss(loss_object) / Config.grad_acc_steps
+                    c_loss = loss_object_to_extra_coherence_weights_loss(loss_object) / Config.grad_acc_steps
 
-            # Divide by grad_acc_steps & detach from the graph
-            loss_object = {
-                level_num: {key: value.detach() / Config.grad_acc_steps for key, value in level.items()}
-                for level_num, level in loss_object.items()
-            }
+                    # Divide by grad_acc_steps & detach from the graph
+                    loss_object = {
+                        level_num: {key: value.detach() / Config.grad_acc_steps for key, value in level.items()}
+                        for level_num, level in loss_object.items()
+                    }
 
-            # Sum up the loss objects
-            if total_loss_object is None:
-                total_loss_object = loss_object
-            else:
-                total_loss_object = merge_dicts(total_loss_object, loss_object)
+                    # Sum up the loss objects
+                    if total_loss_object is None:
+                        total_loss_object = loss_object
+                    else:
+                        total_loss_object = merge_dicts(total_loss_object, loss_object)
 
-            if GENERATE_TEXT:
-                pass
-                # todo: this is no longer up to date like the else part
-            else:
-                [setattr(p, "requires_grad", False) for p in main_params]
-                [setattr(p, "requires_grad", True) for p in coherence_params]
-                c_loss.backward(retain_graph=True)
-                [setattr(p, "requires_grad", False) for p in coherence_params]
-                [setattr(p, "requires_grad", True) for p in reconstruction_params]
-                r_loss.backward(retain_graph=True)
-                [setattr(p, "requires_grad", True) for p in main_params]
-                main_loss.backward()
+                    [setattr(p, "requires_grad", False) for p in main_params]
+                    [setattr(p, "requires_grad", True) for p in coherence_params]
+                    c_loss.backward(retain_graph=True)
+                    [setattr(p, "requires_grad", False) for p in coherence_params]
+                    [setattr(p, "requires_grad", True) for p in reconstruction_params]
+                    r_loss.backward(retain_graph=True)
+                    [setattr(p, "requires_grad", True) for p in main_params]
+                    main_loss.backward()
 
                 total_loss += main_loss.detach()
 
                 if Config.use_tpu:
                     xm.mark_step()
 
-                # I want to clip on every step, how?
+                # TODO - I want to clip on every step, how?
                 if (step + 1) % Config.grad_acc_steps == 0:  # (step + 1) so that don't break on step 0 when acc is > 1
                     torch.nn.utils.clip_grad_norm_(main_params, Config.grad_clip_value)
                     if Config.use_tpu and Config.use_all_tpu_cores:
@@ -186,7 +196,7 @@ def train(index, flags):
                 (step % (Config.grad_acc_steps * Config.log_every) == 0 and step > 0)
             ):
                 print('Epoch', epoch, 'Batch', step)
-                print(loss_object)
+                # print(loss_object)
                 print(main_loss)
                 model.eval()
 
@@ -233,9 +243,33 @@ def train(index, flags):
         # print('Epoch', epoch + 1, 'completed in', round(current_time, 3), 'average', round(np.mean(all_times), 3))
 
 
+def target_fn(training_started):
+    # sys.stdout = open('training_logs.stdout', 'w')
+    # sys.stderr = open('training_logs.stderr', 'w')
+    xmp.spawn(train, args=({}, training_started,), nprocs=8, start_method='fork')
+
+
 if __name__ == '__main__':
     if Config.use_tpu and Config.use_all_tpu_cores:
-        flags = {}
-        xmp.spawn(train, args=(flags,), nprocs=8, start_method='fork')
+        if Config.debug_tpu:
+            if not Config.log_experiment:
+                raise ValueError('"log_experiment" needs to be turned on for the debugger to write to Tensorboard.')
+
+            import multiprocessing
+
+            training_started = multiprocessing.Event()
+            p = multiprocessing.Process(target=target_fn, args=(training_started,))
+            p.start()
+
+            training_started.wait(120 * 10)
+
+            import re
+
+            tpu_ip = re.match('grpc\://((\d{1,3}\.){3}\d{1,3})\:\d{4}', os.environ.get('TPU_NAME')).group(1)
+            xp.trace('localhost:9012', Logger.get_log_dir())  # client side profiling
+            xp.trace(f'{tpu_ip}:8466', Logger.get_log_dir())  # need GCS bucket for all traces to be written
+        else:
+            flags = {}
+            xmp.spawn(train, args=(flags, None,), nprocs=8, start_method='fork')
     else:
-        train(None, None)
+        train(None, None, None)

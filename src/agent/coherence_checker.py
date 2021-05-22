@@ -1,7 +1,8 @@
-import torch.nn as nn
-import torch
+from src.profiler import Profiler as xp
 from src.config import Config
 import torch.nn.functional as F
+import torch.nn as nn
+import torch
 
 
 class CoherenceChecker(nn.Module):
@@ -32,28 +33,30 @@ class CoherenceChecker(nn.Module):
 
     # TODO - Add Dropout
     def forward(self, x0):
-        x = torch.tanh(self.d1(x0))
-        # x = self.LayerNorm(x)
-        x = torch.tanh(self.d2(x))
-        # x = self.LayerNorm(x)
-        scores = torch.sigmoid(self.out(x)) * Config.max_coherence_noise
-        probs = torch.sigmoid(self.out_prob(x))
-        class_predictions = torch.softmax(self.out_classifier(x), -1)
+        with xp.Trace('CoherenceChecker'):
+            x = torch.tanh(self.d1(x0))
+            # x = self.LayerNorm(x)
+            x = torch.tanh(self.d2(x))
+            # x = self.LayerNorm(x)
+            scores = torch.sigmoid(self.out(x)) * Config.max_coherence_noise
+            probs = torch.sigmoid(self.out_prob(x))
+            class_predictions = torch.softmax(self.out_classifier(x), -1)
         return scores, probs, class_predictions
 
     def lower_forward(self, x0, matrices):
-        x = torch.tanh(self.d1(x0))
-        # x = self.LayerNorm(x)
-        x = torch.tanh(self.d2(x))
-        # x = self.LayerNorm(x)
-        scores = torch.sigmoid(self.out(x)) * Config.max_coherence_noise
-        probs = torch.sigmoid(self.out_prob(x))
-        # class_predictions = torch.softmax(self.out_classifier(x),-1)
+        with xp.Trace('CoherenceCheckerLower'):
+            x = torch.tanh(self.d1(x0))
+            # x = self.LayerNorm(x)
+            x = torch.tanh(self.d2(x))
+            # x = self.LayerNorm(x)
+            scores = torch.sigmoid(self.out(x)) * Config.max_coherence_noise
+            probs = torch.sigmoid(self.out_prob(x))
+            # class_predictions = torch.softmax(self.out_classifier(x),-1)
 
-        # with CNN now
-        x = torch.transpose(matrices, 1, 2)  # todo: make better for the TPU no need for this reshaping
-        x = self.conv(x)
-        x = self.max_pool(x).squeeze(-1)
-        x = self.act(x)
-        class_predictions = torch.sigmoid(self.d3(x))
+            # with CNN now
+            x = torch.transpose(matrices, 1, 2)  # todo: make better for the TPU no need for this reshaping
+            x = self.conv(x)
+            x = self.max_pool(x).squeeze(-1)
+            x = self.act(x)
+            class_predictions = torch.sigmoid(self.d3(x))
         return scores, probs, class_predictions

@@ -1,5 +1,6 @@
-import torch.nn as nn
+from src.profiler import Profiler as xp
 from src.config import Config
+import torch.nn as nn
 import torch
 
 
@@ -13,12 +14,13 @@ class Compressor(nn.Module):
             batch_first=True,
         )
 
-        self.LayerNorm = nn.LayerNorm(Config.vector_sizes[level+1])
+        self.LayerNorm = nn.LayerNorm(Config.vector_sizes[level + 1])
 
     def forward(self, x, real_positions):
-        lengths = real_positions.sum(-1).long()
-        places = (lengths - 1)
-        r_out = self.recurrent(x)[0]
-        out = r_out[torch.arange(x.size(0)), places]
+        with xp.Trace('Compressor'):
+            lengths = real_positions.sum(-1).long()
+            places = (lengths - 1)
+            r_out = self.recurrent(x)[0]
+            out = r_out[torch.arange(x.size(0)), places]
 
         return out  # with consuming padding: self.recurrent(x)[0][:, -1, :]

@@ -1,8 +1,9 @@
 from src.transformer import PositionalEncoding, EncoderLayer, TransformerEncoder
+from src.profiler import Profiler as xp
 from src.config import Config
+from src.utils import gelu_new
 import torch.nn as nn
 import torch
-from src.utils import gelu_new
 
 
 class Decoder(nn.Module):
@@ -22,20 +23,21 @@ class Decoder(nn.Module):
             self.out = nn.Linear(4 * Config.vector_sizes[level], Config.vector_sizes[level])
 
     def forward(self, src, real_positions, eos_positions):
-        src = src.transpose(0, 1)
-        att_add_mask = torch.log(real_positions)
-        # todo: fix?? due to the positional encoding not all eos are the same vec, #do we even need pos encoding here?
-        # eos_positions = eos_positions.transpose(0, 1).unsqueeze(-1)
+        with xp.Trace('Decoder'):
+            src = src.transpose(0, 1)
+            att_add_mask = torch.log(real_positions)
+            # todo: fix?? due to the positional encoding not all eos are the same vec, #do we even need pos encoding here?
+            # eos_positions = eos_positions.transpose(0, 1).unsqueeze(-1)
 
-        # eos_value = eos_positions * src
-        src = src - self.pos_encoder(src)  # * math.sqrt(Config.vector_sizes[level])
-        # src = eos_positions * eos_value + (1 - eos_positions) * src
+            # eos_value = eos_positions * src
+            src = src - self.pos_encoder(src)  # * math.sqrt(Config.vector_sizes[level])
+            # src = eos_positions * eos_value + (1 - eos_positions) * src
 
-        encoded = self.transformer_encoder(src, src_key_padding_mask=att_add_mask).transpose(0, 1)
+            encoded = self.transformer_encoder(src, src_key_padding_mask=att_add_mask).transpose(0, 1)
 
-        if self.level == 0:  # todo? remove if from here, have it outside
-            return encoded
+            if self.level == 0:  # todo? remove if from here, have it outside
+                return encoded
 
-        x = torch.tanh(encoded)
-        x = torch.tanh(self.d1(x))
-        return self.out(x)
+            x = torch.tanh(encoded)
+            x = torch.tanh(self.d1(x))
+            return self.out(x)

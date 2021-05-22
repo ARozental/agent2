@@ -9,6 +9,7 @@ from src.pre_processing import TreeTokenizer, worker_init_fn
 from src.storage import Storage
 from src.utils import seed_torch, merge_dicts, metsumm
 from src.model import AgentModel
+from src.profiler import Profiler as xp
 from torch.utils.data.dataloader import DataLoader
 import numpy as np
 import torch
@@ -19,6 +20,7 @@ import math
 import os
 
 Commands.parse_arguments()
+xp.setup()
 
 if Config.use_tpu:
     import torch_xla.core.xla_model as xm
@@ -27,11 +29,6 @@ if Config.use_tpu:
 
     if Config.profile_tpu:
         os.environ['XLA_HLO_DEBUG'] = '1'
-        import torch_xla.debug.profiler as xp
-    else:
-        from src.dummy_debug import DummyDebug as xp
-else:
-    from src.dummy_debug import DummyDebug as xp
 
 seed_torch(0)  # 0 learns 2 doesn't (before no cnn layer)
 

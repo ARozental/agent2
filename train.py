@@ -167,7 +167,7 @@ def train(index, flags, training_started):
                 # TODO - I want to clip on every step, how?
                 if (step + 1) % Config.grad_acc_steps == 0:  # (step + 1) so that don't break on step 0 when acc is > 1
                     torch.nn.utils.clip_grad_norm_(main_params, Config.grad_clip_value)
-                    if Config.use_tpu and Config.use_all_tpu_cores:
+                    if Config.use_tpu:
                         xm.optimizer_step(main_optimizer)
                     else:
                         main_optimizer.step()
@@ -175,8 +175,8 @@ def train(index, flags, training_started):
                     scheduler.step()
                     global_step += 1
 
-                    if Config.use_tpu and not Config.use_all_tpu_cores:
-                        xm.mark_step()
+                    # if Config.use_tpu and not Config.use_all_tpu_cores:
+                    #     xm.mark_step()
 
                     # Log
                     if Config.use_tpu:

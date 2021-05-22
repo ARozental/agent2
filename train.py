@@ -161,7 +161,7 @@ def train(index, flags, training_started):
 
                 total_loss += main_loss.detach()
 
-                if Config.use_tpu:
+                if Config.use_tpu and not Config.profile_tpu:
                     xm.mark_step()
 
                 # TODO - I want to clip on every step, how?

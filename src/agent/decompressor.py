@@ -1,6 +1,7 @@
+from src.profiler import Profiler as xp
+from src.config import Config
 import torch.nn as nn
 import torch
-from src.config import Config
 
 
 class Decompressor(nn.Module):
@@ -19,20 +20,21 @@ class Decompressor(nn.Module):
         # Source: https://pytorch.org/docs/stable/generated/torch.nn.LSTM.html
         # h0.size=c0.size = (num_layers * num_directions, batch, hidden_size)        #x: seq_len, batch, input_size
 
-        # todo: state_h, state_c should probably be trainable params
-        state_h = torch.zeros(1, x.size(0), Config.vector_sizes[self.level + 1]).to(Config.device)
-        state_c = torch.zeros(1, x.size(0), Config.vector_sizes[self.level + 1]).to(Config.device)
+        with xp.Trace('Decompressor'):
+            # todo: state_h, state_c should probably be trainable params
+            state_h = torch.zeros(1, x.size(0), Config.vector_sizes[self.level + 1]).to(Config.device)
+            state_c = torch.zeros(1, x.size(0), Config.vector_sizes[self.level + 1]).to(Config.device)
 
-        seq = []
-        last_input = x.unsqueeze(0)
-        for i in range(Config.sequence_lengths[self.level]):  # todo: find a pure torch way for this
-            output, (state_h, state_c) = self.recurrent(last_input, (state_h, state_c))
-            seq.append(output)
-            last_input = output
+            seq = []
+            last_input = x.unsqueeze(0)
+            for i in range(Config.sequence_lengths[self.level]):  # todo: find a pure torch way for this
+                output, (state_h, state_c) = self.recurrent(last_input, (state_h, state_c))
+                seq.append(output)
+                last_input = output
 
-        seq = torch.cat(seq, 0).transpose(0, 1)  # [batch,max_length,top_text_vec_size]
-        seq = self.LayerNorm(seq)
-        seq = self.out_projection(self.dropout(seq))
+            seq = torch.cat(seq, 0).transpose(0, 1)  # [batch,max_length,top_text_vec_size]
+            seq = self.LayerNorm(seq)
+            seq = self.out_projection(self.dropout(seq))
         return seq  # [batch,max_length,vec_size]
 
     # closest vec / first close vec / have the last embedding matrix and choose first stop / other option

@@ -9,6 +9,7 @@ from src.pre_processing import TreeTokenizer, worker_init_fn
 from src.storage import Storage
 from src.utils import seed_torch, merge_dicts, metsumm
 from src.model import AgentModel
+from src.profiler import Profiler as xp
 from torch.utils.data.dataloader import DataLoader
 import numpy as np
 import torch
@@ -19,6 +20,7 @@ import math
 import os
 
 Commands.parse_arguments()
+xp.setup()
 
 if Config.use_tpu:
     import torch_xla.core.xla_model as xm
@@ -27,11 +29,6 @@ if Config.use_tpu:
 
     if Config.profile_tpu:
         os.environ['XLA_HLO_DEBUG'] = '1'
-        import torch_xla.debug.profiler as xp
-    else:
-        from src.dummy_debug import DummyDebug as xp
-else:
-    from src.dummy_debug import DummyDebug as xp
 
 seed_torch(0)  # 0 learns 2 doesn't (before no cnn layer)
 
@@ -164,13 +161,13 @@ def train(index, flags, training_started):
 
                 total_loss += main_loss.detach()
 
-                if Config.use_tpu:
+                if Config.use_tpu and not Config.profile_tpu:
                     xm.mark_step()
 
                 # TODO - I want to clip on every step, how?
                 if (step + 1) % Config.grad_acc_steps == 0:  # (step + 1) so that don't break on step 0 when acc is > 1
                     torch.nn.utils.clip_grad_norm_(main_params, Config.grad_clip_value)
-                    if Config.use_tpu and Config.use_all_tpu_cores:
+                    if Config.use_tpu:
                         xm.optimizer_step(main_optimizer)
                     else:
                         main_optimizer.step()
@@ -178,8 +175,8 @@ def train(index, flags, training_started):
                     scheduler.step()
                     global_step += 1
 
-                    if Config.use_tpu and not Config.use_all_tpu_cores:
-                        xm.mark_step()
+                    # if Config.use_tpu and not Config.use_all_tpu_cores:
+                    #     xm.mark_step()
 
                     # Log
                     if Config.use_tpu:

@@ -1,9 +1,9 @@
 from . import Compressor, Decompressor, Encoder, Decoder, CoherenceChecker, Generator, Discriminator, CnnDiscriminator
+from src.losses.eos import decompressed_to_cdot, cdot_to_probs, calc_eos_loss
+from src.config import Config
 import torch.nn.functional as F
 import torch.nn as nn
 import torch
-from src.config import Config
-from src.losses.eos import decompressed_to_cdot,cdot_to_probs,calc_eos_loss
 
 
 class AgentLevel(nn.Module):
@@ -154,15 +154,16 @@ class AgentLevel(nn.Module):
     def vecs_to_children_vecs(self, vecs):
         decompressed = self.decompressor(vecs)
         batch, seq_length, _ = decompressed.shape
-        _, projected_eos_positions = calc_eos_loss(self, decompressed,torch.zeros(batch, seq_length, device=Config.device))
+        _, projected_eos_positions = calc_eos_loss(self, decompressed,
+                                                   torch.zeros(batch, seq_length, device=Config.device))
         real_positions_for_mask = (1 - torch.cumsum(projected_eos_positions, dim=1))
         post_decoder = self.decoder(decompressed, real_positions_for_mask, None)
-        _, eos_mask = calc_eos_loss(self, post_decoder,torch.zeros(batch, seq_length, device=Config.device))
+        _, eos_mask = calc_eos_loss(self, post_decoder, torch.zeros(batch, seq_length, device=Config.device))
 
         eos_mask_max = eos_mask.max(dim=-1).values
         is_eos = eos_mask_max > 0.3
-        num_tokens = torch.where(eos_mask_max > 0.3, torch.argmax(eos_mask, dim=-1), eos_mask.size(1)) #todo fix fails to decode when torch.argmax(eos_mask, dim=-1) is 0
-
+        num_tokens = torch.where(eos_mask_max > 0.3, torch.argmax(eos_mask, dim=-1),
+                                 eos_mask.size(1))  # todo fix fails to decode when torch.argmax(eos_mask, dim=-1) is 0
 
         range_matrix = torch.arange(eos_mask.size(1)).repeat(eos_mask.size(0), 1).to(Config.device)
 

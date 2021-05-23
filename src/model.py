@@ -8,6 +8,7 @@ from src.losses.reconstruction import calc_reconstruction_loss
 from src.losses.generation import calc_generation_loss
 from src.pre_processing import Node, TreeTokenizer
 from src.utils import iter_even_split
+from src.profiler import Profiler as xp
 from src.agent.pndb import Pndb
 import torch.nn as nn
 import torch
@@ -85,87 +86,99 @@ class AgentModel(nn.Module):
                 total_dummy_nodes += num_dummy_nodes
 
                 if level_num == 0:
-                    vectors, previous_vectors, num_dummy0_embed = self.set_word_vectors(node_batch, debug=debug)
+                    with xp.Trace('SetWordVectors'):
+                        vectors, previous_vectors, num_dummy0_embed = self.set_word_vectors(node_batch, debug=debug)
 
-                if level_num == 0:
-                    matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, _, num_dummy = \
-                        self.agent_levels[
-                            level_num].get_children(
-                            node_batch,
-                            self.char_embedding_layer.weight,
-                            previous_vectors, debug=debug)
-                else:
-                    matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy = \
-                        self.agent_levels[
-                            level_num].get_children(
-                            node_batch,
-                            self.char_embedding_layer.weight,
-                            previous_vectors, debug=debug)
-                    num_dummy += num_dummy0_embed
+                with xp.Trace('GetChildren' + str(level_num)):
+                    if level_num == 0:
+                        matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, _, num_dummy = \
+                            self.agent_levels[
+                                level_num].get_children(
+                                node_batch,
+                                self.char_embedding_layer.weight,
+                                previous_vectors, debug=debug)
+                    else:
+                        matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy = \
+                            self.agent_levels[
+                                level_num].get_children(
+                                node_batch,
+                                self.char_embedding_layer.weight,
+                                previous_vectors, debug=debug)
+                        num_dummy += num_dummy0_embed
 
                 if Config.use_tpu:
-                    # with xp.Trace('DummyLogitBias' + str(level_num)):
-                    dummy_logit_bias = np.zeros(embedding_matrix.size(0))
-                    dummy_logit_bias[-1 * num_dummy:] = 999999999999
-                    dummy_logit_bias = torch.tensor(dummy_logit_bias, device=Config.device)
+                    with xp.Trace('DummyLogitBias' + str(level_num)):
+                        dummy_logit_bias = np.zeros(embedding_matrix.size(0))
+                        dummy_logit_bias[-1 * num_dummy:] = 999999999999
+                        dummy_logit_bias = torch.tensor(dummy_logit_bias, device=Config.device)
                 else:
                     dummy_logit_bias = None
 
-                mlm_loss, mlm_diff_loss = calc_mlm_loss(self.agent_levels[level_num], matrices, real_positions,
-                                                        eos_positions,
-                                                        embedding_matrix,
-                                                        labels, num_dummy=num_dummy, dummy_logit_bias=dummy_logit_bias)
+                with xp.Trace('MLMLoss' + str(level_num)):
+                    mlm_loss, mlm_diff_loss = calc_mlm_loss(self.agent_levels[level_num], matrices, real_positions,
+                                                            eos_positions,
+                                                            embedding_matrix,
+                                                            labels, num_dummy=num_dummy,
+                                                            dummy_logit_bias=dummy_logit_bias)
 
-                coherence_loss, cd_loss = calc_coherence_loss(self.agent_levels[level_num], matrices, real_positions,
-                                                              eos_positions,
-                                                              embedding_matrix, num_dummy=num_dummy)
+                with xp.Trace('CoherenceLoss' + str(level_num)):
+                    coherence_loss, cd_loss = calc_coherence_loss(self.agent_levels[level_num], matrices,
+                                                                  real_positions,
+                                                                  eos_positions,
+                                                                  embedding_matrix, num_dummy=num_dummy)
 
-                decompressed = self.agent_levels[level_num].decompressor(vectors)
+                with xp.Trace('CallingDecompressor' + str(level_num)):
+                    decompressed = self.agent_levels[level_num].decompressor(vectors)
 
-                reconstruction_diff_loss, reconstruction_loss, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss, rcd_loss = \
-                    calc_reconstruction_loss(
-                        self.agent_levels[level_num],
-                        matrices, decompressed, real_positions,
-                        eos_positions,
-                        join_positions,
-                        embedding_matrix, labels, self.pndb, num_dummy=num_dummy, dummy_logit_bias=dummy_logit_bias)
+                with xp.Trace('ReconstructionLoss' + str(level_num)):
+                    reconstruction_diff_loss, reconstruction_loss, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss, rcd_loss = \
+                        calc_reconstruction_loss(
+                            self.agent_levels[level_num],
+                            matrices, decompressed, real_positions,
+                            eos_positions,
+                            join_positions,
+                            embedding_matrix, labels, self.pndb, num_dummy=num_dummy, dummy_logit_bias=dummy_logit_bias)
 
-                # does it help to do it on decompressed (pre decoded)? maybe but very noisy
-                eos_loss, _ = calc_eos_loss(self.agent_levels[level_num], decompressed, eos_positions)
+                with xp.Trace('EOSLoss' + str(level_num)):
+                    # does it help to do it on decompressed (pre decoded)? maybe but very noisy
+                    eos_loss, _ = calc_eos_loss(self.agent_levels[level_num], decompressed, eos_positions)
 
-                if Config.join_texts and level_num >= 1:
-                    join_loss = calc_join_loss(self.agent_levels[level_num], decompressed, join_positions)
-                else:
-                    join_loss = torch.tensor([0.0] * matrices.size(0)).to(Config.device)
+                with xp.Trace('JoinLoss' + str(level_num)):
+                    if Config.join_texts and level_num >= 1:
+                        join_loss = calc_join_loss(self.agent_levels[level_num], decompressed, join_positions)
+                    else:
+                        join_loss = torch.tensor([0.0] * matrices.size(0)).to(Config.device)
 
-                loss_keeper = np.ones(matrices.size(0))
-                if num_dummy_nodes > 0:
-                    loss_keeper[-1 * num_dummy_nodes:] = 0
-                loss_keeper = torch.tensor(loss_keeper, device=Config.device)
+                with xp.Trace('LossKeeper' + str(level_num)):
+                    loss_keeper = np.ones(matrices.size(0))
+                    if num_dummy_nodes > 0:
+                        loss_keeper[-1 * num_dummy_nodes:] = 0
+                    loss_keeper = torch.tensor(loss_keeper, device=Config.device)
 
-                losses = {
-                    'm': (mlm_loss * loss_keeper).sum(),
-                    'md': (mlm_diff_loss * loss_keeper).sum(),
-                    "c": (coherence_loss * loss_keeper).sum(),
-                    "r": (reconstruction_loss * loss_keeper).sum(),
-                    "e": (eos_loss * loss_keeper).sum(),
-                    "j": (join_loss * loss_keeper).sum(),
-                    "d": (reconstruction_diff_loss * loss_keeper).sum(),
+                with xp.Trace('CalculateLosses' + str(level_num)):
+                    losses = {
+                        'm': (mlm_loss * loss_keeper).sum(),
+                        'md': (mlm_diff_loss * loss_keeper).sum(),
+                        "c": (coherence_loss * loss_keeper).sum(),
+                        "r": (reconstruction_loss * loss_keeper).sum(),
+                        "e": (eos_loss * loss_keeper).sum(),
+                        "j": (join_loss * loss_keeper).sum(),
+                        "d": (reconstruction_diff_loss * loss_keeper).sum(),
 
-                    "rc": (rc_loss.view(matrices.shape[:2]) * loss_keeper.unsqueeze(-1)).sum(),
-                    "re": (re_loss * loss_keeper).sum(),
-                    "rj": (rj_loss * loss_keeper).sum(),
-                    "rm": (rm_loss * loss_keeper).sum(),
-                    "rmd": (rm_diff_loss * loss_keeper).sum(),
-                    "cd": (cd_loss * loss_keeper).mean(),  # This is disabled in coherence loss
-                    "rcd": (rcd_loss.view(-1, 2) * loss_keeper.unsqueeze(-1)).mean(),  # TODO - Check if correct
-                }
+                        "rc": (rc_loss.view(matrices.shape[:2]) * loss_keeper.unsqueeze(-1)).sum(),
+                        "re": (re_loss * loss_keeper).sum(),
+                        "rj": (rj_loss * loss_keeper).sum(),
+                        "rm": (rm_loss * loss_keeper).sum(),
+                        "rmd": (rm_diff_loss * loss_keeper).sum(),
+                        "cd": (cd_loss * loss_keeper).mean(),  # This is disabled in coherence loss
+                        "rcd": (rcd_loss.view(-1, 2) * loss_keeper.unsqueeze(-1)).mean(),  # TODO - Check if correct
+                    }
 
-                if level_num not in loss_object:  # On the first node_batch
-                    loss_object[level_num] = losses
-                else:
-                    for label, value in losses.items():
-                        loss_object[level_num][label] += value
+                    if level_num not in loss_object:  # On the first node_batch
+                        loss_object[level_num] = losses
+                    else:
+                        for label, value in losses.items():
+                            loss_object[level_num][label] += value
 
                 if generate and batch_num == 0:  # Only run generate on the first batch of nodes
                     g_loss, disc_loss = calc_generation_loss(self.agent_levels[level_num], vectors, matrices, mask)
@@ -193,14 +206,15 @@ class AgentModel(nn.Module):
                         node.rm_loss = rm_loss[i]
                         node.rm_diff_loss = rm_diff_loss[i]
 
-            current_losses = []
-            for label, loss in loss_object[level_num].items():
-                if label not in ['g', 'disc', 'cd', 'rcd']:
-                    loss /= (len(real_nodes) - total_dummy_nodes)
-                    current_losses.append(loss)
-                    loss_object[level_num][label] = loss  # Keep loss_object as a tensor for custom backwards
-                    # loss_object[level_num][label] = loss.item()  # Pull out of the GPU for logging
-            total_loss += torch.stack(current_losses).to(Config.device).sum()
+            with xp.Trace('ComputeTotalLoss' + str(level_num)):
+                current_losses = []
+                for label, loss in loss_object[level_num].items():
+                    if label not in ['g', 'disc', 'cd', 'rcd']:
+                        loss /= (len(real_nodes) - total_dummy_nodes)
+                        current_losses.append(loss)
+                        loss_object[level_num][label] = loss  # Keep loss_object as a tensor for custom backwards
+                        # loss_object[level_num][label] = loss.item()  # Pull out of the GPU for logging
+                total_loss += torch.stack(current_losses).to(Config.device).sum()
 
         return total_g_loss, total_disc_loss, total_loss, loss_object
 

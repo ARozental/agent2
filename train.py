@@ -33,7 +33,7 @@ if Config.use_tpu:
 seed_torch(0)  # 0 learns 2 doesn't (before no cnn layer)
 
 GENERATE_TEXT = False
-PRINT_RECONSTRUCTED_TEXT = False
+PRINT_RECONSTRUCTED_TEXT = True
 
 Config.setup_device()
 

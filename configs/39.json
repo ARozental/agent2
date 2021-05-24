@@ -1,7 +1,7 @@
 {
-  "model_folder": "s256",
-  "exp_folder": "runs/s256",
-  "viz_file": "../viz/models/s256.csv",
+  "model_folder": "s256a",
+  "exp_folder": "runs/s256a",
+  "viz_file": "../viz/models/s256a.csv",
   "sequence_lengths": [16, 16, 6, 3, 4],
   "vector_sizes": [32, 64, 256, 96, 128, 156],
   "num_heads": [4, 8, 2, 2, 2, 2],
@@ -17,9 +17,10 @@
   "agent_level": 1,
   "log_experiment": true,
   "log_every": 2000,
-  "save_every": 10000,
+  "save_every": 2000,
   "grad_clip_value":0.999,
   "grad_acc_steps": 4,
+  "optimizer": "Adam",
   "lr": 0.001,
   "momentum": 0.9,
   "gpu_num": 0

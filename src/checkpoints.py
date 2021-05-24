@@ -47,7 +47,7 @@ class Checkpoints:
         if Config.save_every is None:
             return
 
-        if step > 0 and step % Config.save_every == 0:
+        if True: #step > 0 and step % Config.save_every == 0:
             with Storage.fs.open(os.path.join(cls.MODEL_FOLDER, str(epoch) + '.' + str(step)), 'wb') as f:
                 torch.save(model.state_dict(), f)
 

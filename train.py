@@ -225,7 +225,7 @@ def train(index, flags, training_started):
                                 print('MATCHED')
                                 exit()
 
-                Checkpoints.save(model, epoch, global_step-1)
+                Checkpoints.save(model, epoch, global_step)
 
             if Config.use_tpu and Config.debug_tpu and step % Config.grad_acc_steps == 0:
                 current_time = time.time() - start_time

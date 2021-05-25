@@ -13,7 +13,7 @@ class Generator(nn.Module):
 
     def forward(self, x):
         batch, vec_size = x.shape
-        x = torch.randn(batch, vec_size).to(Config.device)  # normal dist is probably fine
+        x = torch.randn(batch, vec_size, device=Config.device)  # normal dist is probably fine
         x = torch.tanh(self.d1(x))
         x = torch.tanh(self.d2(x))
         x = self.out(x)

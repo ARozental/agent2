@@ -100,7 +100,7 @@ def train(index, flags, training_started):
     for epoch in range(10001):
         # print('Epoch', epoch + 1)
 
-        if Config.use_tpu and Config.use_all_tpu_cores:
+        if Config.use_tpu:
             parallel_loader = pl.ParallelLoader(dataloader, [Config.device]).per_device_loader(Config.device)
         else:
             parallel_loader = dataloader

@@ -1,15 +1,15 @@
 {
-  "model_folder": "s256a_no_rc_loss",
-  "exp_folder": "runs/s256a_no_rc_loss",
-  "viz_file": "../viz/models/s256a_no_rc_loss.csv",
+  "model_folder": "s256a_slower_disc_change",
+  "exp_folder": "runs/s256a_slower_disc_change",
+  "viz_file": "../viz/models/s256a_slower_disc_change.csv",
   "sequence_lengths": [16, 16, 6, 3, 4],
   "vector_sizes": [32, 64, 256, 96, 128, 156],
   "num_heads": [4, 8, 2, 2, 2, 2],
   "fnn_sizes": [32, 64, 256, 14, 16, 18],
   "num_transformer_layers":  [4, 8, 2, 2, 2, 2],
-  "batch_size": 14,
+  "batch_size": 12,
   "batch_sizes": [3000, 3000, 1000, 1000, 1000],
-  "mini_batch_size": 186,
+  "mini_batch_size": 180,
   "drop_rate": 0.0,
   "join_texts": true,
   "use_pndb1": null,
@@ -20,8 +20,8 @@
   "save_every": 2000,
   "grad_clip_value":0.999,
   "grad_acc_steps": 16,
-  "optimizer": "Adam",
+  "optimizer": "Madgrad",
   "lr": 0.0005,
   "momentum": 0.9,
-  "gpu_num": 1
+  "gpu_num": 0
 }

@@ -136,7 +136,7 @@ def train(index, flags, training_started):
 
                     main_loss = loss_object_to_main_loss(loss_object) / Config.grad_acc_steps
                     r_loss = loss_object_to_reconstruction_weights_loss(loss_object) / Config.grad_acc_steps
-                    c_loss = loss_object_to_extra_coherence_weights_loss(loss_object) / Config.grad_acc_steps
+                    #c_loss = loss_object_to_extra_coherence_weights_loss(loss_object) / Config.grad_acc_steps
 
                     # Divide by grad_acc_steps & detach from the graph
                     loss_object = {
@@ -151,12 +151,14 @@ def train(index, flags, training_started):
                         total_loss_object = merge_dicts(total_loss_object, loss_object)
 
                     [setattr(p, "requires_grad", False) for p in main_params]
-                    [setattr(p, "requires_grad", True) for p in coherence_params]
-                    c_loss.backward(retain_graph=True)
-                    [setattr(p, "requires_grad", False) for p in coherence_params]
+                    # [setattr(p, "requires_grad", True) for p in coherence_params]
+                    # c_loss.backward(retain_graph=True)
+                    # [setattr(p, "requires_grad", False) for p in coherence_params]
                     [setattr(p, "requires_grad", True) for p in reconstruction_params]
                     r_loss.backward(retain_graph=True)
                     [setattr(p, "requires_grad", True) for p in main_params]
+
+
                     main_loss.backward()
 
                 total_loss += main_loss.detach()

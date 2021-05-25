@@ -84,6 +84,6 @@ class Config:
     cnn_padding = 2  # kernal=2*padding+1
     reconstruction_d = 0.0
     main_d = 0.03
-    main_rcd = 0.03
+    main_rcd = 0.01
     main_rm = 0.1
     main_rmd = 0.03

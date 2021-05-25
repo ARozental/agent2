@@ -111,7 +111,7 @@ def inverse_loss(loss):
 
 def cap_loss(loss):
     "cap loss and effectivly kill gradient to prevent the classifier from winning completely"
-    return torch.max(loss, (loss * 0) + 0.01)
+    return torch.max(loss, (loss * 0) + 0.05)
 
 
 def merge_dicts(d1, d2):

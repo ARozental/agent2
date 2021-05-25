@@ -112,32 +112,21 @@ class AgentLevel(nn.Module):
                     ), dim=0)
                 num_dummy = len([True for node in node_batch for child in node.children if child.is_dummy])
 
-            masks = [[False] * (len(node.children) + 1) for node in node_batch]
-            eos_positions = [[0.0] * len(node.children) + [1.0] for node in node_batch]
-            join_positions = [[1 if child.is_join() else 0 for child in node.children] for node in node_batch]
-
             all_ids = [[2 if child.is_join() else getattr(child, id_name) + add_value for child in node.children] + [0]
                        for node in node_batch]  # [0] is EOS, 2 is JOIN
-
-            masks = [item + [True] * (max_length - len(item)) for item in masks]
-            eos_positions = [item + [0.0] * (max_length - len(item)) for item in eos_positions]
-            join_positions = [item + [0.0] * (max_length - len(item)) for item in join_positions]
             all_ids = [item + [1] * (max_length - len(item)) for item in all_ids]  # 1 is PAD
 
-            # These arrays may be longer than the max_length because they assume that the EoS token exists
+            # This array may be longer than the max_length because it assumes that the EoS token exists
             # But some sentences, etc don't have the EoS at all if they were split
-            masks = [item[:max_length] for item in masks]
-            eos_positions = [item[:max_length] for item in eos_positions]
-            join_positions = [item[:max_length] for item in join_positions]
             all_ids = [item[:max_length] for item in all_ids]
 
-            mask = torch.tensor(masks).to(Config.device)
-            eos_positions = torch.tensor(eos_positions).to(Config.device)
-            join_positions = torch.tensor(join_positions).to(Config.device)
-
             # [sentences in node_batch, max words in sentence, word vec size]
-            all_ids = [torch.LongTensor(item).to(Config.device) for item in all_ids]
-            all_ids = torch.stack(all_ids).to(Config.device)
+            all_ids = torch.tensor(all_ids, device=Config.device, dtype=torch.long)
+
+            mask = (all_ids == Config.pad_token_id).bool()
+            # TODO - Which is faster? int() or float()?
+            eos_positions = (all_ids == 0).int()  # 0 is for EOS
+            join_positions = (all_ids == 2).int()  # 2 is for JOIN
 
             matrices = torch.index_select(embedding, 0, all_ids.flatten())
             matrices = matrices.reshape((all_ids.size(0), all_ids.size(1), matrices.size(1)))

@@ -55,7 +55,8 @@ class AgentLevel(nn.Module):
         max_length = Config.sequence_lengths[self.level]
 
         if self.level == 0:  # words => get token vectors
-            lookup_ids = torch.LongTensor([node.get_padded_word_tokens() for node in node_batch]).to(Config.device)
+            lookup_ids = torch.tensor([node.get_padded_word_tokens() for node in node_batch], dtype=torch.long,
+                                      device=Config.device)
             real_positions = (lookup_ids != Config.pad_token_id).float()
             eos_positions = (lookup_ids == Config.eos_token_id).float()
             matrices = torch.index_select(char_embedding, 0, lookup_ids.view(-1))
@@ -131,7 +132,7 @@ class AgentLevel(nn.Module):
             matrices = torch.index_select(embedding, 0, all_ids.flatten())
             matrices = matrices.reshape((all_ids.size(0), all_ids.size(1), matrices.size(1)))
 
-            labels = all_ids  # torch.tensor(all_ids).to(Config.device)
+            labels = all_ids
 
             real_positions = (1 - mask.float())
             vectors = self.compressor(self.encoder(matrices, real_positions, eos_positions), mask)
@@ -154,7 +155,7 @@ class AgentLevel(nn.Module):
         num_tokens = torch.where(eos_mask_max > 0.3, torch.argmax(eos_mask, dim=-1),
                                  eos_mask.size(1))  # todo fix fails to decode when torch.argmax(eos_mask, dim=-1) is 0
 
-        range_matrix = torch.arange(eos_mask.size(1)).repeat(eos_mask.size(0), 1).to(Config.device)
+        range_matrix = torch.arange(eos_mask.size(1), device=Config.device).repeat(eos_mask.size(0), 1)
 
         mask = range_matrix > num_tokens.unsqueeze(-1)
         real_positions = (1 - mask.float())

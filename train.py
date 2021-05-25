@@ -110,7 +110,7 @@ def train(index, flags, training_started):
         total_model_time = 0
         start_time = time.time()
         for step, batch in enumerate(parallel_loader):
-            if Config.profile_tpu and step == 4:
+            if Config.profile_tpu and step >= 4:
                 training_started.set()
 
             # This is not the most efficient, but needs to be done to not skip these examples in future epochs
@@ -298,7 +298,8 @@ if __name__ == '__main__':
             import re
 
             tpu_ip = re.match('grpc\://((\d{1,3}\.){3}\d{1,3})\:\d{4}', os.environ.get('TPU_NAME')).group(1)
-            xp.trace('localhost:9012', Logger.get_log_dir())  # client side profiling
-            xp.trace(f'{tpu_ip}:8466', Logger.get_log_dir())  # need GCS bucket for all traces to be written
+            xp.trace('localhost:9012', Logger.get_log_dir(), duration_ms=11 * 1000)  # client side profiling
+            xp.trace(f'{tpu_ip}:8466', Logger.get_log_dir(),
+                     duration_ms=11 * 1000)  # need GCS bucket for all traces to be written
         else:
             train(None, None, None)

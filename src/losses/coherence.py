@@ -29,7 +29,7 @@ def calc_coherence_loss(agent_level, matrices, real_positions, eos_positions, em
     labels = (changed_tokens * changed_examples * real_positions).sum(-1) / real_positions.sum(-1)  # ~40% are changed
 
     # todo: make sure the pad token is not here, also no join for levels 0 and 1 otherwise pad learns
-    # random_indexes = torch.fmod(torch.randperm(batch * seq_length, device=Config.device), embeddings.shape[0])
+    # random_indexes = torch.fmod(torch.randperm(batch * seq_length).to(Config.device), embeddings.shape[0])
     num_indices = (embeddings.size(0) - num_dummy)  # Number of real indices to use
     random_indexes = (torch.rand(batch * seq_length, device=Config.device) * num_indices).floor().long()
     random_vec_replacements = torch.index_select(embeddings, 0, random_indexes)

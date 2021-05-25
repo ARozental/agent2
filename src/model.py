@@ -42,7 +42,7 @@ class AgentModel(nn.Module):
 
         distinct_word_embedding_tokens = [id_to_tokens[distinct_id] for distinct_id in
                                           range(max_distinct_id + num_dummy_distinct + 1)]
-        local_char_embedding_tokens = torch.LongTensor(distinct_word_embedding_tokens, device=Config.device)
+        local_char_embedding_tokens = torch.tensor(distinct_word_embedding_tokens, dtype=torch.long, device=Config.device)
         real_positions = (local_char_embedding_tokens != Config.pad_token_id).float()
         eos_positions = local_char_embedding_tokens == Config.eos_token_id
         local_char_embedding_matrix = self.char_embedding_layer(local_char_embedding_tokens)
@@ -61,7 +61,7 @@ class AgentModel(nn.Module):
         )  # {0: eos, 1:pad, 2:join}
         word_embedding_matrix = torch.cat([special_vectors, word_embedding_matrix], 0)
 
-        lookup_ids = torch.LongTensor([x.distinct_lookup_id for x in node_batch], device=Config.device)
+        lookup_ids = torch.tensor([x.distinct_lookup_id for x in node_batch], dtype=torch.long, device=Config.device)
         lookup_ids += 2 + int(Config.join_texts)
 
         all_word_vectors = torch.index_select(word_embedding_matrix, 0, lookup_ids)  # [words_in_batch,word_vector_size]

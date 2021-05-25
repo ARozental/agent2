@@ -55,7 +55,8 @@ class AgentLevel(nn.Module):
         max_length = Config.sequence_lengths[self.level]
 
         if self.level == 0:  # words => get token vectors
-            lookup_ids = torch.LongTensor([node.get_padded_word_tokens() for node in node_batch], device=Config.device)
+            lookup_ids = torch.tensor([node.get_padded_word_tokens() for node in node_batch], dtype=torch.long,
+                                      device=Config.device)
             real_positions = (lookup_ids != Config.pad_token_id).float()
             eos_positions = (lookup_ids == Config.eos_token_id).float()
             matrices = torch.index_select(char_embedding, 0, lookup_ids.view(-1))

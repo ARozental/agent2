@@ -128,3 +128,5 @@ I like big butts as well.
 => continue adam from 230k with new mlm_diff loss, half lr and grad acc 10
 and 280 for the other
 => grad_acc really helps results! find out how much is needed
+=> adam 0.001 is too fast for level1??
+=> reconstruction_coherence is stuck but reconstruction_coherence_discriminator loss goes to 0

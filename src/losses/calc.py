@@ -19,7 +19,7 @@ def loss_object_to_main_loss(obj):
         loss += obj[l]['rmd'] * Config.main_rmd
 
         if l > 0:
-            loss += inverse_loss(obj[l]['rcd']) * Config.main_rcd  # negative on the main weights
+            loss += -obj[l]['rcd'] * Config.main_rcd  # negative on the main weights
         loss += obj[l]['rm'] * Config.main_rm
 
     return loss

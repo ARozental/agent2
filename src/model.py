@@ -42,7 +42,7 @@ class AgentModel(nn.Module):
 
         distinct_word_embedding_tokens = [id_to_tokens[distinct_id] for distinct_id in
                                           range(max_distinct_id + num_dummy_distinct + 1)]
-        local_char_embedding_tokens = torch.LongTensor(distinct_word_embedding_tokens).to(Config.device)
+        local_char_embedding_tokens = torch.tensor(distinct_word_embedding_tokens, dtype=torch.long, device=Config.device)
         real_positions = (local_char_embedding_tokens != Config.pad_token_id).float()
         eos_positions = local_char_embedding_tokens == Config.eos_token_id
         local_char_embedding_matrix = self.char_embedding_layer(local_char_embedding_tokens)
@@ -58,10 +58,10 @@ class AgentModel(nn.Module):
                 self.agent_levels[1].pad_vector,
             ] +
             ([self.agent_levels[1].join_vector] if Config.join_texts else [])
-        ).to(Config.device)  # {0: eos, 1:pad, 2:join}
+        )  # {0: eos, 1:pad, 2:join}
         word_embedding_matrix = torch.cat([special_vectors, word_embedding_matrix], 0)
 
-        lookup_ids = torch.LongTensor([x.distinct_lookup_id for x in node_batch]).to(Config.device)
+        lookup_ids = torch.tensor([x.distinct_lookup_id for x in node_batch], dtype=torch.long, device=Config.device)
         lookup_ids += 2 + int(Config.join_texts)
 
         all_word_vectors = torch.index_select(word_embedding_matrix, 0, lookup_ids)  # [words_in_batch,word_vector_size]
@@ -147,7 +147,7 @@ class AgentModel(nn.Module):
                     if Config.join_texts and level_num >= 1:
                         join_loss = calc_join_loss(self.agent_levels[level_num], decompressed, join_positions)
                     else:
-                        join_loss = torch.tensor([0.0] * matrices.size(0)).to(Config.device)
+                        join_loss = torch.tensor([0.0] * matrices.size(0), device=Config.device)
 
                 with xp.Trace('LossKeeper' + str(level_num)):
                     loss_keeper = np.ones(matrices.size(0))
@@ -214,7 +214,7 @@ class AgentModel(nn.Module):
                         current_losses.append(loss)
                         loss_object[level_num][label] = loss  # Keep loss_object as a tensor for custom backwards
                         # loss_object[level_num][label] = loss.item()  # Pull out of the GPU for logging
-                total_loss += torch.stack(current_losses).to(Config.device).sum()
+                total_loss += torch.stack(current_losses).sum()
 
         return total_g_loss, total_disc_loss, total_loss, loss_object
 
@@ -242,7 +242,7 @@ class AgentModel(nn.Module):
         node_vectors = [node.vector for node in nodes if not node.is_join()]
         if len(node_vectors) == 0:  # If all of the nodes are joins
             return [(-1, True) for _ in nodes]
-        node_vectors = torch.stack(node_vectors).to(Config.device)
+        node_vectors = torch.stack(node_vectors)
         children_vectors, children_eos, _, _ = agent_level.vecs_to_children_vecs(node_vectors)
         children_eos = children_eos.tolist()
 

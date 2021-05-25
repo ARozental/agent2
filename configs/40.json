@@ -23,5 +23,5 @@
   "optimizer": "Adam",
   "lr": 0.0005,
   "momentum": 0.9,
-  "gpu_num": 0
+  "gpu_num": 1
 }

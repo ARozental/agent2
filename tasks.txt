@@ -30,6 +30,8 @@ save model in gs://agent_output/models
 read wiki from bucket my it private
 add tpu util tracking to tensorboard
 reconstructed text on tpu
+fix get_children so it'll work again with level2+
+go over new pndb logic together; there is no way it actually does what I hope it does
 
 
 AgentModel:

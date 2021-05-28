@@ -27,19 +27,6 @@ class Pndb(nn.Module):
             self.b1 = nn.Parameter(torch.rand(1, requires_grad=True))
             self.to_output_k = nn.Linear(Config.vector_sizes[level], Config.vector_sizes[level])
 
-        if Config.use_pndb2 is not None:
-            self.questions2 = nn.Parameter(
-                torch.rand([Config.use_pndb2, Config.vector_sizes[level]], requires_grad=True))  # global Q matrix
-            self.to_k2 = nn.Linear(Config.vector_sizes[level], Config.vector_sizes[level],bias=False)
-            self.to_v2 = nn.Linear(Config.vector_sizes[level],
-                                   Config.vector_sizes[level],bias=False)  # should it be the identity matrix??
-            self.ignore2 = nn.Linear(Config.vector_sizes[level], 1)
-            self.update21 = nn.Linear(Config.vector_sizes[level], 1)
-            self.update22 = nn.Linear(Config.vector_sizes[level], 1)
-
-            self.b2 = nn.Parameter(torch.rand(1, requires_grad=True))
-            self.to_output_k2 = nn.Linear(Config.vector_sizes[level], Config.vector_sizes[level])
-
     def ignore_gate(self, x, g):
         return torch.sigmoid(g(x))
 
@@ -54,22 +41,17 @@ class Pndb(nn.Module):
         A = A.mean(0)  # we can have a sum here and subtract later
         return A
 
-    def create_A2_matrix(self, post_encoder_matrices, real_positions):
-        # input is the matrices from a single book only! each node should have a root_id so we can make sure of that
-        k = self.to_k2(post_encoder_matrices)
-        v = self.to_v2(post_encoder_matrices) * self.ignore_gate(post_encoder_matrices, self.ignore2)
-        A = attention(self.questions2, k, v, Config.vector_sizes[1], real_positions=real_positions)  # [batch,num_questions,hidden]
-        A = A.mean(0)
-        return A
-
-    def get_data_from_A_matrix(self, A, post_decoder_matrices):
+    def old_get_data_from_A_matrix(self, A, post_decoder_matrices):
         k = self.to_output_k(post_decoder_matrices)
         A2 = attention(k, self.questions, A, Config.use_pndb1)  # [batch,seq_length,hidden]
         gate_values = self.update_gate(post_decoder_matrices, A2, self.update11, self.update12, self.b1)
         return post_decoder_matrices + A2 * gate_values
 
-    def get_data_from_A2_matrix(self, A, post_decoder_matrices):
-        k = self.to_output_k2(post_decoder_matrices)
-        A2 = attention(k, self.questions2, A, Config.use_pndb2)  # [batch,seq_length,hidden]
-        gate_values = self.update_gate(post_decoder_matrices, A2, self.update21, self.update22, self.b2)
+    def get_data_from_A_matrix(self, A1s,pndb_lookup_ids, post_decoder_matrices):
+        k = self.to_output_k(post_decoder_matrices)
+        selected_A1s = torch.index_select(A1s, 0, pndb_lookup_ids) #todo: is this a horrible place where the memory explodes?
+        A2 = attention(k, self.questions, selected_A1s, Config.use_pndb1)  # [batch,seq_length,hidden]
+        gate_values = self.update_gate(post_decoder_matrices, A2, self.update11, self.update12, self.b1)
         return post_decoder_matrices + A2 * gate_values
+
+

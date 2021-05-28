@@ -25,9 +25,6 @@ class AgentModel(nn.Module):
         for i in range(1, Config.agent_level + 1):
             self.agent_levels[i].previous_level = self.agent_levels[i - 1]
 
-        self.pndb = None
-        if Config.use_pndb1 is not None or Config.use_pndb2 is not None:
-            self.pndb = Pndb()
 
     def set_word_vectors(self, node_batch, debug=False):
         max_distinct_id = max([node.distinct_lookup_id for node in node_batch])  # TODO - Check for dummy nodes in here
@@ -80,28 +77,20 @@ class AgentModel(nn.Module):
             node_batch = [node for node in batch_tree.level_nodes[level_num] if level_num > 0 or not node.is_join()]
             num_dummy_nodes = len([True for node in node_batch if node.is_dummy])
 
-            # todo: pndb_map = {md5 => tensor}
-            if level_num==1 and (Config.use_pndb1 or Config.use_pndb2):
-              x=7
-              print([n.root_md5 for n in real_nodes])
-              group_by_root
-
-
-
             if level_num == 0:
                 with xp.Trace('SetWordVectors'):
                     vectors, previous_vectors, num_dummy0_embed = self.set_word_vectors(node_batch, debug=debug)
 
             with xp.Trace('GetChildren' + str(level_num)):
                 if level_num == 0:
-                    matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, _, num_dummy = \
+                    matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, _, num_dummy,A1s, pndb_lookup_ids = \
                         self.agent_levels[
                             level_num].get_children(
                             node_batch,
                             self.char_embedding_layer.weight,
                             previous_vectors, debug=debug)
                 else:
-                    matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy = \
+                    matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy, A1s, pndb_lookup_ids = \
                         self.agent_levels[
                             level_num].get_children(
                             node_batch,
@@ -140,7 +129,7 @@ class AgentModel(nn.Module):
                         matrices, decompressed, real_positions,
                         eos_positions,
                         join_positions,
-                        embedding_matrix, labels, self.pndb, num_dummy=num_dummy, dummy_logit_bias=dummy_logit_bias)
+                        embedding_matrix, labels, self.agent_levels[1].pndb,A1s, pndb_lookup_ids, num_dummy=num_dummy, dummy_logit_bias=dummy_logit_bias)
 
             with xp.Trace('EOSLoss' + str(level_num)):
                 # does it help to do it on decompressed (pre decoded)? maybe but very noisy

@@ -1,6 +1,7 @@
-from . import Compressor, Decompressor, Encoder, Decoder, CoherenceChecker, Generator, Discriminator, CnnDiscriminator
+from . import Compressor, Decompressor, Encoder, Decoder, CoherenceChecker, Generator, Discriminator, CnnDiscriminator, Pndb
 from src.losses.eos import decompressed_to_cdot, cdot_to_probs, calc_eos_loss
 from src.config import Config
+from src.utils import group_by_root,distinct
 import torch.nn.functional as F
 import torch.nn as nn
 import torch
@@ -43,6 +44,12 @@ class AgentLevel(nn.Module):
         self.mask_vector = nn.Parameter(torch.rand(Config.vector_sizes[level], requires_grad=True))
         self.pad_vector = nn.Parameter(torch.zeros(Config.vector_sizes[level]), requires_grad=False)
 
+
+        self.pndb = None
+        if self.level==1 and (Config.use_pndb1 is not None or Config.use_pndb2 is not None):
+            self.pndb = Pndb()
+
+
     def eos_classifier1(self, dot):
         # needed to make sure w1 can never be negative
         return F.elu(dot * self.classifier1w * torch.sign(self.classifier1w)) + self.classifier1b
@@ -67,51 +74,31 @@ class AgentLevel(nn.Module):
             )
 
             # lookup_ids is also labels
-            return matrices, real_positions, eos_positions, None, char_embedding, lookup_ids, None, 0
-        else:
-            if self.level == 1:
-                id_name = 'distinct_lookup_id'
-            else:
-                id_name = 'id'
-                raise ValueError('Anything above level 1 is not implemented and tested yet.')
-
+            return matrices, real_positions, eos_positions, None, char_embedding, lookup_ids, None, 0, None, None
+        elif self.level == 1:
+            id_name = 'distinct_lookup_id'
             add_value = 2 + int(Config.join_texts)
+            num_dummy = 0
+            if Config.use_tpu: #add pad vectors to ensure constant word embedding matrix size
+                total_possible = len(node_batch) * max_length
+                extra_dummy = total_possible - (previous_vectors.size(0) - add_value)
+                if extra_dummy > 0:
+                    previous_vectors = torch.cat(
+                        (
+                            previous_vectors,
+                            torch.stack([self.pad_vector] * extra_dummy)
+                        ), 0)
+                    num_dummy += extra_dummy
+            embedding = torch.cat(
+                (
+                    torch.stack(
+                        [self.eos_vector] +
+                        [self.pad_vector] +
+                        ([self.join_vector] if Config.join_texts else [])
+                    ),
+                    previous_vectors
+                ), dim=0)
 
-            if self.level == 1:
-                num_dummy = 0
-
-                if Config.use_tpu:
-                    total_possible = len(node_batch) * max_length
-                    extra_dummy = total_possible - (previous_vectors.size(0) - add_value)
-                    if extra_dummy > 0:
-                        previous_vectors = torch.cat(
-                            (
-                                previous_vectors,
-                                torch.stack([self.pad_vector] * extra_dummy)
-                            ), 0)
-                        num_dummy += extra_dummy
-                embedding = torch.cat(
-                    (
-                        torch.stack(
-                            [self.eos_vector] +
-                            [self.pad_vector] +
-                            ([self.join_vector] if Config.join_texts else [])
-                        ),
-                        previous_vectors
-                    ), dim=0)
-            else:
-                # THIS IS NOT IMPLEMENTED YET
-                embedding_ids = [[child.batch_index for child in node.children] for node in node_batch]
-                embedding = torch.cat(
-                    (
-                        torch.stack(
-                            [self.eos_vector] +
-                            [self.pad_vector] +
-                            ([self.join_vector] if Config.join_texts else [])
-                        ),
-                        previous_vectors
-                    ), dim=0)
-                num_dummy = len([True for node in node_batch for child in node.children if child.is_dummy])
 
             all_ids = [[2 if child.is_join() else getattr(child, id_name) + add_value for child in node.children] + [0]
                        for node in node_batch]  # [0] is EOS, 2 is JOIN
@@ -139,7 +126,43 @@ class AgentLevel(nn.Module):
             if debug:
                 [n.set_vector(v) for n, v in zip(node_batch, vectors)]
 
-            return matrices, real_positions, eos_positions, join_positions, embedding, labels, vectors, num_dummy
+
+            #pndb
+            A1s, pndb_lookup_ids = None,None
+            if Config.use_pndb1:
+              #continuous ids verify, todo: if debug
+              md5s = [n.root_md5 for n in node_batch]
+              seen = set([])
+              for i in range(1,len(md5s)):
+                if md5s[i] in seen and md5s[i]!=md5s[i-1]:
+                  raise("WTF pndb")
+                seen.add(md5s[i])
+
+              current_root_md5 = node_batch[0].root_md5
+              start_index=0
+              end_index = 0
+              A1s=[]
+              pndb_lookup_ids=[]
+              top_doc_id = 0
+              for n in node_batch:
+                if n.root_md5 == current_root_md5:
+                  end_index+=1
+                else:
+                  A1s.append(self.pndb.create_A_matrix(matrices[start_index:end_index], real_positions[start_index:end_index]))
+                  start_index = end_index
+                  end_index+=1
+                  current_root_md5 = n.root_md5
+                  top_doc_id+=1
+                pndb_lookup_ids.append(top_doc_id)
+              A1s.append(self.pndb.create_A_matrix(matrices[start_index:end_index], real_positions[start_index:end_index]))
+              A1s = torch.stack(A1s)
+              pndb_lookup_ids = torch.tensor(pndb_lookup_ids,device=Config.device)
+
+
+            return matrices, real_positions, eos_positions, join_positions, embedding, labels, vectors, num_dummy,A1s,pndb_lookup_ids
+        else:
+            raise("WTF level 2 is not implemented")
+
 
     def vecs_to_children_vecs(self, vecs):
         decompressed = self.decompressor(vecs)

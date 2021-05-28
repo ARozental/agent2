@@ -10,10 +10,10 @@ from src.losses.coherence import calc_rc_loss, calc_lower_rc_loss, make_fake_nor
 
 def calc_reconstruction_loss(agent_level, matrices, decompressed, real_positions, eos_positions, join_positions,
                              embeddings,
-                             labels, pndb, num_dummy=0, dummy_logit_bias=None):
+                             labels, pndb,A1s, pndb_lookup_ids, num_dummy=0, dummy_logit_bias=None):
     # matrices, mask, labels => [batch,seq_length,vec_size]
     if Config.use_pndb2 is not None and agent_level.level == 1:
-        decompressed = pndb.get_data_from_A2_matrix(pndb.create_A2_matrix(matrices, real_positions), decompressed)
+        decompressed = pndb.old_get_data_from_A_matrix(pndb.create_A_matrix(matrices, real_positions), decompressed)
 
     # overrides real_positions with the best the decompressor can do
     _, projected_eos_positions = calc_eos_loss(agent_level, decompressed, eos_positions)
@@ -22,7 +22,8 @@ def calc_reconstruction_loss(agent_level, matrices, decompressed, real_positions
     # [batch,seq_length,vec_size]
     post_decoder = agent_level.decoder(decompressed, real_positions_for_mask, eos_positions)
     if Config.use_pndb1 is not None and agent_level.level == 1:
-        post_decoder = pndb.get_data_from_A_matrix(pndb.create_A_matrix(matrices, real_positions), post_decoder)
+        #post_decoder = pndb.old_get_data_from_A_matrix(pndb.create_A_matrix(matrices, real_positions), post_decoder)
+        post_decoder = pndb.get_data_from_A_matrix(A1s, pndb_lookup_ids, post_decoder)
 
     logits = torch.matmul(post_decoder, torch.transpose(embeddings, 0, 1))  # [batch, max_length, embedding_size)
 

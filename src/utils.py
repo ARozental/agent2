@@ -126,3 +126,12 @@ def group_by_root(nodes):
   for n in nodes:
     res[n.root_md5].append(n)
   return res
+
+def distinct(lst):
+  s = set([])
+  output = []
+  for x in lst:
+    if x not in s:
+      s.add(x)
+      output.append(x)
+  return output

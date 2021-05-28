@@ -7,7 +7,7 @@ from src.losses.coherence import calc_coherence_loss
 from src.losses.reconstruction import calc_reconstruction_loss
 from src.losses.generation import calc_generation_loss
 from src.pre_processing import Node, TreeTokenizer
-from src.utils import iter_even_split
+from src.utils import iter_even_split, group_by_root
 from src.profiler import Profiler as xp
 from src.agent.pndb import Pndb
 import torch.nn as nn
@@ -80,6 +80,12 @@ class AgentModel(nn.Module):
             total_dummy_nodes = 0
 
             # todo: pndb_map = {md5 => tensor}
+            if level_num==1 and (Config.use_pndb1 or Config.use_pndb2):
+              x=7
+              print([n.root_md5 for n in real_nodes])
+              group_by_root
+
+
 
             for batch_num, node_batch in enumerate(iter_even_split(real_nodes, Config.node_sizes[level_num])):
                 num_dummy_nodes = len([True for node in node_batch if node.is_dummy])

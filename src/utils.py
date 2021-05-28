@@ -74,7 +74,7 @@ def attention(q, k, v,d_k, real_positions=None, dropout=None):
     scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(d_k)
 
     if real_positions is not None:
-      scores += torch.log(real_positions)
+      scores += torch.log(real_positions.unsqueeze(1))
 
     scores = F.softmax(scores, dim=-1)
 
@@ -118,3 +118,11 @@ def merge_dicts(d1, d2):
     for level in d1.keys():
         res[level] = {k: d1[level].get(k, 0) + d2[level].get(k, 0) for k in d1[level].keys()}
     return res
+
+
+def group_by_root(nodes):
+  ks = set([n.root_md5 for n in nodes])
+  res = {k: [] for k in ks}
+  for n in nodes:
+    res[n.root_md5].append(n)
+  return res

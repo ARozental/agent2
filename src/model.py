@@ -42,7 +42,8 @@ class AgentModel(nn.Module):
 
         distinct_word_embedding_tokens = [id_to_tokens[distinct_id] for distinct_id in
                                           range(max_distinct_id + num_dummy_distinct + 1)]
-        local_char_embedding_tokens = torch.tensor(distinct_word_embedding_tokens, dtype=torch.long, device=Config.device)
+        local_char_embedding_tokens = torch.tensor(distinct_word_embedding_tokens, dtype=torch.long,
+                                                   device=Config.device)
         real_positions = (local_char_embedding_tokens != Config.pad_token_id).float()
         eos_positions = local_char_embedding_tokens == Config.eos_token_id
         local_char_embedding_matrix = self.char_embedding_layer(local_char_embedding_tokens)
@@ -76,141 +77,137 @@ class AgentModel(nn.Module):
         previous_vectors = None
         for level_num in range(Config.agent_level + 1):
             # All the nodes in this level (not including join tokens if on lowest level)
-            real_nodes = [node for node in batch_tree.level_nodes[level_num] if level_num > 0 or not node.is_join()]
-            total_dummy_nodes = 0
+            node_batch = [node for node in batch_tree.level_nodes[level_num] if level_num > 0 or not node.is_join()]
+            num_dummy_nodes = len([True for node in node_batch if node.is_dummy])
 
             # todo: pndb_map = {md5 => tensor}
 
-            for batch_num, node_batch in enumerate(iter_even_split(real_nodes, Config.node_sizes[level_num])):
-                num_dummy_nodes = len([True for node in node_batch if node.is_dummy])
-                total_dummy_nodes += num_dummy_nodes
+            if level_num == 0:
+                with xp.Trace('SetWordVectors'):
+                    vectors, previous_vectors, num_dummy0_embed = self.set_word_vectors(node_batch, debug=debug)
 
+            with xp.Trace('GetChildren' + str(level_num)):
                 if level_num == 0:
-                    with xp.Trace('SetWordVectors'):
-                        vectors, previous_vectors, num_dummy0_embed = self.set_word_vectors(node_batch, debug=debug)
-
-                with xp.Trace('GetChildren' + str(level_num)):
-                    if level_num == 0:
-                        matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, _, num_dummy = \
-                            self.agent_levels[
-                                level_num].get_children(
-                                node_batch,
-                                self.char_embedding_layer.weight,
-                                previous_vectors, debug=debug)
-                    else:
-                        matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy = \
-                            self.agent_levels[
-                                level_num].get_children(
-                                node_batch,
-                                self.char_embedding_layer.weight,
-                                previous_vectors, debug=debug)
-                        num_dummy += num_dummy0_embed
-
-                if Config.use_tpu:
-                    with xp.Trace('DummyLogitBias' + str(level_num)):
-                        dummy_logit_bias = np.zeros(embedding_matrix.size(0))
-                        dummy_logit_bias[-1 * num_dummy:] = 999999999999
-                        dummy_logit_bias = torch.tensor(dummy_logit_bias, device=Config.device)
+                    matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, _, num_dummy = \
+                        self.agent_levels[
+                            level_num].get_children(
+                            node_batch,
+                            self.char_embedding_layer.weight,
+                            previous_vectors, debug=debug)
                 else:
-                    dummy_logit_bias = None
+                    matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy = \
+                        self.agent_levels[
+                            level_num].get_children(
+                            node_batch,
+                            self.char_embedding_layer.weight,
+                            previous_vectors, debug=debug)
+                    num_dummy += num_dummy0_embed
 
-                with xp.Trace('MLMLoss' + str(level_num)):
-                    mlm_loss, mlm_diff_loss = calc_mlm_loss(self.agent_levels[level_num], matrices, real_positions,
-                                                            eos_positions,
-                                                            embedding_matrix,
-                                                            labels, num_dummy=num_dummy,
-                                                            dummy_logit_bias=dummy_logit_bias)
+            if Config.use_tpu:
+                with xp.Trace('DummyLogitBias' + str(level_num)):
+                    dummy_logit_bias = np.zeros(embedding_matrix.size(0))
+                    dummy_logit_bias[-1 * num_dummy:] = 999999999999
+                    dummy_logit_bias = torch.tensor(dummy_logit_bias, device=Config.device)
+            else:
+                dummy_logit_bias = None
 
-                with xp.Trace('CoherenceLoss' + str(level_num)):
-                    coherence_loss, cd_loss = calc_coherence_loss(self.agent_levels[level_num], matrices,
-                                                                  real_positions,
-                                                                  eos_positions,
-                                                                  embedding_matrix, num_dummy=num_dummy)
+            with xp.Trace('MLMLoss' + str(level_num)):
+                mlm_loss, mlm_diff_loss = calc_mlm_loss(self.agent_levels[level_num], matrices, real_positions,
+                                                        eos_positions,
+                                                        embedding_matrix,
+                                                        labels, num_dummy=num_dummy,
+                                                        dummy_logit_bias=dummy_logit_bias)
 
-                with xp.Trace('CallingDecompressor' + str(level_num)):
-                    decompressed = self.agent_levels[level_num].decompressor(vectors)
+            with xp.Trace('CoherenceLoss' + str(level_num)):
+                coherence_loss, cd_loss = calc_coherence_loss(self.agent_levels[level_num], matrices,
+                                                              real_positions,
+                                                              eos_positions,
+                                                              embedding_matrix, num_dummy=num_dummy)
 
-                with xp.Trace('ReconstructionLoss' + str(level_num)):
-                    reconstruction_diff_loss, reconstruction_loss, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss, rcd_loss = \
-                        calc_reconstruction_loss(
-                            self.agent_levels[level_num],
-                            matrices, decompressed, real_positions,
-                            eos_positions,
-                            join_positions,
-                            embedding_matrix, labels, self.pndb, num_dummy=num_dummy, dummy_logit_bias=dummy_logit_bias)
+            with xp.Trace('CallingDecompressor' + str(level_num)):
+                decompressed = self.agent_levels[level_num].decompressor(vectors)
 
-                with xp.Trace('EOSLoss' + str(level_num)):
-                    # does it help to do it on decompressed (pre decoded)? maybe but very noisy
-                    eos_loss, _ = calc_eos_loss(self.agent_levels[level_num], decompressed, eos_positions)
+            with xp.Trace('ReconstructionLoss' + str(level_num)):
+                reconstruction_diff_loss, reconstruction_loss, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss, rcd_loss = \
+                    calc_reconstruction_loss(
+                        self.agent_levels[level_num],
+                        matrices, decompressed, real_positions,
+                        eos_positions,
+                        join_positions,
+                        embedding_matrix, labels, self.pndb, num_dummy=num_dummy, dummy_logit_bias=dummy_logit_bias)
 
-                with xp.Trace('JoinLoss' + str(level_num)):
-                    if Config.join_texts and level_num >= 1:
-                        join_loss = calc_join_loss(self.agent_levels[level_num], decompressed, join_positions)
-                    else:
-                        join_loss = torch.tensor([0.0] * matrices.size(0), device=Config.device)
+            with xp.Trace('EOSLoss' + str(level_num)):
+                # does it help to do it on decompressed (pre decoded)? maybe but very noisy
+                eos_loss, _ = calc_eos_loss(self.agent_levels[level_num], decompressed, eos_positions)
 
-                with xp.Trace('LossKeeper' + str(level_num)):
-                    loss_keeper = np.ones(matrices.size(0))
-                    if num_dummy_nodes > 0:
-                        loss_keeper[-1 * num_dummy_nodes:] = 0
-                    loss_keeper = torch.tensor(loss_keeper, device=Config.device)
+            with xp.Trace('JoinLoss' + str(level_num)):
+                if Config.join_texts and level_num >= 1:
+                    join_loss = calc_join_loss(self.agent_levels[level_num], decompressed, join_positions)
+                else:
+                    join_loss = torch.tensor([0.0] * matrices.size(0), device=Config.device)
 
-                with xp.Trace('CalculateLosses' + str(level_num)):
-                    losses = {
-                        'm': (mlm_loss * loss_keeper).sum(),
-                        'md': (mlm_diff_loss * loss_keeper).sum(),
-                        "c": (coherence_loss * loss_keeper).sum(),
-                        "r": (reconstruction_loss * loss_keeper).sum(),
-                        "e": (eos_loss * loss_keeper).sum(),
-                        "j": (join_loss * loss_keeper).sum(),
-                        "d": (reconstruction_diff_loss * loss_keeper).sum(),
+            with xp.Trace('LossKeeper' + str(level_num)):
+                loss_keeper = np.ones(matrices.size(0))
+                if num_dummy_nodes > 0:
+                    loss_keeper[-1 * num_dummy_nodes:] = 0
+                loss_keeper = torch.tensor(loss_keeper, device=Config.device)
 
-                        "rc": (rc_loss.view(matrices.shape[:2]) * loss_keeper.unsqueeze(-1)).sum(),
-                        "re": (re_loss * loss_keeper).sum(),
-                        "rj": (rj_loss * loss_keeper).sum(),
-                        "rm": (rm_loss * loss_keeper).sum(),
-                        "rmd": (rm_diff_loss * loss_keeper).sum(),
-                        "cd": (cd_loss * loss_keeper).mean(),  # This is disabled in coherence loss
-                        "rcd": (rcd_loss.view(-1, 2) * loss_keeper.unsqueeze(-1)).mean(),  # TODO - Check if correct
-                    }
+            with xp.Trace('CalculateLosses' + str(level_num)):
+                losses = {
+                    'm': (mlm_loss * loss_keeper).sum(),
+                    'md': (mlm_diff_loss * loss_keeper).sum(),
+                    "c": (coherence_loss * loss_keeper).sum(),
+                    "r": (reconstruction_loss * loss_keeper).sum(),
+                    "e": (eos_loss * loss_keeper).sum(),
+                    "j": (join_loss * loss_keeper).sum(),
+                    "d": (reconstruction_diff_loss * loss_keeper).sum(),
 
-                    if level_num not in loss_object:  # On the first node_batch
-                        loss_object[level_num] = losses
-                    else:
-                        for label, value in losses.items():
-                            loss_object[level_num][label] += value
+                    "rc": (rc_loss.view(matrices.shape[:2]) * loss_keeper.unsqueeze(-1)).sum(),
+                    "re": (re_loss * loss_keeper).sum(),
+                    "rj": (rj_loss * loss_keeper).sum(),
+                    "rm": (rm_loss * loss_keeper).sum(),
+                    "rmd": (rm_diff_loss * loss_keeper).sum(),
+                    "cd": (cd_loss * loss_keeper).mean(),  # This is disabled in coherence loss
+                    "rcd": (rcd_loss.view(-1, 2) * loss_keeper.unsqueeze(-1)).mean(),  # TODO - Check if correct
+                }
 
-                if generate and batch_num == 0:  # Only run generate on the first batch of nodes
-                    g_loss, disc_loss = calc_generation_loss(self.agent_levels[level_num], vectors, matrices, mask)
-                    loss_object[level_num]["g"] = g_loss.item()
-                    loss_object[level_num]["disc"] = disc_loss.item()
-                    total_g_loss += g_loss
-                    total_disc_loss += disc_loss
+                if level_num not in loss_object:  # On the first node_batch
+                    loss_object[level_num] = losses
+                else:
+                    for label, value in losses.items():
+                        loss_object[level_num][label] += value
 
-                # If the lengths are not equal then let's catch this
-                # assert len(node_batch) == mlm_loss.size(0)
-                # assert len(node_batch) == reconstruction_loss.size(0)
+            if generate:  # Only run generate on the first batch of nodes
+                g_loss, disc_loss = calc_generation_loss(self.agent_levels[level_num], vectors, matrices, mask)
+                loss_object[level_num]["g"] = g_loss.item()
+                loss_object[level_num]["disc"] = disc_loss.item()
+                total_g_loss += g_loss
+                total_disc_loss += disc_loss
 
-                if debug:
-                    for i, node in enumerate(node_batch):
-                        node.mlm_loss = mlm_loss[i]
-                        node.mlm_diff_loss = mlm_diff_loss[i]
-                        node.coherence_loss = coherence_loss[i]
-                        node.reconstruction_loss = reconstruction_loss[i]
-                        node.eos_loss = eos_loss[i]
-                        node.join_loss = join_loss[i]
-                        node.reconstruction_diff_loss = reconstruction_diff_loss[i]
-                        node.rc_loss = rc_loss[i]
-                        node.re_loss = re_loss[i]
-                        node.rj_loss = rj_loss[i]
-                        node.rm_loss = rm_loss[i]
-                        node.rm_diff_loss = rm_diff_loss[i]
+            # If the lengths are not equal then let's catch this
+            # assert len(node_batch) == mlm_loss.size(0)
+            # assert len(node_batch) == reconstruction_loss.size(0)
+
+            if debug:
+                for i, node in enumerate(node_batch):
+                    node.mlm_loss = mlm_loss[i]
+                    node.mlm_diff_loss = mlm_diff_loss[i]
+                    node.coherence_loss = coherence_loss[i]
+                    node.reconstruction_loss = reconstruction_loss[i]
+                    node.eos_loss = eos_loss[i]
+                    node.join_loss = join_loss[i]
+                    node.reconstruction_diff_loss = reconstruction_diff_loss[i]
+                    node.rc_loss = rc_loss[i]
+                    node.re_loss = re_loss[i]
+                    node.rj_loss = rj_loss[i]
+                    node.rm_loss = rm_loss[i]
+                    node.rm_diff_loss = rm_diff_loss[i]
 
             with xp.Trace('ComputeTotalLoss' + str(level_num)):
                 current_losses = []
                 for label, loss in loss_object[level_num].items():
                     if label not in ['g', 'disc', 'cd', 'rcd']:
-                        loss /= (len(real_nodes) - total_dummy_nodes)
+                        loss /= (len(node_batch) - num_dummy_nodes)
                         current_losses.append(loss)
                         loss_object[level_num][label] = loss  # Keep loss_object as a tensor for custom backwards
                         # loss_object[level_num][label] = loss.item()  # Pull out of the GPU for logging

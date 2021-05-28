@@ -69,19 +69,18 @@ def split_nodes_to_batches(nodes, max_batch_size):
     return []
 
 
-def attention(q, k, v, d_k, real_positions=None, dropout=None):
+def attention(m, real_positions=None, dropout=None):
+    q, k, v, d_k = m, m, m, len(m[0])
     """ for pndb only"""
     scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(d_k)
 
-    # todo: use real_positions instead of mask
-    # if mask is not None:
-    #   mask = mask.unsqueeze(1)
-    #   scores = scores.masked_fill(mask == True, -1e9)
+    if real_positions is not None:
+      scores += torch.log(real_positions)
 
     scores = F.softmax(scores, dim=-1)
 
     if dropout is not None:
-        scores = dropout(scores)
+      scores = dropout(scores)
 
     output = torch.matmul(scores, v)
     return output

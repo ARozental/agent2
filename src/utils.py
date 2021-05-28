@@ -69,8 +69,7 @@ def split_nodes_to_batches(nodes, max_batch_size):
     return []
 
 
-def attention(m, real_positions=None, dropout=None):
-    q, k, v, d_k = m, m, m, len(m[0])
+def attention(q, k, v,d_k, real_positions=None, dropout=None):
     """ for pndb only"""
     scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(d_k)
 

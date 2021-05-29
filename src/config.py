@@ -27,7 +27,7 @@ class Config:
     max_coherence_noise = 0.8
 
     # PNDB - None is off; integer for number of questions
-    use_pndb1 = 8
+    use_pndb1 = None
     use_pndb2 = None
 
     # smoothing
@@ -37,7 +37,7 @@ class Config:
     lr = 0.0005
     momentum = 0.9
     half_life_steps = 150000
-    grad_acc_steps = 1
+    grad_acc_steps = 2
 
     skip_batches = None  # How many batches to skip (additional on top of the checkpoint)
     use_checkpoint = None  # Load saved model and dataset step from a checkpoint

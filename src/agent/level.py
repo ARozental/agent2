@@ -58,7 +58,7 @@ class AgentLevel(nn.Module):
         # needed to make sure w1 can never be negative
         return F.elu(dot * self.join_classifier_w * torch.sign(self.join_classifier_w)) + self.join_classifier_b
 
-    def get_children(self, node_batch, char_embedding=None, previous_vectors=None, debug=False):
+    def get_children(self, node_batch, embedding=None, previous_vectors=None, debug=False):
         max_length = Config.sequence_lengths[self.level]
 
         if self.level == 0:  # words => get token vectors
@@ -66,7 +66,7 @@ class AgentLevel(nn.Module):
                                       device=Config.device)
             real_positions = (lookup_ids != Config.pad_token_id).float()
             eos_positions = (lookup_ids == Config.eos_token_id).float()
-            matrices = torch.index_select(char_embedding, 0, lookup_ids.view(-1))
+            matrices = torch.index_select(embedding, 0, lookup_ids.view(-1))
             matrices = matrices.view(
                 lookup_ids.size(0),
                 Config.sequence_lengths[self.level],
@@ -74,31 +74,15 @@ class AgentLevel(nn.Module):
             )
 
             # lookup_ids is also labels
-            return matrices, real_positions, eos_positions, None, char_embedding, lookup_ids, None, 0, None, None
+            return matrices, real_positions, eos_positions, None, embedding, lookup_ids, None, 0, None, None
         elif self.level == 1:
             id_name = 'distinct_lookup_id'
             add_value = 2 + int(Config.join_texts)
             num_dummy = 0
             if Config.use_tpu: #add pad vectors to ensure constant word embedding matrix size
                 total_possible = len(node_batch) * max_length
-                extra_dummy = total_possible - (previous_vectors.size(0) - add_value)
-                if extra_dummy > 0:
-                    previous_vectors = torch.cat(
-                        (
-                            previous_vectors,
-                            torch.stack([self.pad_vector] * extra_dummy)
-                        ), 0)
-                    num_dummy += extra_dummy
-            embedding = torch.cat(
-                (
-                    torch.stack(
-                        [self.eos_vector] +
-                        [self.pad_vector] +
-                        ([self.join_vector] if Config.join_texts else [])
-                    ),
-                    previous_vectors
-                ), dim=0)
-
+                extra_dummy = total_possible - embedding.size(0)
+                embedding = torch.cat((embedding,torch.stack([self.pad_vector] * extra_dummy)), 0)
 
             all_ids = [[2 if child.is_join() else getattr(child, id_name) + add_value for child in node.children] + [0]
                        for node in node_batch]  # [0] is EOS, 2 is JOIN

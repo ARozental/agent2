@@ -32,7 +32,7 @@ add tpu util tracking to tensorboard
 reconstructed text on tpu
 fix get_children so it'll work again with level2+
 go over new pndb logic together; there is no way it actually does what I hope it does
-
+set max num words from out side, using max possible doesn't scale well => low priority
 
 AgentModel:
 1. refactor actual decode function

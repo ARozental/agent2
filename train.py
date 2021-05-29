@@ -216,12 +216,6 @@ def train(index, flags, training_started):
 
                     reconstructed = [[TreeTokenizer.deep_detokenize(node[0], i) for node in items] for i, items in
                                      enumerate(reconstructed)]
-                    nn0 = batch.level_nodes[0][0]
-                    nn1 = batch.level_nodes[1][0]
-                    #print("decoded",model.full_decode([nn1]))
-                    #print("expected",nn1.build_struct(return_eos=True))
-                    print({"d":nn0.reconstruction_diff_loss,"r":nn0.reconstruction_loss,"re":nn0.re_loss})
-                    print({"d":nn1.reconstruction_diff_loss,"r":nn1.reconstruction_loss,"re":nn1.re_loss})
                     for i, text in enumerate(reconstructed):
                         print('Level', i, text)
                         Logger.log_reconstructed(text, i, step=global_step)

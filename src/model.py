@@ -72,6 +72,7 @@ class AgentModel(nn.Module):
         total_g_loss, total_disc_loss, total_loss = 0, 0, 0
         loss_object = {}
         previous_vectors = None
+        word_embedding_matrix= None
         for level_num in range(Config.agent_level + 1):
             # All the nodes in this level (not including join tokens if on lowest level)
             node_batch = [node for node in batch_tree.level_nodes[level_num] if level_num > 0 or not node.is_join()]
@@ -79,7 +80,8 @@ class AgentModel(nn.Module):
 
             if level_num == 0:
                 with xp.Trace('SetWordVectors'):
-                    vectors, previous_vectors, num_dummy0_embed = self.set_word_vectors(node_batch, debug=debug)
+                    vectors, wm, num_dummy0_embed = self.set_word_vectors(node_batch, debug=debug)
+                    word_embedding_matrix = wm
 
             with xp.Trace('GetChildren' + str(level_num)):
                 if level_num == 0:
@@ -88,13 +90,21 @@ class AgentModel(nn.Module):
                             level_num].get_children(
                             node_batch,
                             self.char_embedding_layer.weight,
-                            previous_vectors, debug=debug)
+                            None, debug=debug)
+                elif level_num == 1:
+                    matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy, A1s, pndb_lookup_ids = \
+                      self.agent_levels[
+                        level_num].get_children(
+                        node_batch,
+                        word_embedding_matrix,
+                        previous_vectors, debug=debug)
+                    num_dummy += num_dummy0_embed
                 else:
                     matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy, A1s, pndb_lookup_ids = \
                         self.agent_levels[
                             level_num].get_children(
                             node_batch,
-                            self.char_embedding_layer.weight,
+                            None,
                             previous_vectors, debug=debug)
                     num_dummy += num_dummy0_embed
 

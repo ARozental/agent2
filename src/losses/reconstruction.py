@@ -16,7 +16,7 @@ def calc_reconstruction_loss(agent_level, matrices, decompressed, real_positions
         decompressed = pndb.old_get_data_from_A_matrix(pndb.create_A_matrix(matrices, real_positions), decompressed)
 
     # overrides real_positions with the best the decompressor can do
-    _, projected_eos_positions = calc_eos_loss(agent_level, decompressed, eos_positions)
+    eos_loss, projected_eos_positions = calc_eos_loss(agent_level, decompressed, eos_positions)
     real_positions_for_mask = (1 - torch.cumsum(projected_eos_positions, dim=1))
 
     # [batch,seq_length,vec_size]
@@ -78,4 +78,4 @@ def calc_reconstruction_loss(agent_level, matrices, decompressed, real_positions
     else:
         rj_loss = torch.zeros(post_decoder.size(0), device=Config.device)
 
-    return reconstruction_diff, reconstruction_losses, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss, rcd_loss
+    return reconstruction_diff, reconstruction_losses,eos_loss, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss, rcd_loss

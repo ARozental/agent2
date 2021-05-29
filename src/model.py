@@ -133,7 +133,7 @@ class AgentModel(nn.Module):
                 decompressed = self.agent_levels[level_num].decompressor(vectors)
 
             with xp.Trace('ReconstructionLoss' + str(level_num)):
-                reconstruction_diff_loss, reconstruction_loss, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss, rcd_loss = \
+                reconstruction_diff_loss, reconstruction_loss, eos_loss, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss, rcd_loss = \
                     calc_reconstruction_loss(
                         self.agent_levels[level_num],
                         matrices, decompressed, real_positions,
@@ -141,9 +141,6 @@ class AgentModel(nn.Module):
                         join_positions,
                         embedding_matrix, labels, self.agent_levels[1].pndb,A1s, pndb_lookup_ids, num_dummy=num_dummy, dummy_logit_bias=dummy_logit_bias)
 
-            with xp.Trace('EOSLoss' + str(level_num)):
-                # does it help to do it on decompressed (pre decoded)? maybe but very noisy
-                eos_loss, _ = calc_eos_loss(self.agent_levels[level_num], decompressed, eos_positions)
 
             with xp.Trace('JoinLoss' + str(level_num)):
                 if Config.join_texts and level_num >= 1:

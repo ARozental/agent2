@@ -106,8 +106,8 @@ class AgentLevel(nn.Module):
             labels = all_ids
 
             real_positions = (1 - mask.float())
-            vectors = self.compressor(self.encoder(matrices, real_positions, eos_positions), mask)
-            if debug:
+            vectors = self.compressor(self.encoder(matrices, real_positions, eos_positions), real_positions)
+            if debug or Config.agent_level>1:
                 [n.set_vector(v) for n, v in zip(node_batch, vectors)]
 
 
@@ -145,7 +145,44 @@ class AgentLevel(nn.Module):
 
             return matrices, real_positions, eos_positions, join_positions, embedding, labels, vectors, num_dummy,A1s,pndb_lookup_ids
         else:
-            raise("WTF level 2 is not implemented")
+            add_value = 2 + int(Config.join_texts)
+            num_dummy = 0
+            if Config.use_tpu:
+              raise ("WTF level 2 TPU is not implemented")
+
+            id_to_index = {v: i for i,v in enumerate([c.id for node in node_batch for c in node.children if not(c.is_join())])}
+
+            all_ids = [[2 if child.is_join() else id_to_index[child.id] + add_value for child in node.children] + [0] for node in node_batch]  # [0] is EOS, 2 is JOIN
+            all_ids = [item + [1] * (max_length - len(item)) for item in all_ids]  # 1 is PAD
+
+            # This array may be longer than the max_length because it assumes that the EoS token exists
+            # But some sentences, etc don't have the EoS at all if they were split
+            all_ids = [item[:max_length] for item in all_ids]
+
+            # [sentences in node_batch, max words in sentence, word vec size]
+            all_ids = torch.tensor(all_ids, device=Config.device, dtype=torch.long)
+
+            #embedding:
+            all_vectors = [c.vector for node in node_batch for c in node.children if not(c.is_join())]
+            embedding = torch.stack([self.eos_vector,self.pad_vector,self.join_vector]+all_vectors)
+
+            mask = (all_ids == Config.pad_token_id).bool()
+            # TODO - Which is faster? int() or float()?
+            eos_positions = (all_ids == 0).int()  # 0 is for EOS
+            join_positions = (all_ids == 2).int()  # 2 is for JOIN
+
+            matrices = [[child.vector for child in node.children] + [self.eos_vector] for node in node_batch]
+            matrices = [torch.stack(item + [self.pad_vector] * (max_length - len(item))) for item in matrices]
+            matrices = [item[:max_length] for item in matrices]
+            matrices = torch.stack(matrices)
+
+            labels = all_ids
+
+            real_positions = (1 - mask.float())
+            vectors = self.compressor(self.encoder(matrices, real_positions, eos_positions), real_positions)
+            if debug:
+                [n.set_vector(v) for n, v in zip(node_batch, vectors)]
+            return matrices, real_positions, eos_positions, join_positions, embedding, labels, vectors, num_dummy, None, None
 
 
     def vecs_to_children_vecs(self, vecs):

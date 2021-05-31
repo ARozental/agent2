@@ -119,7 +119,7 @@ class AgentLevel(nn.Module):
               seen = set([])
               for i in range(1,len(md5s)):
                 if md5s[i] in seen and md5s[i]!=md5s[i-1]:
-                  raise("WTF pndb")
+                  raise("WTF pndb") #happened after 4000+ batches
                 seen.add(md5s[i])
 
               current_root_md5 = node_batch[0].root_md5

@@ -91,7 +91,10 @@ class Checkpoints:
             # See if a model already exists in the folder
             existing_model = cls.find_existing_model()
             if existing_model is not None:
-                should_resume = input('An existing version exists in the folder `' + str(cls.MODEL_FOLDER) + '`.  ' +
+                if Config.force_resume == "y":
+                  should_resume = 'y'
+                else:
+                  should_resume = input('An existing version exists in the folder `' + str(cls.MODEL_FOLDER) + '`.  ' +
                                       'Would you like to resume from the latest file `' + str(existing_model) + '`? ' +
                                       '[y/n] ')
                 if should_resume.lower() in ['y', 'yes']:

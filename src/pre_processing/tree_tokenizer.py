@@ -182,7 +182,11 @@ class TreeTokenizer:
             batch_tree.trim_nodes()
         batch_tree.make_distinct_words()
 
-        return batch_tree
+        valid = batch_tree.valid_tree()
+        if valid:
+          return batch_tree
+        else:
+          return batch_tree #todo: fix here
 
     @classmethod
     def compute_struct_stats(cls, struct, stats, level):

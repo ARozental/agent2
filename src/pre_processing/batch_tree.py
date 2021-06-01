@@ -99,3 +99,18 @@ class BatchTree:
         id_and_pads = list(mapping.values())
         id_and_pads.sort()  # by id (first element) is the default
         self.distinct_word_embedding_tokens = [x[lvl] for x in id_and_pads]
+
+    def valid_tree(self):
+      for i in range(Config.agent_level + 1):
+        node_batch = self.level_nodes[i]
+        md5s = [n.root_md5 for n in node_batch]
+        seen = set([])
+        for j in range(1, len(md5s)):
+          if md5s[j] in seen and md5s[j] != md5s[j - 1]:
+            print("bad batch ")
+            print(md5s)
+            print([x.build_struct() for x in node_batch])
+            print("--------")
+
+          return False
+      return True

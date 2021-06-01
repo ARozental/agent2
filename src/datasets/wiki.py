@@ -56,6 +56,9 @@ class WikiDataset(Dataset):
             article_to_sections,
         ]
 
+    def valid_text(self,text):
+      return True
+
     @staticmethod
     def _parse_article(article):
         return ARTICLE_HEADER.sub('', article['text']).strip()  # Strip article title
@@ -69,4 +72,6 @@ class WikiDataset(Dataset):
 
     def __iter__(self):
         for index in self.data:
-            yield self._parse_article(self.dataset['train'][index])
+            out = self._parse_article(self.dataset['train'][index])
+            if self.valid_text(out):
+              yield out

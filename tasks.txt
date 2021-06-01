@@ -33,7 +33,7 @@ reconstructed text on tpu
 fix get_children so it'll work again with level2+
 go over new pndb logic together; there is no way it actually does what I hope it does
 set max num words from out side, using max possible doesn't scale well => low priority
-start grad_acc only after <config, 200k?> batches
+start grad_acc only after <config, 500k?> batches
 in dataset logic filter out bad batches, find out why after 4k batchs we got bad pndb; delete the raise error from graph; put print for it in pre processing
 why colab TB no show??
 

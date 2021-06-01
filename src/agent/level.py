@@ -115,12 +115,12 @@ class AgentLevel(nn.Module):
             A1s, pndb_lookup_ids = None,None
             if Config.use_pndb1:
               #continuous ids verify, todo: if debug
-              md5s = [n.root_md5 for n in node_batch]
-              seen = set([])
-              for i in range(1,len(md5s)):
-                if md5s[i] in seen and md5s[i]!=md5s[i-1]:
-                  raise("WTF pndb") #happened after 4000+ batches
-                seen.add(md5s[i])
+              # md5s = [n.root_md5 for n in node_batch]
+              # seen = set([])
+              # for i in range(1,len(md5s)):
+              #   if md5s[i] in seen and md5s[i]!=md5s[i-1]:
+              #     raise("WTF pndb") #happened after 4000+ batches
+              #   seen.add(md5s[i])
 
               current_root_md5 = node_batch[0].root_md5
               start_index=0

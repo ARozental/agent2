@@ -36,6 +36,7 @@ set max num words from out side, using max possible doesn't scale well => low pr
 start grad_acc only after <config, 500k?> batches
 in dataset logic filter out bad batches, find out why after 4k batchs we got bad pndb; delete the raise error from graph; put print for it in pre processing
 why colab TB no show??
+multi-gpu
 
 AgentModel:
 1. refactor actual decode function

@@ -10,11 +10,12 @@ from src.utils import md5
 
 class Splitters:
     sentence_splitter = nltk.data.load('tokenizers/punkt/english.pickle')
+    word_splitter = re.compile(' ')
 
     @classmethod
     def sentence_to_words(cls, sentence):
         # "I like big butts." => ['I', 'like', 'big', 'butts.']
-        return re.split(' ', sentence)
+        return cls.word_splitter.split(sentence)
 
     @classmethod
     def paragraph_to_sentences(cls, p):

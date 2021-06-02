@@ -1,8 +1,7 @@
 {
-  "model_folder": "s128_no_acc",
-  "exp_folder": "runs/s128_no_acc",
-  "viz_file": "../viz/models/s128_no_acc.csv",
-  "comment": "second part of training after 500k",
+  "model_folder": "s128_no_acc_part2",
+  "exp_folder": "runs/s128_no_acc_part2",
+  "viz_file": "../viz/models/s128_no_acc_part2.csv",
   "sequence_lengths": [16, 16, 6, 3, 4],
   "vector_sizes": [32, 64, 128, 96, 128, 156],
   "num_heads": [4, 8, 2, 2, 2, 2],

@@ -76,6 +76,17 @@ class Config:
         else:
             Config.device = torch.device('cpu')
 
+    @staticmethod
+    def grad_acc_fn(step):
+        if step<300000:
+            return 1
+        elif step<500000:
+            return 2
+        elif step < 700000:
+          return 4
+        else:
+          return 8
+
     cnn_padding = 2  # kernal=2*padding+1
     reconstruction_d = 0.0
     main_d = 0.03

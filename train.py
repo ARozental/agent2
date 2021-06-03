@@ -110,6 +110,7 @@ def train(index, flags, training_started):
         total_model_time = 0
         start_time = time.time()
         for step, batch in enumerate(parallel_loader):
+            grad_acc_steps = Config.grad_acc_fn(global_step)
             if Config.profile_tpu and step >= 4:
                 training_started.set()
 
@@ -122,8 +123,8 @@ def train(index, flags, training_started):
             model.train()
 
             will_reconstruct = PRINT_RECONSTRUCTED_TEXT and (
-                (epoch % (Config.grad_acc_steps * Config.log_every) == 0 and step == 0) or
-                (step % (Config.grad_acc_steps * Config.log_every) == 0 and step > 0)
+                (epoch % (grad_acc_steps * Config.log_every) == 0 and step == 0) or
+                (step % (grad_acc_steps * Config.log_every) == 0 and step > 0)
             )
 
             if Config.use_tpu:
@@ -134,13 +135,13 @@ def train(index, flags, training_started):
                     g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT,
                                                                               debug=will_reconstruct)
 
-                    main_loss = loss_object_to_main_loss(loss_object) / Config.grad_acc_steps
-                    r_loss = loss_object_to_reconstruction_weights_loss(loss_object) / Config.grad_acc_steps
+                    main_loss = loss_object_to_main_loss(loss_object) / grad_acc_steps
+                    r_loss = loss_object_to_reconstruction_weights_loss(loss_object) / grad_acc_steps
                     #c_loss = loss_object_to_extra_coherence_weights_loss(loss_object) / Config.grad_acc_steps
 
                     # Divide by grad_acc_steps & detach from the graph
                     loss_object = {
-                        level_num: {key: value.detach() / Config.grad_acc_steps for key, value in level.items()}
+                        level_num: {key: value.detach() / grad_acc_steps for key, value in level.items()}
                         for level_num, level in loss_object.items()
                     }
 
@@ -167,7 +168,7 @@ def train(index, flags, training_started):
                     xm.mark_step()
 
                 # TODO - I want to clip on every step, how?
-                if (step + 1) % Config.grad_acc_steps == 0:  # (step + 1) so that don't break on step 0 when acc is > 1
+                if (step + 1) % grad_acc_steps == 0:  # (step + 1) so that don't break on step 0 when acc is > 1
                     torch.nn.utils.clip_grad_norm_(main_params, Config.grad_clip_value)
                     if Config.use_tpu:
                         xm.optimizer_step(main_optimizer)
@@ -195,8 +196,8 @@ def train(index, flags, training_started):
 
             # TODO - Take out the TPU blocker once printing reconstructed is working on TPU
             if not Config.use_tpu and (
-                (epoch % (Config.grad_acc_steps * Config.log_every) == 0 and step == 0) or
-                (step % (Config.grad_acc_steps * Config.log_every) == 0 and step > 0)
+                (epoch % (grad_acc_steps * Config.log_every) == 0 and step == 0) or
+                (step % (grad_acc_steps * Config.log_every) == 0 and step > 0)
             ):
                 print('Epoch', epoch, 'Batch', step)
                 print(loss_object)
@@ -230,7 +231,7 @@ def train(index, flags, training_started):
 
                 Checkpoints.save(model, epoch, global_step)
 
-            if Config.use_tpu and Config.debug_tpu and step % Config.grad_acc_steps == 0:
+            if Config.use_tpu and Config.debug_tpu and step % grad_acc_steps == 0:
                 current_time = time.time() - start_time
                 current_model_time = total_model_time
                 start_time = time.time()

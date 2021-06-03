@@ -60,7 +60,7 @@ def train(index, flags, training_started):
         batch_size=Config.batch_size,
         collate_fn=TreeTokenizer.batch_texts_to_trees,
         worker_init_fn=worker_init_fn,
-        num_workers=1,
+        num_workers=3,
         persistent_workers=True  # This is helpful when num_workers > 0
     )
 

@@ -4,6 +4,9 @@ import sys
 
 
 class Config:
+    levels = {'WORD': 0,'SENTENCE': 1,'PARAGRAPH': 2,'CHAPTER': 3,'BOOK': 4,}
+    agent_level = levels['SENTENCE']  # most complex vector agent can create 2=paragraph
+
     sequence_lengths = [16, 16, 6, 3, 4]  # [10,12,6,20,20]
     # vector_sizes = [8, 10, 12, 14, 16, 18]  # [4,6,8,10] #letters,words,sentences,paragraphs,chapters,book
     vector_sizes = [32, 64, 96, 96, 128, 156]  # [4,6,8,10] #letters,words,sentences,paragraphs,chapters,book
@@ -15,7 +18,7 @@ class Config:
     node_sizes = [5120, 512, 1024, 1000, 1000]  # How many nodes to process at a time at each level
     node_sizes_max = [8192, 1024]  # Used for the TPU; only used when "dynamic_node_sizes" is True
     dynamic_node_sizes = False  # Used for the TPU to make it do 25%/50%/75%
-    mini_batch_size = 256
+    mini_batch_size = 512*2 #max number of max_agent_level document, can be higher than batch size like when we get wiki articles as input but only doing up to level 1 (sentneces). should be at least as high as corresponding node size
 
     drop_rate = 0.0
 
@@ -52,16 +55,6 @@ class Config:
 
     force_resume = False
 
-    # An easy way to remember the indices of each level
-    levels = {
-        'WORD': 0,
-        'SENTENCE': 1,
-        'PARAGRAPH': 2,
-        'CHAPTER': 3,
-        'BOOK': 4,
-    }
-
-    agent_level = levels['SENTENCE']  # most complex vector agent can create 2=paragraph
 
     # Run configuration below (keeping device here makes it easier to use throughout all of the code)
     use_cuda = True

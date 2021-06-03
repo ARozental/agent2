@@ -180,7 +180,7 @@ class AgentModel(nn.Module):
                         loss_object[level_num][label] += value
 
             if generate:  # Only run generate on the first batch of nodes
-                g_loss, disc_loss = calc_generation_loss(self.agent_levels[level_num], vectors, matrices, mask)
+                g_loss, disc_loss = calc_generation_loss(self.agent_levels[level_num], vectors, matrices, real_positions)
                 loss_object[level_num]["g"] = g_loss.item()
                 loss_object[level_num]["disc"] = disc_loss.item()
                 total_g_loss += g_loss

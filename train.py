@@ -225,6 +225,7 @@ def train(index, flags, training_started):
                             are_equal = [t == e for t, e in zip(text, expected)]
                             if False not in are_equal:
                                 print('MATCHED')
+                                #torch.save(model.state_dict(), "models/dummy_model")
                                 exit()
 
                 Checkpoints.save(model, epoch, global_step)

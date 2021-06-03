@@ -24,11 +24,7 @@ Refactoring:
 
 CURRENT TASKS:
 big batch refactor
-loss average loss over batch_acc number
 run with 8 cores, see results
-save model in gs://agent_output/models
-read wiki from bucket my it private
-add tpu util tracking to tensorboard
 reconstructed text on tpu
 fix get_children so it'll work again with level2+
 go over new pndb logic together; there is no way it actually does what I hope it does
@@ -38,6 +34,7 @@ in dataset logic filter out bad batches, find out why after 4k batchs we got bad
 why colab TB no show??
 multi-gpu
 
+
 AgentModel:
 1. refactor actual decode function
 2. write the cnn-discriminator
@@ -45,11 +42,15 @@ AgentModel:
 4. write lossless compression+decompression => after medium dataset
 5. write style GAN => Harry Potter and the Starship Enterprise
 6. write level 0 coherence/mlm that accounts for generated real words?
-7. install a version that uses torch.vmap(func, in_dims=0, out_dims=0)
-
 
 Tests:
 1. tensor board - reconstructed next to real text for TB print
 2. track memory usage
 3. track model norm (maybe per component if it gets out of hand)
+4. make sandbox file to load and test existing models:
+    gets model file and text return vector?
+    generate text
+    king-man+woman
+    kings-king+queen
+    see how much each word is effected by pndb
 

@@ -15,7 +15,7 @@ class Config:
     num_transformer_layers = [2, 2, 2, 2, 2, 2]  # [2,2,2,2]
     mlm_rate = 0.15  # 0.15 like BERT
     batch_size = 8  # How many books/articles/etc per batch.
-    node_sizes = [5120, 512, 1024, 1000, 1000]  # How many nodes to process at a time at each level
+    node_sizes = [3000, 400, 1024, 1000, 1000]  # How many nodes to process at a time at each level
     node_sizes_max = [8192, 1024]  # Used for the TPU; only used when "dynamic_node_sizes" is True
     dynamic_node_sizes = False  # Used for the TPU to make it do 25%/50%/75%
     mini_batch_size = 512*2 #max number of max_agent_level document, can be higher than batch size like when we get wiki articles as input but only doing up to level 1 (sentneces). should be at least as high as corresponding node size

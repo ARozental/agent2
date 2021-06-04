@@ -112,10 +112,10 @@ class TreeTokenizer:
     @classmethod
     def text_to_tree_struct(cls, text, level):
         # "I like big butts. I can not lie." => [[[32], [61, 58, 60, 54], [51, 58, 56], [51, 70, 69, 69, 68, 10]], [[32], [52, 50, 63], [63, 64, 69], [61, 58, 54, 10]]]
-        if level == 0:
-            return cls.tokenize_word(text)
-
         parts = cls.split_functions[level - 1](text)
+        if level == 1:
+            return [cls.tokenize_word(part) for part in parts if len(part) > 0]
+
         return [cls.text_to_tree_struct(part, level - 1) for part in parts if len(part) > 0]
 
     @classmethod

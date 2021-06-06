@@ -21,6 +21,6 @@
   "grad_acc_steps": 1,
   "lr": 0.001,
   "momentum": 0.9,
-  "gpu_num": 1,
+  "gpu_num": 0,
   "force_resume": "y"
 }

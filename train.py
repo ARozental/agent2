@@ -161,13 +161,13 @@ def train(index, flags, training_started):
                     else:
                         total_loss_object = merge_dicts(total_loss_object, loss_object)
 
-                    [setattr(p, "requires_grad", False) for p in main_params]
+                    #[setattr(p, "requires_grad", False) for p in main_params]
                     # [setattr(p, "requires_grad", True) for p in coherence_params]
                     # c_loss.backward(retain_graph=True)
                     # [setattr(p, "requires_grad", False) for p in coherence_params]
-                    [setattr(p, "requires_grad", True) for p in reconstruction_params]
-                    r_loss.backward(retain_graph=True)
-                    [setattr(p, "requires_grad", True) for p in main_params]
+                    #[setattr(p, "requires_grad", True) for p in reconstruction_params]
+                    #r_loss.backward(retain_graph=True)
+                    #[setattr(p, "requires_grad", True) for p in main_params]
 
 
                     main_loss.backward()

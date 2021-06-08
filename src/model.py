@@ -85,6 +85,7 @@ class AgentModel(nn.Module):
               full_node_batch = full_node_batch[0:10]#todo:delete
             node_batchs=node_batch_to_small_batches(full_node_batch,level_num)
             for node_batch in node_batchs:
+                zeros = torch.zeros(len(node_batch), device=Config.device)
 
                 num_dummy_nodes = len([True for node in node_batch if node.is_dummy])
                 real_node_num = (len(node_batch) - num_dummy_nodes)
@@ -130,14 +131,14 @@ class AgentModel(nn.Module):
                     #                                         embedding_matrix,
                     #                                         labels, num_dummy=num_dummy,
                     #                                         dummy_logit_bias=dummy_logit_bias)
-                    mlm_loss, mlm_diff_loss = torch.zeros(matrices.shape[0], device=Config.device),torch.zeros(matrices.shape[0], device=Config.device)
+                    mlm_loss, mlm_diff_loss = zeros,zeros
 
                 with xp.Trace('CoherenceLoss' + str(level_num)):
                     # coherence_loss, cd_loss = calc_coherence_loss(self.agent_levels[level_num], matrices,
                     #                                               real_positions,
                     #                                               eos_positions,
                     #                                               embedding_matrix, num_dummy=num_dummy)
-                    coherence_loss, cd_loss = torch.zeros(matrices.shape[0], device=Config.device), torch.zeros(matrices.shape[0], device=Config.device)
+                    coherence_loss, cd_loss = zeros,zeros
 
                 with xp.Trace('CallingDecompressor' + str(level_num)):
                     if Config.noise == 0 or debug:
@@ -146,14 +147,15 @@ class AgentModel(nn.Module):
                       decompressed = self.agent_levels[level_num].decompressor(make_noise(vectors))
 
                 with xp.Trace('ReconstructionLoss' + str(level_num)):
+                    # reconstruction_diff_loss, reconstruction_loss, eos_loss, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss, rcd_loss = \
+                    #     calc_reconstruction_loss(
+                    #         self.agent_levels[level_num],
+                    #         matrices, decompressed, real_positions,
+                    #         eos_positions,
+                    #         join_positions,
+                    #         embedding_matrix, labels, self.agent_levels[1].pndb,A1s, pndb_lookup_ids, num_dummy=num_dummy, dummy_logit_bias=dummy_logit_bias)
                     reconstruction_diff_loss, reconstruction_loss, eos_loss, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss, rcd_loss = \
-                        calc_reconstruction_loss(
-                            self.agent_levels[level_num],
-                            matrices, decompressed, real_positions,
-                            eos_positions,
-                            join_positions,
-                            embedding_matrix, labels, self.agent_levels[1].pndb,A1s, pndb_lookup_ids, num_dummy=num_dummy, dummy_logit_bias=dummy_logit_bias)
-
+                      zeros,zeros,zeros,torch.zeros(len(node_batch)*16, device=Config.device),zeros,zeros,zeros,zeros,torch.zeros(len(node_batch)*2, device=Config.device)
 
                 with xp.Trace('JoinLoss' + str(level_num)):
                     if Config.join_texts and level_num >= 1:

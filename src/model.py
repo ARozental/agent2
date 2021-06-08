@@ -89,19 +89,19 @@ class AgentModel(nn.Module):
 
                 with xp.Trace('GetChildren' + str(level_num)):
                     if level_num == 0:
-                        matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, _, num_dummy,A1s, pndb_lookup_ids = \
+                        matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy,A1s, pndb_lookup_ids = \
                             self.agent_levels[
                                 level_num].get_children(
                                 node_batch,
                                 self.char_embedding_layer.weight,
-                                None, debug=debug)
+                                word_embedding_matrix, debug=debug)
                     elif level_num == 1:
                         matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy, A1s, pndb_lookup_ids = \
                           self.agent_levels[
                             level_num].get_children(
                             node_batch,
                             word_embedding_matrix,
-                            previous_vectors, debug=debug)
+                            None, debug=debug)
                         num_dummy += num_dummy0_embed
                     else:
                         matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy, A1s, pndb_lookup_ids = \
@@ -109,7 +109,7 @@ class AgentModel(nn.Module):
                                 level_num].get_children(
                                 node_batch,
                                 None,
-                                previous_vectors, debug=debug)
+                                None, debug=debug)
                         num_dummy += num_dummy0_embed
 
                 if Config.use_tpu:

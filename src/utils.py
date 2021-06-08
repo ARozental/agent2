@@ -139,5 +139,5 @@ def distinct(lst):
 
 def make_noise(t):
   changed_examples = torch.rand(t.shape[0],1, device=Config.device).round()
-  n=torch.normal(torch.mean(t).item(), torch.std(t).item(), t.shape)
+  n=torch.normal(torch.mean(t).data, torch.std(t).data, t.shape)
   return t + Config.noise * changed_examples * n

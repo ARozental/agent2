@@ -81,6 +81,8 @@ class AgentModel(nn.Module):
                     vectors, wm, num_dummy0_embed = self.set_word_vectors(full_node_batch, debug=debug)
                     word_embedding_matrix = wm
 
+            if level_num==1:
+              full_node_batch = full_node_batch[0:10]
             node_batchs=node_batch_to_small_batches(full_node_batch,level_num)
             for node_batch in node_batchs:
 

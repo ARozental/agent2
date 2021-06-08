@@ -62,11 +62,11 @@ class AgentModel(nn.Module):
         lookup_ids = torch.tensor([x.distinct_lookup_id for x in node_batch], dtype=torch.long, device=Config.device)
         lookup_ids += 2 + int(Config.join_texts)
 
-        all_word_vectors = torch.index_select(word_embedding_matrix, 0, lookup_ids)  # [words_in_batch,word_vector_size]
         if debug:
+            all_word_vectors = torch.index_select(word_embedding_matrix, 0, lookup_ids)  # [words_in_batch,word_vector_size]
             [n.set_vector(v) for n, v in zip(node_batch, all_word_vectors)]
 
-        return all_word_vectors, word_embedding_matrix, num_dummy_distinct
+        return _, word_embedding_matrix, num_dummy_distinct
 
     def forward(self, batch_tree, generate=False, debug=False):
         total_g_loss, total_disc_loss, total_loss = 0, 0, 0

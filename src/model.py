@@ -139,7 +139,7 @@ class AgentModel(nn.Module):
                                                                   eos_positions,
                                                                   embedding_matrix, num_dummy=num_dummy)
                     #coherence_loss, cd_loss = zeros,zeros
-                    coherence_loss, cd_loss = coherence_loss.detach(), cd_loss
+                    coherence_loss, cd_loss = coherence_loss, cd_loss
 
                 with xp.Trace('CallingDecompressor' + str(level_num)):
                     if Config.noise == 0 or debug:

@@ -52,9 +52,10 @@ def calc_reconstruction_loss(agent_level, matrices, decompressed, real_positions
     # reconstruction_losses = torch.min(torch.stack([(reconstruction_losses / reconstruction_losses) * Config.max_typo_loss, reconstruction_losses], dim=0),dim=0)[0]  # can't explode on typo
     reconstruction_diff = (reconstruction_diff * (4.4 / math.log(embeddings.size(0) - num_dummy)))
     re_loss, _ = calc_eos_loss(agent_level, post_decoder, eos_positions)
-    _=None
 
+    _=None #do these 2 lines save on memory? reencoded_matrices moved inside calc_rmlm_loss
     #reencoded_matrices = agent_level.encoder(post_decoder, real_positions_for_mask, eos_positions)
+
     rm_loss, rm_diff_loss = calc_rmlm_loss(agent_level, post_decoder, real_positions_for_mask, eos_positions, real_positions, matrices, embeddings,
                                            labels)  # no mask keep the decoded vectors and predict originals by encoding
 

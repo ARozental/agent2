@@ -89,8 +89,8 @@ class AgentModel(nn.Module):
               print("here")
               return total_g_loss, total_disc_loss, total_loss, loss_object #todo: make it
             node_batchs=node_batch_to_small_batches(full_node_batch,level_num)
-            #for node_batch in node_batchs:
-            #    print(len(node_batch))
+            for node_batch in node_batchs:
+                #print(len(node_batch))
 
                 num_dummy_nodes = len([True for node in node_batch if node.is_dummy])
                 real_node_num = (len(node_batch) - num_dummy_nodes)

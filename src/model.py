@@ -199,6 +199,8 @@ class AgentModel(nn.Module):
                         for label, value in losses.items():
                             loss_object[level_num][label] += value.detach() * real_node_num / len(full_node_batch)
 
+                    losses,main_loss,r_loss = None,None,None
+
                 if generate:  # todo: fix here
                     g_loss, disc_loss = calc_generation_loss(self.agent_levels[level_num], vectors, matrices, real_positions)
                     loss_object[level_num]["g"] = g_loss.item()
@@ -210,7 +212,7 @@ class AgentModel(nn.Module):
                 # assert len(node_batch) == mlm_loss.size(0)
                 # assert len(node_batch) == reconstruction_loss.size(0)
 
-                if debug:
+                if False:#debug:
                     for i, node in enumerate(node_batch):
                         node.mlm_loss = mlm_loss[i]
                         node.mlm_diff_loss = mlm_diff_loss[i]

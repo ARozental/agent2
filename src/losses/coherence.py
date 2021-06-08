@@ -20,7 +20,8 @@ def calc_coherence_loss(agent_level, matrices, real_positions, eos_positions, em
     batch, seq_length, vec_size = matrices.shape
 
     # 50% of examples don't change at all, move to config?
-    changed_examples = torch.rand(batch, 1, device=Config.device).round()
+    #changed_examples = torch.rand(batch, 1, device=Config.device).round()
+    changed_examples = torch.zeros(batch, 1, device=Config.device).round()
 
     #change_probs = torch.rand(batch, 1, device=Config.device) * Config.max_coherence_noise
     #changed_tokens = torch.add(torch.rand(batch, seq_length, device=Config.device), change_probs).floor()

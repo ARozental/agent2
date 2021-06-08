@@ -71,9 +71,9 @@ class AgentModel(nn.Module):
 
         return None, word_embedding_matrix, num_dummy_distinct
 
-    def forward(self, batch_tree, generate=False, debug=False):
+    def forward(self, batch_tree, generate=False, debug=False,last_obj={}):
         total_g_loss, total_disc_loss, total_loss = 0, 0, 0
-        loss_object = {}
+        loss_object = last_obj
         previous_vectors = None
         word_embedding_matrix= None
         for level_num in range(Config.agent_level + 1):
@@ -83,8 +83,8 @@ class AgentModel(nn.Module):
                 with xp.Trace('SetWordVectors'):
                     vectors, wm, num_dummy0_embed = self.set_word_vectors(full_node_batch, debug=debug)
                     word_embedding_matrix = wm
-            if level_num==1:
-              print("word_embedding_size",len(word_embedding_matrix))
+            # if level_num==1:
+            #   print("word_embedding_size",len(word_embedding_matrix))
             if len(word_embedding_matrix)>Config.max_word_embedding_size:
               print("embedding is too big:", len(word_embedding_matrix))
               return total_g_loss, total_disc_loss, total_loss, loss_object #todo: make it

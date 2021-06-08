@@ -111,7 +111,7 @@ def train(index, flags, training_started):
             parallel_loader = dataloader
 
         total_loss = 0
-        total_loss_object = None
+        total_loss_object = {}
         total_model_time = 0
         start_time = time.time()
         for step, batch in enumerate(parallel_loader):
@@ -139,7 +139,8 @@ def train(index, flags, training_started):
 
             with xp.StepTrace('train_loop', step_num=step):
                 g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT,
-                                                                          debug=will_reconstruct)
+                                                                          debug=will_reconstruct,
+                                                                          last_obj=total_loss_object)
 
                 main_loss = loss_object_to_main_loss(loss_object) / grad_acc_steps
                 r_loss = loss_object_to_reconstruction_weights_loss(loss_object) / grad_acc_steps
@@ -196,8 +197,8 @@ def train(index, flags, training_started):
                         Logger.log_losses(g_loss, disc_loss, main_loss, total_loss_object, step=global_step)
                         Logger.log_l2_classifiers(model, step=global_step)
 
-                    total_loss_object = None
-                    total_loss = 0
+                    #total_loss_object = None
+                    #total_loss = 0
             total_model_time += (time.time() - current_model_time)
 
             # TODO - Take out the TPU blocker once printing reconstructed is working on TPU

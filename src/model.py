@@ -212,20 +212,20 @@ class AgentModel(nn.Module):
                 # assert len(node_batch) == mlm_loss.size(0)
                 # assert len(node_batch) == reconstruction_loss.size(0)
 
-                if False:#debug:
+                if debug:
                     for i, node in enumerate(node_batch):
-                        node.mlm_loss = mlm_loss[i]
-                        node.mlm_diff_loss = mlm_diff_loss[i]
-                        node.coherence_loss = coherence_loss[i]
-                        node.reconstruction_loss = reconstruction_loss[i]
-                        node.eos_loss = eos_loss[i]
-                        node.join_loss = join_loss[i]
-                        node.reconstruction_diff_loss = reconstruction_diff_loss[i]
-                        node.rc_loss = rc_loss[i]
-                        node.re_loss = re_loss[i]
-                        node.rj_loss = rj_loss[i]
-                        node.rm_loss = rm_loss[i]
-                        node.rm_diff_loss = rm_diff_loss[i]
+                        node.mlm_loss = mlm_loss[i].detach()
+                        node.mlm_diff_loss = mlm_diff_loss[i].detach()
+                        node.coherence_loss = coherence_loss[i].detach()
+                        node.reconstruction_loss = reconstruction_loss[i].detach()
+                        node.eos_loss = eos_loss[i].detach()
+                        node.join_loss = join_loss[i].detach()
+                        node.reconstruction_diff_loss = reconstruction_diff_loss[i].detach()
+                        node.rc_loss = rc_loss[i].detach()
+                        node.re_loss = re_loss[i].detach()
+                        node.rj_loss = rj_loss[i].detach()
+                        node.rm_loss = rm_loss[i].detach()
+                        node.rm_diff_loss = rm_diff_loss[i].detach()
 
                 with xp.Trace('ComputeTotalLoss' + str(level_num)):
                     current_losses = []

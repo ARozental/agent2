@@ -7,7 +7,7 @@
   "num_heads": [4, 8, 2, 2, 2, 2],
   "fnn_sizes": [32, 64, 256, 14, 16, 18],
   "num_transformer_layers":  [4, 8, 2, 2, 2, 2],
-  "batch_size": 148,
+  "batch_size": 1480,
   "batch_sizes": [1000, 100, 4096, 1000, 1000],
   "mini_batch_size": 2400,
   "drop_rate": 0.0,

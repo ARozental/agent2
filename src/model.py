@@ -86,6 +86,7 @@ class AgentModel(nn.Module):
 
             node_batchs=node_batch_to_small_batches(full_node_batch,level_num)
             for node_batch in node_batchs:
+                print(len(node_batch))
 
                 num_dummy_nodes = len([True for node in node_batch if node.is_dummy])
                 real_node_num = (len(node_batch) - num_dummy_nodes)

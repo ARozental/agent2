@@ -34,15 +34,15 @@ def calc_coherence_loss(agent_level, matrices, real_positions, eos_positions, em
     # random_indexes = torch.fmod(torch.randperm(batch * seq_length).to(Config.device), embeddings.shape[0])
     num_indices = (embeddings.size(0) - num_dummy)  # Number of real indices to use
     #random_indexes = (torch.rand(batch * seq_length, device=Config.device) * num_indices).floor().long()
-    random_indexes = (torch.zeros(batch * seq_length, device=Config.device) * num_indices).floor().long() #todo: delete no rand
-    random_vec_replacements = torch.index_select(embeddings, 0, random_indexes)
-    random_vec_replacements = random_vec_replacements.view(batch, seq_length, vec_size)
+    # random_indexes = (torch.zeros(batch * seq_length, device=Config.device) * num_indices).floor().long() #todo: delete no rand
+    # random_vec_replacements = torch.index_select(embeddings, 0, random_indexes)
+    # random_vec_replacements = random_vec_replacements.view(batch, seq_length, vec_size)
 
-    pre_encoder = (1 - changed_examples).unsqueeze(-1) * matrices
-    pre_encoder += changed_examples.unsqueeze(-1) * changed_tokens.unsqueeze(-1) * random_vec_replacements
-    pre_encoder += changed_examples.unsqueeze(-1) * (1 - changed_tokens).unsqueeze(-1) * matrices
+    # pre_encoder = (1 - changed_examples).unsqueeze(-1) * matrices
+    # pre_encoder += changed_examples.unsqueeze(-1) * changed_tokens.unsqueeze(-1) * random_vec_replacements
+    # pre_encoder += changed_examples.unsqueeze(-1) * (1 - changed_tokens).unsqueeze(-1) * matrices
 
-    vectors_for_coherence = agent_level.compressor(agent_level.encoder(pre_encoder, real_positions, eos_positions),
+    vectors_for_coherence = agent_level.compressor(agent_level.encoder(matrices, real_positions, eos_positions),
                                                    real_positions)
     scores, probs, class_predictions = agent_level.coherence_checker(vectors_for_coherence)
     coherence_losses = (scores.squeeze(-1) - labels) ** 2 + (bce_loss(probs.squeeze(-1), labels.ceil()) * 0.05)

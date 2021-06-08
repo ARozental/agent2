@@ -21,15 +21,17 @@ def calc_coherence_loss(agent_level, matrices, real_positions, eos_positions, em
 
     # 50% of examples don't change at all, move to config?
     #changed_examples = torch.rand(batch, 1, device=Config.device).round()
-    #changed_examples = torch.zeros(batch, 1, device=Config.device).round()
+    #changed_examples = torch.zeros(batch, 1, device=Config.device)
+    changed_examples = agent_level.zeros1d[:batch]
 
     #change_probs = torch.rand(batch, 1, device=Config.device) * Config.max_coherence_noise
     #changed_tokens = torch.add(torch.rand(batch, seq_length, device=Config.device), change_probs).floor()
 
     #changed_tokens = torch.zeros(batch, seq_length, device=Config.device) #todo: delete no rand
+    changed_tokens = agent_level.zeros2d[:batch]
+
     # number of changed real tokens / num real tokens [batch]
-    #labels = (changed_tokens * changed_examples * real_positions).sum(-1) / real_positions.sum(-1)  # ~40% are changed
-    labels = torch.zeros(batch, seq_length, device=Config.device)
+    labels = (changed_tokens * changed_examples * real_positions).sum(-1) / real_positions.sum(-1)  # ~40% are changed
 
     # todo: make sure the pad token is not here, also no join for levels 0 and 1 otherwise pad learns
     # random_indexes = torch.fmod(torch.randperm(batch * seq_length).to(Config.device), embeddings.shape[0])

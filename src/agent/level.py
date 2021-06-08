@@ -22,6 +22,9 @@ class AgentLevel(nn.Module):
         self.discriminator = Discriminator(Config.vector_sizes[level + 1])
         self.cnn_discriminator = CnnDiscriminator(Config.vector_sizes[level], Config.sequence_lengths[level])
 
+        self.zeros1d = torch.zeros(Config.node_sizes[level]*10, 1, device=Config.device)
+        self.zeros2d = torch.zeros(Config.node_sizes[level]*10, Config.sequence_lengths[level], device=Config.device)
+
         self.previous_level = None
         self.LayerNorm = nn.LayerNorm(Config.vector_sizes[level])
 

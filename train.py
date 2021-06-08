@@ -226,8 +226,8 @@ def train(index, flags, training_started):
                     for i, text in enumerate(reconstructed):
                         print('Level', i, text)
                         Logger.log_reconstructed(text, i, step=global_step)
-                        for j, item in enumerate(text):
-                            Logger.log_viz(batch.level_nodes[i][j], text[j], i, step=global_step)
+                        #for j, item in enumerate(text):
+                        #    Logger.log_viz(batch.level_nodes[i][j], text[j], i, step=global_step)
                         if i == len(reconstructed) - 1:  # Upper most level
                             are_equal = [t == e for t, e in zip(text, expected)]
                             if False not in are_equal:

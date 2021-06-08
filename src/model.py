@@ -66,7 +66,7 @@ class AgentModel(nn.Module):
             all_word_vectors = torch.index_select(word_embedding_matrix, 0, lookup_ids)  # [words_in_batch,word_vector_size]
             [n.set_vector(v) for n, v in zip(node_batch, all_word_vectors)]
 
-        return _, word_embedding_matrix, num_dummy_distinct
+        return None, word_embedding_matrix, num_dummy_distinct
 
     def forward(self, batch_tree, generate=False, debug=False):
         total_g_loss, total_disc_loss, total_loss = 0, 0, 0

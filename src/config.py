@@ -14,7 +14,7 @@ class Config:
     fnn_sizes = vector_sizes  # [8, 10, 12, 14, 16, 18]  # [2,3,4,5] #for fnn in transformers
     num_transformer_layers = [2, 2, 2, 2, 2, 2]  # [2,2,2,2]
     mlm_rate = 0.15  # 0.15 like BERT
-    batch_size = 30  # How many books/articles/etc per batch.
+    batch_size = 2  # How many books/articles/etc per batch.
     node_sizes = [500, 200, 4096, 1000, 1000]  # How many nodes to process at a time at each level => todo: change, each here limits the other
     node_sizes_max = [8192, 1024]  # Used for the TPU; only used when "dynamic_node_sizes" is True
     dynamic_node_sizes = False  # Used for the TPU to make it do 25%/50%/75%

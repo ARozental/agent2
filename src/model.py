@@ -13,6 +13,7 @@ from src.agent.pndb import Pndb
 import torch.nn as nn
 import torch
 import numpy as np
+from src.losses.calc import loss_object_to_main_loss, loss_object_to_reconstruction_weights_loss
 
 
 class AgentModel(nn.Module):
@@ -25,6 +26,8 @@ class AgentModel(nn.Module):
         for i in range(1, Config.agent_level + 1):
             self.agent_levels[i].previous_level = self.agent_levels[i - 1]
 
+        self.reconstruction_params = [param for name, param in self.named_parameters() if (("decompressor" in name) or ("decoder" in name))]
+        self.main_params = [param for name, param in self.named_parameters() if ("discriminator" not in name) and ("generator" not in name)]
 
     def set_word_vectors(self, node_batch, debug=False):
         max_distinct_id = max([node.distinct_lookup_id for node in node_batch])  # TODO - Check for dummy nodes in here
@@ -63,7 +66,7 @@ class AgentModel(nn.Module):
         lookup_ids += 2 + int(Config.join_texts)
 
         if debug:
-            all_word_vectors = torch.index_select(word_embedding_matrix, 0, lookup_ids)  # [words_in_batch,word_vector_size]
+            all_word_vectors = torch.index_select(word_embedding_matrix, 0, lookup_ids).detach()  # [words_in_batch,word_vector_size]
             [n.set_vector(v) for n, v in zip(node_batch, all_word_vectors)]
 
         return None, word_embedding_matrix, num_dummy_distinct
@@ -89,7 +92,6 @@ class AgentModel(nn.Module):
 
                 with xp.Trace('GetChildren' + str(level_num)):
                     if level_num == 0:
-                        print("real_node_num:",real_node_num)
                         matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy,A1s, pndb_lookup_ids = \
                             self.agent_levels[
                                 level_num].get_children(
@@ -97,7 +99,6 @@ class AgentModel(nn.Module):
                                 self.char_embedding_layer.weight,
                                 word_embedding_matrix, debug=debug)
                     elif level_num == 1:
-                        print("real_node_num1:",real_node_num)
                         matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy, A1s, pndb_lookup_ids = \
                           self.agent_levels[
                             level_num].get_children(
@@ -182,13 +183,21 @@ class AgentModel(nn.Module):
                         "rcd": (rcd_loss.view(-1, 2) * loss_keeper.unsqueeze(-1)).mean(),  # TODO - Check if correct
                     }
 
+                    main_loss = loss_object_to_main_loss({level_num: losses}) * real_node_num/len(full_node_batch)
+                    r_loss = loss_object_to_reconstruction_weights_loss({level_num: losses}) * real_node_num/len(full_node_batch)
+                    [setattr(p, "requires_grad", False) for p in self.main_params]
+                    [setattr(p, "requires_grad", True) for p in self.reconstruction_params]
+                    r_loss.backward(retain_graph=True)
+                    [setattr(p, "requires_grad", True) for p in self.main_params]
+                    main_loss.backward(retain_graph=True)
+
                     if level_num not in loss_object:  # On the first node_batch
                         loss_object[level_num] = losses
                         for label, value in losses.items():
-                            loss_object[level_num][label] = value*real_node_num
+                            loss_object[level_num][label] = value.detach() * real_node_num / len(full_node_batch)
                     else:
                         for label, value in losses.items():
-                            loss_object[level_num][label] += value*real_node_num
+                            loss_object[level_num][label] += value.detach() * real_node_num / len(full_node_batch)
 
                 if generate:  # todo: fix here
                     g_loss, disc_loss = calc_generation_loss(self.agent_levels[level_num], vectors, matrices, real_positions)
@@ -226,9 +235,6 @@ class AgentModel(nn.Module):
                             # loss_object[level_num][label] = loss.item()  # Pull out of the GPU for logging
                     total_loss += torch.stack(current_losses).sum()
 
-
-            for label, value in losses.items():
-              loss_object[level_num][label] = loss_object[level_num][label] / len(full_node_batch)
 
         return total_g_loss, total_disc_loss, total_loss, loss_object
 

@@ -135,42 +135,38 @@ def train(index, flags, training_started):
             if Config.use_tpu:
                 will_reconstruct = False  # Remove this once have the decode working on TPU
 
-            print(len(batch.level_nodes[0]),len(batch.level_nodes[1]),len(batch.level_nodes[0])/ len(batch.level_nodes[1]))# todo: this is for debug => fix it
+            #print(len(batch.level_nodes[0]),len(batch.level_nodes[1]),len(batch.level_nodes[0])/ len(batch.level_nodes[1]))# todo: this is for debug => fix it
 
             with xp.StepTrace('train_loop', step_num=step):
-                with xp.Trace('build_graph'):
-                    with profiler.profile(profile_memory=True, record_shapes=True) as prof:
+                g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT,
+                                                                          debug=will_reconstruct)
 
-                        g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT,
-                                                                              debug=will_reconstruct)
-                    print(prof.key_averages().table(sort_by="self_cpu_memory_usage"))
+                main_loss = loss_object_to_main_loss(loss_object) / grad_acc_steps
+                r_loss = loss_object_to_reconstruction_weights_loss(loss_object) / grad_acc_steps
+                #c_loss = loss_object_to_extra_coherence_weights_loss(loss_object) / Config.grad_acc_steps
 
-                    main_loss = loss_object_to_main_loss(loss_object) / grad_acc_steps
-                    r_loss = loss_object_to_reconstruction_weights_loss(loss_object) / grad_acc_steps
-                    #c_loss = loss_object_to_extra_coherence_weights_loss(loss_object) / Config.grad_acc_steps
+                # Divide by grad_acc_steps & detach from the graph
+                loss_object = {
+                    level_num: {key: value.detach() / grad_acc_steps for key, value in level.items()}
+                    for level_num, level in loss_object.items()
+                }
 
-                    # Divide by grad_acc_steps & detach from the graph
-                    loss_object = {
-                        level_num: {key: value.detach() / grad_acc_steps for key, value in level.items()}
-                        for level_num, level in loss_object.items()
-                    }
+                # Sum up the loss objects
+                if total_loss_object is None:
+                    total_loss_object = loss_object
+                else:
+                    total_loss_object = merge_dicts(total_loss_object, loss_object)
 
-                    # Sum up the loss objects
-                    if total_loss_object is None:
-                        total_loss_object = loss_object
-                    else:
-                        total_loss_object = merge_dicts(total_loss_object, loss_object)
-
-                    [setattr(p, "requires_grad", False) for p in main_params]
-                    # [setattr(p, "requires_grad", True) for p in coherence_params]
-                    # c_loss.backward(retain_graph=True)
-                    # [setattr(p, "requires_grad", False) for p in coherence_params]
-                    [setattr(p, "requires_grad", True) for p in reconstruction_params]
-                    r_loss.backward(retain_graph=True)
-                    [setattr(p, "requires_grad", True) for p in main_params]
+                # [setattr(p, "requires_grad", False) for p in main_params]
+                # # [setattr(p, "requires_grad", True) for p in coherence_params]
+                # # c_loss.backward(retain_graph=True)
+                # # [setattr(p, "requires_grad", False) for p in coherence_params]
+                # [setattr(p, "requires_grad", True) for p in reconstruction_params]
+                # r_loss.backward(retain_graph=True)
+                # [setattr(p, "requires_grad", True) for p in main_params]
 
 
-                    main_loss.backward()
+                # main_loss.backward()
 
                 total_loss += main_loss.detach()
 

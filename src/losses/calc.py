@@ -3,7 +3,7 @@ from src.utils import inverse_loss, cap_loss
 
 
 def loss_object_to_main_loss(obj):
-    loss = obj[0]['r'] * 0.0
+    loss = 0.0
     for l in obj.keys():
         loss += obj[l]['m'] * 0.1
         # loss += obj[l]['md'] * 0.1 #off from code
@@ -26,11 +26,10 @@ def loss_object_to_main_loss(obj):
 
 
 def loss_object_to_reconstruction_weights_loss(obj):
-    loss = obj[0]['r'] * 0.0
+    loss =  0.0
     for l in obj.keys():
         loss += obj[l]['rm'] * (-Config.main_rm)
         loss += obj[l]['rmd'] * (-Config.main_rmd)
-
     return loss
 
 

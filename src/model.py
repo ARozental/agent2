@@ -89,6 +89,7 @@ class AgentModel(nn.Module):
 
                 with xp.Trace('GetChildren' + str(level_num)):
                     if level_num == 0:
+                        print("real_node_num:",real_node_num)
                         matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy,A1s, pndb_lookup_ids = \
                             self.agent_levels[
                                 level_num].get_children(

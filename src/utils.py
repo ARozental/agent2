@@ -69,17 +69,17 @@ def split_nodes_to_batches(nodes, max_batch_size):
     return []
 
 
-def attention(q, k, v,d_k, real_positions=None, dropout=None):
+def attention(q, k, v, d_k, real_positions=None, dropout=None):
     """ for pndb only"""
     scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(d_k)
 
     if real_positions is not None:
-      scores += torch.log(real_positions.unsqueeze(1))
+        scores += torch.log(real_positions.unsqueeze(1))
 
     scores = F.softmax(scores, dim=-1)
 
     if dropout is not None:
-      scores = dropout(scores)
+        scores = dropout(scores)
 
     output = torch.matmul(scores, v)
     return output
@@ -121,50 +121,48 @@ def merge_dicts(d1, d2):
 
 
 def group_by_root(nodes):
-  ks = set([n.root_md5 for n in nodes])
-  res = {k: [] for k in ks}
-  for n in nodes:
-    res[n.root_md5].append(n)
-  return res
+    ks = set([n.root_md5 for n in nodes])
+    res = {k: [] for k in ks}
+    for n in nodes:
+        res[n.root_md5].append(n)
+    return res
 
-#todo: make smarter, current level 1 solution can create 2 small buckets that can be merged
-def node_batch_to_small_batches(node_batch,level):
-  max_size = Config.node_sizes[level]
-  if level==1:
-    node_batchs = list(group_by_root(node_batch).values())
-  else:
-    node_batchs = [node_batch]
-  temp_res = []
-  res = []
-  while node_batchs:
-    batch = node_batchs.pop()
-    if len(batch)>=max_size:
-      res.append(batch[:max_size])
-      node_batchs.append(batch[max_size:])
-    elif len(temp_res)+len(batch)<=max_size:
-      temp_res.extend(batch)
+
+# todo: make smarter, current level 1 solution can create 2 small buckets that can be merged
+def node_batch_to_small_batches(node_batch, level):
+    max_size = Config.node_sizes[level]
+    if level == 1:
+        node_batchs = list(group_by_root(node_batch).values())
     else:
-      res.append(temp_res)
-      temp_res = batch
-  if temp_res:
-    res.append(temp_res)
-  return res
-
-
+        node_batchs = [node_batch]
+    temp_res = []
+    res = []
+    while node_batchs:
+        batch = node_batchs.pop()
+        if len(batch) >= max_size:
+            res.append(batch[:max_size])
+            node_batchs.append(batch[max_size:])
+        elif len(temp_res) + len(batch) <= max_size:
+            temp_res.extend(batch)
+        else:
+            res.append(temp_res)
+            temp_res = batch
+    if temp_res:
+        res.append(temp_res)
+    return res
 
 
 def distinct(lst):
-  s = set([])
-  output = []
-  for x in lst:
-    if x not in s:
-      s.add(x)
-      output.append(x)
-  return output
+    s = set([])
+    output = []
+    for x in lst:
+        if x not in s:
+            s.add(x)
+            output.append(x)
+    return output
 
 
 def make_noise(t):
-  return t
-  changed_examples = torch.rand(t.shape[0],1, device=Config.device).round()
-  n=torch.normal(torch.mean(t).data, torch.std(t).data, t.shape)
-  return t + Config.noise * changed_examples * n
+    changed_examples = torch.rand(t.shape[0], 1, device=Config.device).round()
+    n = torch.normal(torch.mean(t).data, torch.std(t).data, size=t.shape, device=Config.device)
+    return t + Config.noise * changed_examples * n

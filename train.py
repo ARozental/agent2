@@ -18,6 +18,10 @@ import madgrad  # is it any good?
 import torch.optim.lr_scheduler
 import math
 import os
+import torch
+import torchvision.models as models
+import torch.autograd.profiler as profiler
+
 
 Commands.parse_arguments()
 xp.setup()
@@ -135,8 +139,11 @@ def train(index, flags, training_started):
 
             with xp.StepTrace('train_loop', step_num=step):
                 with xp.Trace('build_graph'):
-                    g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT,
+                    with profiler.profile(profile_memory=True, record_shapes=True) as prof:
+
+                        g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT,
                                                                               debug=will_reconstruct)
+                    print(prof.key_averages().table(sort_by="self_cpu_memory_usage"))
 
                     main_loss = loss_object_to_main_loss(loss_object) / grad_acc_steps
                     r_loss = loss_object_to_reconstruction_weights_loss(loss_object) / grad_acc_steps

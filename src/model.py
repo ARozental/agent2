@@ -86,7 +86,7 @@ class AgentModel(nn.Module):
             if level_num==1:
               print("word_embedding_size",len(word_embedding_matrix))
             if len(word_embedding_matrix)>Config.max_word_embedding_size:
-              print("here")
+              print("embedding is too big:", len(word_embedding_matrix))
               return total_g_loss, total_disc_loss, total_loss, loss_object #todo: make it
             node_batchs=node_batch_to_small_batches(full_node_batch,level_num)
             for node_batch in node_batchs:

@@ -139,7 +139,9 @@ def node_batch_to_small_batches(node_batch, level):
     res = []
     while node_batchs:
         batch = node_batchs.pop()
-        if len(batch) >= max_size:
+        if len(batch) == max_size:
+          res.append(batch)
+        elif len(batch) > max_size:
             res.append(batch[:max_size])
             node_batchs.append(batch[max_size:])
         elif len(temp_res) + len(batch) <= max_size:

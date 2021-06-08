@@ -179,7 +179,8 @@ class TreeTokenizer:
         if Config.use_tpu:
             batch_tree.fill_dummy_nodes()
         else:
-            batch_tree.trim_nodes()
+            pass
+            #batch_tree.trim_nodes() #if we don't use tpu why would we do this trim??
         batch_tree.make_distinct_words()
 
         valid = batch_tree.valid_tree()

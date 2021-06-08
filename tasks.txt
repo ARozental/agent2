@@ -35,6 +35,8 @@ why colab TB no show??
 multi-gpu
 kill annoying <unk> token for wiki dataset
 turn off the logic to skip docs when continuing training
+change config to reflect real numbers for level batch use different version for gpu/tpu??
+    better: have max memory instead of menually finding max size per level in each config
 
 
 AgentModel:
@@ -44,6 +46,7 @@ AgentModel:
 4. write lossless compression+decompression => after medium dataset
 5. write style GAN => Harry Potter and the Starship Enterprise
 6. write level 0 coherence/mlm that accounts for generated real words?
+7. add noise (instead of dropout) for X% of word vectors, add noise before reconstructing  => learn how to push close vectors to the right place in reconstruxtion
 
 Tests:
 1. tensor board - reconstructed next to real text for TB print

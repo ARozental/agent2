@@ -7,7 +7,7 @@ from src.losses.coherence import calc_coherence_loss
 from src.losses.reconstruction import calc_reconstruction_loss
 from src.losses.generation import calc_generation_loss
 from src.pre_processing import Node, TreeTokenizer
-from src.utils import iter_even_split, group_by_root
+from src.utils import iter_even_split, group_by_root, make_noise
 from src.profiler import Profiler as xp
 from src.agent.pndb import Pndb
 import torch.nn as nn
@@ -130,7 +130,10 @@ class AgentModel(nn.Module):
                                                               embedding_matrix, num_dummy=num_dummy)
 
             with xp.Trace('CallingDecompressor' + str(level_num)):
-                decompressed = self.agent_levels[level_num].decompressor(vectors)
+                if Config.noise == 0 or debug:
+                  decompressed = self.agent_levels[level_num].decompressor(vectors)
+                else:
+                  decompressed = self.agent_levels[level_num].decompressor(make_noise(vectors))
 
             with xp.Trace('ReconstructionLoss' + str(level_num)):
                 reconstruction_diff_loss, reconstruction_loss, eos_loss, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss, rcd_loss = \

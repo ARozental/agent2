@@ -133,3 +133,5 @@ and 280 for the other
 
 
 in config the "batch_size" param comsumes CPU if it is too high we can't use the GPU fully
+on wiki we have ~11.5 words per sentence on average
+remember to set use_tpu flag to false when on GPU probably won't need grad acc if done well

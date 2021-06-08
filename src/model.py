@@ -134,11 +134,11 @@ class AgentModel(nn.Module):
                     mlm_loss, mlm_diff_loss = zeros,zeros
 
                 with xp.Trace('CoherenceLoss' + str(level_num)):
-                    # coherence_loss, cd_loss = calc_coherence_loss(self.agent_levels[level_num], matrices,
-                    #                                               real_positions,
-                    #                                               eos_positions,
-                    #                                               embedding_matrix, num_dummy=num_dummy)
-                    coherence_loss, cd_loss = zeros,zeros
+                    coherence_loss, cd_loss = calc_coherence_loss(self.agent_levels[level_num], matrices,
+                                                                  real_positions,
+                                                                  eos_positions,
+                                                                  embedding_matrix, num_dummy=num_dummy)
+                    #coherence_loss, cd_loss = zeros,zeros
 
                 with xp.Trace('CallingDecompressor' + str(level_num)):
                     if Config.noise == 0 or debug:

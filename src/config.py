@@ -18,7 +18,7 @@ class Config:
     node_sizes = [4800, 1200, 4096, 1000, 1000]  # How many nodes to process at a time at each level => todo: change, each here limits the other
     node_sizes_max = [8192, 1024]  # Used for the TPU; only used when "dynamic_node_sizes" is True
     dynamic_node_sizes = False  # Used for the TPU to make it do 25%/50%/75%
-    mini_batch_size = 1000 #max number of max_agent_level document, not working as intender but has an effect: final number is ~1.7 times higers, can be higher than batch size like when we get wiki articles as input but only doing up to level 1 (sentneces). should be at least as high as corresponding node size
+    mini_batch_size = 700 #max number of max_agent_level document, not working as intender but has an effect: final number is ~1.7 times higers, can be higher than batch size like when we get wiki articles as input but only doing up to level 1 (sentneces). should be at least as high as corresponding node size
 
     drop_rate = 0.0
     noise = 0.1

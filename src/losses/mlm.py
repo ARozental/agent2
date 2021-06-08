@@ -75,7 +75,8 @@ def calc_mlm_loss(agent_level, matrices, real_positions, eos_positions, embeddin
     return mlm_losses, mlm_diff
 
 
-def calc_rmlm_loss(agent_level, reencoded_matrices, real_positions, matrices, embeddings, labels):
+def calc_rmlm_loss(agent_level, post_decoder, real_positions_for_mask, eos_positions, real_positions, matrices, embeddings, labels):
+    reencoded_matrices = agent_level.encoder(post_decoder, real_positions_for_mask, eos_positions)
     batch, seq_length, vec_size = reencoded_matrices.shape
 
     transformed = agent_level.encoder_transform(reencoded_matrices)

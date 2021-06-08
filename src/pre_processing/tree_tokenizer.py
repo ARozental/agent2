@@ -180,7 +180,7 @@ class TreeTokenizer:
             batch_tree.fill_dummy_nodes()
         else:
             pass
-            #batch_tree.trim_nodes() #if we don't use tpu why would we do this trim??
+            #batch_tree.trim_nodes() #if we don't use tpu why would we do this trim?? => gpu explodes without it => why??
         batch_tree.make_distinct_words()
 
         valid = batch_tree.valid_tree()

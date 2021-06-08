@@ -127,6 +127,32 @@ def group_by_root(nodes):
     res[n.root_md5].append(n)
   return res
 
+#todo: make smarter, current level 1 solution can create 2 small buckets that can be merged
+def node_batch_to_small_batches(node_batch,level):
+  max_size = Config.node_sizes[level]
+  if level==1:
+    node_batchs = list(group_by_root(node_batch).values())
+  else:
+    node_batchs = [node_batch]
+  temp_res = []
+  res = []
+  while node_batchs:
+    batch = node_batchs.pop()
+    if len(batch)>=max_size:
+      res.append(batch[:max_size])
+      node_batchs.append(batch[max_size:])
+    elif len(temp_res)+len(batch)<=max_size:
+      temp_res.extend(batch)
+    else:
+      res.append(temp_res)
+      temp_res = batch
+  if temp_res:
+    res.append(temp_res)
+  return res
+
+
+
+
 def distinct(lst):
   s = set([])
   output = []

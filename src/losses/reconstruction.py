@@ -12,6 +12,7 @@ def calc_reconstruction_loss(agent_level, matrices, decompressed, real_positions
                              embeddings,
                              labels, pndb,A1s, pndb_lookup_ids, num_dummy=0, dummy_logit_bias=None):
     # matrices, mask, labels => [batch,seq_length,vec_size]
+    print("matrices",matrices.shape)
     if Config.use_pndb2 is not None and agent_level.level == 1:
         decompressed = pndb.old_get_data_from_A_matrix(pndb.create_A_matrix(matrices, real_positions), decompressed)
 

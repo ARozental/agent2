@@ -8,7 +8,7 @@
   "fnn_sizes": [32, 64, 256, 14, 16, 18],
   "num_transformer_layers":  [4, 8, 2, 2, 2, 2],
   "batch_size": 40,
-  "batch_sizes": [4000, 100, 4096, 1000, 1000],
+  "batch_sizes": [3000, 100, 4096, 1000, 1000],
   "mini_batch_size": 2400,
   "drop_rate": 0.0,
   "join_texts": true,

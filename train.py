@@ -131,7 +131,7 @@ def train(index, flags, training_started):
             if Config.use_tpu:
                 will_reconstruct = False  # Remove this once have the decode working on TPU
 
-            #print(len(batch.level_nodes[0]),len(batch.level_nodes[1]),len(batch.level_nodes[0])/ len(batch.level_nodes[1]))# todo: this is for debug => fix it
+            print(len(batch.level_nodes[0]),len(batch.level_nodes[1]),len(batch.level_nodes[0])/ len(batch.level_nodes[1]))# todo: this is for debug => fix it
 
             with xp.StepTrace('train_loop', step_num=step):
                 with xp.Trace('build_graph'):

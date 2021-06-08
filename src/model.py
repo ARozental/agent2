@@ -184,11 +184,11 @@ class AgentModel(nn.Module):
 
                     if level_num not in loss_object:  # On the first node_batch
                         loss_object[level_num] = losses
-                        for label, value in losses.items():
-                            loss_object[level_num][label] = value*real_node_num
-                    else:
-                        for label, value in losses.items():
-                            loss_object[level_num][label] += value*real_node_num
+                    #     for label, value in losses.items():
+                    #         loss_object[level_num][label] = value*real_node_num
+                    # else:
+                    #     for label, value in losses.items():
+                    #         loss_object[level_num][label] += value*real_node_num
 
                 if generate:  # todo: fix here
                     g_loss, disc_loss = calc_generation_loss(self.agent_levels[level_num], vectors, matrices, real_positions)

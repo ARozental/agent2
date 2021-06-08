@@ -227,6 +227,7 @@ class AgentModel(nn.Module):
                         node.rj_loss = rj_loss[i].detach()
                         node.rm_loss = rm_loss[i].detach()
                         node.rm_diff_loss = rm_diff_loss[i].detach()
+                mlm_loss, mlm_diff_loss, coherence_loss, reconstruction_loss, eos_loss, join_loss, reconstruction_diff_loss, re_loss, rm_loss = None, None, None, None, None, None, None, None, None
 
                 with xp.Trace('ComputeTotalLoss' + str(level_num)):
                     current_losses = []

@@ -81,8 +81,8 @@ class AgentModel(nn.Module):
                     vectors, wm, num_dummy0_embed = self.set_word_vectors(full_node_batch, debug=debug)
                     word_embedding_matrix = wm
 
-            if level_num==1:
-              full_node_batch = full_node_batch[0:10]
+            if level_num==1: #todo:delete
+              full_node_batch = full_node_batch[0:10]#todo:delete
             node_batchs=node_batch_to_small_batches(full_node_batch,level_num)
             for node_batch in node_batchs:
 
@@ -125,17 +125,19 @@ class AgentModel(nn.Module):
                     dummy_logit_bias = None
 
                 with xp.Trace('MLMLoss' + str(level_num)):
-                    mlm_loss, mlm_diff_loss = calc_mlm_loss(self.agent_levels[level_num], matrices, real_positions,
-                                                            eos_positions,
-                                                            embedding_matrix,
-                                                            labels, num_dummy=num_dummy,
-                                                            dummy_logit_bias=dummy_logit_bias)
+                    # mlm_loss, mlm_diff_loss = calc_mlm_loss(self.agent_levels[level_num], matrices, real_positions,
+                    #                                         eos_positions,
+                    #                                         embedding_matrix,
+                    #                                         labels, num_dummy=num_dummy,
+                    #                                         dummy_logit_bias=dummy_logit_bias)
+                    mlm_loss, mlm_diff_loss = torch.zeros(matrices.shape[0], device=Config.device),torch.zeros(matrices.shape[0], device=Config.device)
 
                 with xp.Trace('CoherenceLoss' + str(level_num)):
-                    coherence_loss, cd_loss = calc_coherence_loss(self.agent_levels[level_num], matrices,
-                                                                  real_positions,
-                                                                  eos_positions,
-                                                                  embedding_matrix, num_dummy=num_dummy)
+                    # coherence_loss, cd_loss = calc_coherence_loss(self.agent_levels[level_num], matrices,
+                    #                                               real_positions,
+                    #                                               eos_positions,
+                    #                                               embedding_matrix, num_dummy=num_dummy)
+                    coherence_loss, cd_loss = torch.zeros(matrices.shape[0], device=Config.device), torch.zeros(matrices.shape[0], device=Config.device)
 
                 with xp.Trace('CallingDecompressor' + str(level_num)):
                     if Config.noise == 0 or debug:

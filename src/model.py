@@ -97,6 +97,7 @@ class AgentModel(nn.Module):
                                 self.char_embedding_layer.weight,
                                 word_embedding_matrix, debug=debug)
                     elif level_num == 1:
+                        print("real_node_num1:",real_node_num)
                         matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy, A1s, pndb_lookup_ids = \
                           self.agent_levels[
                             level_num].get_children(

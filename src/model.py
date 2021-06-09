@@ -186,16 +186,19 @@ class AgentModel(nn.Module):
                         "rcd": (rcd_loss.view(-1, 2) * loss_keeper.unsqueeze(-1)).mean(),  # TODO - Check if correct
                     }
 
-                    main_loss = loss_object_to_main_loss({level_num: losses}) * real_node_num * len(node_batchs) / len(full_node_batch)
+                    main_loss = loss_object_to_main_loss({level_num: losses}) / len(full_node_batch)
                     main_loss.backward(retain_graph=True)
 
                     if level_num not in loss_object:  # On the first node_batch
                         loss_object[level_num] = losses
                         for label, value in losses.items():
-                            loss_object[level_num][label] = value.detach() * real_node_num * len(node_batchs) / len(full_node_batch)
+                            loss_object[level_num][label] = value.detach() / len(full_node_batch)
                     else:
                         for label, value in losses.items():
-                            loss_object[level_num][label] += value.detach() * real_node_num * len(node_batchs) / len(full_node_batch)
+                            loss_object[level_num][label] += value.detach() / len(full_node_batch)
+
+                    with xp.Trace('ComputeTotalLoss' + str(level_num)):
+                      total_loss += main_loss
 
                     losses,main_loss,r_loss = None,None,None
 
@@ -226,15 +229,6 @@ class AgentModel(nn.Module):
                         node.rm_diff_loss = rm_diff_loss[i].detach()
                 mlm_loss, mlm_diff_loss, coherence_loss, reconstruction_loss, eos_loss, join_loss, reconstruction_diff_loss, re_loss, rm_loss = None, None, None, None, None, None, None, None, None
 
-                with xp.Trace('ComputeTotalLoss' + str(level_num)):
-                    current_losses = []
-                    for label, loss in loss_object[level_num].items():
-                        if label not in ['g', 'disc', 'cd', 'rcd']:
-                            loss /= (len(node_batch) - num_dummy_nodes)
-                            current_losses.append(loss)
-                            loss_object[level_num][label] = loss  # Keep loss_object as a tensor for custom backwards
-                            # loss_object[level_num][label] = loss.item()  # Pull out of the GPU for logging
-                    total_loss += torch.stack(current_losses).sum()
 
 
         return total_g_loss, total_disc_loss, total_loss, loss_object

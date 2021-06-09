@@ -120,9 +120,9 @@ def train(index, flags, training_started):
                 training_started.set()
 
             # This is not the most efficient, but needs to be done to not skip these examples in future epochs
-            if Config.skip_batches is not None and (epoch == 0 and step < Config.skip_batches):
-                global_step += 1
-                continue
+            # if Config.skip_batches is not None and (epoch == 0 and step < Config.skip_batches):
+            #     global_step += 1
+            #     continue
 
             current_model_time = time.time()
             model.train()

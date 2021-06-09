@@ -127,7 +127,7 @@ class AgentModel(nn.Module):
                     dummy_logit_bias = None
 
                 with xp.Trace('MLMLoss' + str(level_num)):
-                    mlm_loss, mlm_diff_loss = calc_mlm_loss(self.agent_levels[level_num], matrices, real_positions,
+                    mlm_loss,rm_loss, mlm_diff_loss,rm_diff_loss = calc_mlm_loss(self.agent_levels[level_num], matrices, real_positions,
                                                             eos_positions,
                                                             embedding_matrix,
                                                             labels, num_dummy=num_dummy,
@@ -146,7 +146,7 @@ class AgentModel(nn.Module):
                       decompressed = self.agent_levels[level_num].decompressor(make_noise(vectors))
 
                 with xp.Trace('ReconstructionLoss' + str(level_num)):
-                    reconstruction_diff_loss, reconstruction_loss, eos_loss, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss, rcd_loss = \
+                    reconstruction_diff_loss, reconstruction_loss, eos_loss, rc_loss, re_loss, rj_loss, rcd_loss = \
                         calc_reconstruction_loss(
                             self.agent_levels[level_num],
                             matrices, decompressed, real_positions,
@@ -186,21 +186,16 @@ class AgentModel(nn.Module):
                         "rcd": (rcd_loss.view(-1, 2) * loss_keeper.unsqueeze(-1)).mean(),  # TODO - Check if correct
                     }
 
-                    main_loss = loss_object_to_main_loss({level_num: losses}) * real_node_num/len(full_node_batch)
-                    r_loss = loss_object_to_reconstruction_weights_loss({level_num: losses}) * real_node_num/len(full_node_batch)
-                    [setattr(p, "requires_grad", False) for p in self.main_params]
-                    [setattr(p, "requires_grad", True) for p in self.reconstruction_params]
-                    r_loss.backward(retain_graph=True)
-                    [setattr(p, "requires_grad", True) for p in self.main_params]
+                    main_loss = loss_object_to_main_loss({level_num: losses}) * real_node_num * len(node_batchs) / len(full_node_batch)
                     main_loss.backward(retain_graph=True)
 
                     if level_num not in loss_object:  # On the first node_batch
                         loss_object[level_num] = losses
                         for label, value in losses.items():
-                            loss_object[level_num][label] = value.detach() * real_node_num / len(full_node_batch)
+                            loss_object[level_num][label] = value.detach() * real_node_num * len(node_batchs) / len(full_node_batch)
                     else:
                         for label, value in losses.items():
-                            loss_object[level_num][label] += value.detach() * real_node_num / len(full_node_batch)
+                            loss_object[level_num][label] += value.detach() * real_node_num * len(node_batchs) / len(full_node_batch)
 
                     losses,main_loss,r_loss = None,None,None
 

@@ -56,8 +56,7 @@ def calc_reconstruction_loss(agent_level, matrices, decompressed, real_positions
     _=None #do these 2 lines save on memory? reencoded_matrices moved inside calc_rmlm_loss
     #reencoded_matrices = agent_level.encoder(post_decoder, real_positions_for_mask, eos_positions)
 
-    rm_loss, rm_diff_loss = calc_rmlm_loss(agent_level, post_decoder, real_positions_for_mask, eos_positions, real_positions, matrices, embeddings,
-                                           labels)  # no mask keep the decoded vectors and predict originals by encoding
+    #rm_loss, rm_diff_loss = calc_rmlm_loss(agent_level, post_decoder, real_positions_for_mask, eos_positions, real_positions, matrices, embeddings,labels)  # no mask keep the decoded vectors and predict originals by encoding
 
     #rc_loss
     # if agent_level.level > 0:
@@ -80,4 +79,4 @@ def calc_reconstruction_loss(agent_level, matrices, decompressed, real_positions
     else:
         rj_loss = torch.zeros(post_decoder.size(0), device=Config.device)
 
-    return reconstruction_diff, reconstruction_losses,eos_loss, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss, rcd_loss
+    return reconstruction_diff, reconstruction_losses,eos_loss, rc_loss, re_loss, rj_loss, rcd_loss

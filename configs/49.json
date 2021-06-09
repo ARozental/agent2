@@ -1,6 +1,6 @@
 {
-  "model_folder": "s256_pndb128_v4",
-  "exp_folder": "runs/s256_pndb128_v4",
+  "model_folder": "s256_pndb128_v5",
+  "exp_folder": "runs/s256_pndb128_v5",
   "sequence_lengths": [16, 16, 6, 3, 4],
   "vector_sizes": [32, 64, 256, 96, 128, 156],
   "num_heads": [4, 8, 2, 2, 2, 2],
@@ -19,7 +19,7 @@
   "save_every": 2000,
   "grad_clip_value":0.999,
   "grad_acc_steps": 1,
-  "lr": 0.001,
+  "lr": 0.0002,
   "momentum": 0.9,
   "gpu_num": 1,
   "noise": 0,

@@ -86,7 +86,7 @@ def train(index, flags, training_started):
         main_optimizer = madgrad.MADGRAD(main_params, lr=Config.lr, momentum=Config.momentum)  # 0.01,0.9 is the default
     # main_optimizer = torch.optim.AdamW(main_params, 0.001) #todo: for dummy only
 
-    lambda_lr = lambda batch: math.exp(math.log(0.5) / Config.half_life_steps) ** batch
+    lambda_lr = lambda batch: Config.half_life_steps / (Config.half_life_steps+batch)
     scheduler = torch.optim.lr_scheduler.LambdaLR(main_optimizer, lambda_lr)
 
     # generator_optimizer = torch.optim.AdamW(generator_params, 0.001)
@@ -143,6 +143,7 @@ def train(index, flags, training_started):
                                                                           last_obj=total_loss_object)
 
                 main_loss = loss_object_to_main_loss(loss_object) / grad_acc_steps
+                print(loss_object)
                 r_loss = loss_object_to_reconstruction_weights_loss(loss_object) / grad_acc_steps
                 #c_loss = loss_object_to_extra_coherence_weights_loss(loss_object) / Config.grad_acc_steps
 

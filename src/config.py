@@ -39,7 +39,7 @@ class Config:
     # max_typo_loss = 10.0
     grad_clip_value = 0.99
     optimizer = "Adam"
-    lr = 0.0005
+    lr = 0.001
     momentum = 0.9
     half_life_steps = 150000
     grad_acc_steps = 1

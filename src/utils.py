@@ -168,3 +168,12 @@ def make_noise(t):
     changed_examples = torch.rand(t.shape[0], 1, device=Config.device).round()
     n = torch.normal(torch.mean(t).data, torch.std(t).data, size=t.shape, device=Config.device)
     return t + Config.noise * changed_examples * n
+
+
+def apply_recursive(func, obj):
+  if isinstance(obj, dict):  # if dict, apply to each key
+    return {k: apply_recursive(func, v) for k, v in obj.items()}
+  elif isinstance(obj, list):  # if list, apply to each element
+    return [apply_recursive(func, elem) for elem in obj]
+  else:
+    return func(obj)

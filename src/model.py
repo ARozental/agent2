@@ -7,7 +7,7 @@ from src.losses.coherence import calc_coherence_loss
 from src.losses.reconstruction import calc_reconstruction_loss
 from src.losses.generation import calc_generation_loss
 from src.pre_processing import Node, TreeTokenizer
-from src.utils import iter_even_split, group_by_root, make_noise, node_batch_to_small_batches
+from src.utils import iter_even_split, group_by_root, make_noise, node_batch_to_small_batches, apply_recursive
 from src.profiler import Profiler as xp
 from src.agent.pndb import Pndb
 import torch.nn as nn
@@ -73,7 +73,7 @@ class AgentModel(nn.Module):
 
     def forward(self, batch_tree, generate=False, debug=False,last_obj={}):
         total_g_loss, total_disc_loss, total_loss = 0, 0, 0
-        loss_object = last_obj
+        loss_object = apply_recursive(lambda x: 0, last_obj)
         previous_vectors = None
         word_embedding_matrix= None
         for level_num in range(Config.agent_level + 1):
@@ -86,7 +86,7 @@ class AgentModel(nn.Module):
 
             if len(word_embedding_matrix)>Config.max_word_embedding_size:
               #print("embedding is too big:", len(word_embedding_matrix))
-              return total_g_loss, total_disc_loss, total_loss, loss_object #todo: make it
+              return total_g_loss, total_disc_loss, total_loss, last_obj #todo: make it
             node_batchs=node_batch_to_small_batches(full_node_batch,level_num)
             for node_batch in node_batchs:
 

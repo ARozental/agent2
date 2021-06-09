@@ -21,7 +21,7 @@ class Config:
     mini_batch_size = 1024 #max number of max_agent_level document, not working as intender but has an effect: final number is ~1.7 times higers, can be higher than batch size like when we get wiki articles as input but only doing up to level 1 (sentneces). should be at least as high as corresponding node size
 
     drop_rate = 0.0
-    noise = 0
+    noise = 0.05
     max_word_embedding_size = 10000
 
     pad_token_id = 1  # hard coded; will break logic if changed!!!

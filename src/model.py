@@ -14,6 +14,9 @@ import torch.nn as nn
 import torch
 import numpy as np
 from src.losses.calc import loss_object_to_main_loss, loss_object_to_reconstruction_weights_loss
+if Config.use_tpu:
+    import torch_xla.core.xla_model as xm
+
 
 
 class AgentModel(nn.Module):
@@ -86,7 +89,7 @@ class AgentModel(nn.Module):
 
             if len(word_embedding_matrix)>Config.max_word_embedding_size:
               #print("embedding is too big:", len(word_embedding_matrix))
-              return total_g_loss, total_disc_loss, total_loss, last_obj #todo: make it
+              return total_g_loss, total_disc_loss, total_loss, last_obj #todo: move to pre processing + pad embedding for TPU here
             node_batchs=node_batch_to_small_batches(full_node_batch,level_num)
             for node_batch in node_batchs:
 
@@ -188,6 +191,9 @@ class AgentModel(nn.Module):
 
                     main_loss = loss_object_to_main_loss({level_num: losses}) / len(full_node_batch)
                     main_loss.backward(retain_graph=True) #after 20k batches this gave RuntimeError: cuDNN error: CUDNN_STATUS_EXECUTION_FAILED => WTF
+
+                    if Config.use_tpu and not Config.profile_tpu:
+                      xm.mark_step()
 
                     if level_num not in loss_object:  # On the first node_batch
                         loss_object[level_num] = losses

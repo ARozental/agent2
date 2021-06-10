@@ -172,8 +172,8 @@ def train(index, flags, training_started):
 
                 total_loss += main_loss.detach()
 
-                if Config.use_tpu and not Config.profile_tpu:
-                    xm.mark_step()
+                #if Config.use_tpu and not Config.profile_tpu:
+                #    xm.mark_step()
 
                 # TODO - I want to clip on every step, how?
                 if (step + 1) % grad_acc_steps == 0:  # (step + 1) so that don't break on step 0 when acc is > 1

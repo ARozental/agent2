@@ -14,7 +14,7 @@ class Config:
     fnn_sizes = vector_sizes  # [8, 10, 12, 14, 16, 18]  # [2,3,4,5] #for fnn in transformers
     num_transformer_layers = [2, 2, 2, 2, 2, 2]  # [2,2,2,2]
     mlm_rate = 0.15  # 0.15 like BERT
-    batch_size = 100  # How many books/articles/etc per batch.
+    batch_size = 1  # How many books/articles/etc per batch.
     node_sizes = [4096, 512, 4096, 1000, 1000]  # How many nodes to process at a time at each level => todo: change, each here limits the other
     node_sizes_max = [8192, 1024]  # Used for the TPU; only used when "dynamic_node_sizes" is True
     dynamic_node_sizes = False  # Used for the TPU to make it do 25%/50%/75%
@@ -52,7 +52,7 @@ class Config:
     log_every = 100  # Log the reconstructed text every x epochs/batches
     save_every = None  # Save the model every x epochs/batches; None never saves
     model_folder = "test"  # Where inside of the "models" folder to save the model to
-    exp_folder = None  # Folder name in "runs" to log into. None defaults to tensorboard default
+    exp_folder = "runs/test"  # Folder name in "runs" to log into. None defaults to tensorboard default
     viz_file = None  # CSV file where to save viz results in
 
     force_resume = True

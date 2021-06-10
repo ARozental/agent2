@@ -73,7 +73,7 @@ class AgentModel(nn.Module):
 
     def forward(self, batch_tree, generate=False, debug=False,last_obj={}):
         total_g_loss, total_disc_loss, total_loss = 0, 0, 0
-        loss_object = apply_recursive(lambda x: 0, last_obj)
+        loss_object = {}
         previous_vectors = None
         word_embedding_matrix= None
         for level_num in range(Config.agent_level + 1):

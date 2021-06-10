@@ -70,8 +70,8 @@ def calc_reconstruction_loss(agent_level, matrices, decompressed, real_positions
 
     #no rc/rcd loss
     batch, seq_length, vec_size = post_decoder.shape
-    rcd_loss = torch.zeros(batch * 2, device=Config.device)
-    rc_loss = torch.zeros(batch * seq_length, device=Config.device)
+    #rcd_loss = torch.zeros(batch * 2, device=Config.device)
+    #rc_loss = torch.zeros(batch * seq_length, device=Config.device)
 
 
     if Config.join_texts and agent_level.level > 0:
@@ -79,4 +79,4 @@ def calc_reconstruction_loss(agent_level, matrices, decompressed, real_positions
     else:
         rj_loss = torch.zeros(post_decoder.size(0), device=Config.device)
 
-    return reconstruction_diff, reconstruction_losses,eos_loss, rc_loss, re_loss, rj_loss, rcd_loss
+    return reconstruction_diff, reconstruction_losses,eos_loss, re_loss, rj_loss

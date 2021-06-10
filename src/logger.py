@@ -12,21 +12,21 @@ class Logger:
     viz = pd.DataFrame()
     loss_name_mapping = {
         'm': 'mlm',
-        'md': 'mlm_diff',
+        #'md': 'mlm_diff',
         'c': 'coherence',
         'r': 'reconstruction',
         'e': 'eos',
         'j': 'join',
         'd': 'reconstruction_diff',
-        'rc': 'reconstruction_coherence',
+        #'rc': 'reconstruction_coherence',
         're': 'reconstruction_eos',
         'rj': 'reconstruction_join',
         'rm': 'reconstruction_mlm',
-        'rmd': 'reconstruction_diff_mlm',
+        #'rmd': 'reconstruction_diff_mlm',
         'g': 'generator',
-        'disc': 'discriminator',
-        'cd': 'coherence_discriminator',
-        'rcd': 'reconstruction_coherence_discriminator'
+        'disc': 'discriminator'
+        #'cd': 'coherence_discriminator',
+        #'rcd': 'reconstruction_coherence_discriminator'
 
     }
 

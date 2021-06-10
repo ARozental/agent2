@@ -127,14 +127,14 @@ class AgentModel(nn.Module):
                     dummy_logit_bias = None
 
                 with xp.Trace('MLMLoss' + str(level_num)):
-                    mlm_loss,rm_loss, mlm_diff_loss,rm_diff_loss = calc_mlm_loss(self.agent_levels[level_num], matrices, real_positions,
+                    mlm_loss,rm_loss = calc_mlm_loss(self.agent_levels[level_num], matrices, real_positions,
                                                             eos_positions,
                                                             embedding_matrix,
                                                             labels, num_dummy=num_dummy,
                                                             dummy_logit_bias=dummy_logit_bias)
 
                 with xp.Trace('CoherenceLoss' + str(level_num)):
-                    coherence_loss, cd_loss = calc_coherence_loss(self.agent_levels[level_num], matrices,
+                    coherence_loss = calc_coherence_loss(self.agent_levels[level_num], matrices,
                                                                   real_positions,
                                                                   eos_positions,
                                                                   embedding_matrix, num_dummy=num_dummy)
@@ -146,7 +146,7 @@ class AgentModel(nn.Module):
                       decompressed = self.agent_levels[level_num].decompressor(make_noise(vectors))
 
                 with xp.Trace('ReconstructionLoss' + str(level_num)):
-                    reconstruction_diff_loss, reconstruction_loss, eos_loss, rc_loss, re_loss, rj_loss, rcd_loss = \
+                    reconstruction_diff_loss, reconstruction_loss, eos_loss, re_loss, rj_loss = \
                         calc_reconstruction_loss(
                             self.agent_levels[level_num],
                             matrices, decompressed, real_positions,
@@ -170,24 +170,24 @@ class AgentModel(nn.Module):
                 with xp.Trace('CalculateLosses' + str(level_num)):
                     losses = {
                         'm': (mlm_loss * loss_keeper).sum(),
-                        'md': (mlm_diff_loss * loss_keeper).sum(),
+                        #'md': (mlm_diff_loss * loss_keeper).sum(),
                         "c": (coherence_loss * loss_keeper).sum(),
                         "r": (reconstruction_loss * loss_keeper).sum(),
                         "e": (eos_loss * loss_keeper).sum(),
                         "j": (join_loss * loss_keeper).sum(),
                         "d": (reconstruction_diff_loss * loss_keeper).sum(),
 
-                        "rc": (rc_loss.view(matrices.shape[:2]) * loss_keeper.unsqueeze(-1)).sum(),
+                        #"rc": (rc_loss.view(matrices.shape[:2]) * loss_keeper.unsqueeze(-1)).sum(),
                         "re": (re_loss * loss_keeper).sum(),
                         "rj": (rj_loss * loss_keeper).sum(),
                         "rm": (rm_loss * loss_keeper).sum(),
-                        "rmd": (rm_diff_loss * loss_keeper).sum(),
-                        "cd": (cd_loss * loss_keeper).mean(),  # This is disabled in coherence loss
-                        "rcd": (rcd_loss.view(-1, 2) * loss_keeper.unsqueeze(-1)).mean(),  # TODO - Check if correct
+                        #"rmd": (rm_diff_loss * loss_keeper).sum(),
+                        #"cd": (cd_loss * loss_keeper).mean(),  # This is disabled in coherence loss
+                        #"rcd": (rcd_loss.view(-1, 2) * loss_keeper.unsqueeze(-1)).mean(),  # TODO - Check if correct
                     }
 
                     main_loss = loss_object_to_main_loss({level_num: losses}) / len(full_node_batch)
-                    main_loss.backward(retain_graph=True)
+                    main_loss.backward(retain_graph=True) #after 20k batches this gave RuntimeError: cuDNN error: CUDNN_STATUS_EXECUTION_FAILED => WTF
 
                     if level_num not in loss_object:  # On the first node_batch
                         loss_object[level_num] = losses
@@ -214,17 +214,17 @@ class AgentModel(nn.Module):
                 if debug:
                     for i, node in enumerate(node_batch):
                         node.mlm_loss = mlm_loss[i].detach()
-                        node.mlm_diff_loss = mlm_diff_loss[i].detach()
+                        #node.mlm_diff_loss = mlm_diff_loss[i].detach()
                         node.coherence_loss = coherence_loss[i].detach()
                         node.reconstruction_loss = reconstruction_loss[i].detach()
                         node.eos_loss = eos_loss[i].detach()
                         node.join_loss = join_loss[i].detach()
                         node.reconstruction_diff_loss = reconstruction_diff_loss[i].detach()
-                        node.rc_loss = rc_loss[i].detach()
+                        #node.rc_loss = rc_loss[i].detach()
                         node.re_loss = re_loss[i].detach()
                         node.rj_loss = rj_loss[i].detach()
                         node.rm_loss = rm_loss[i].detach()
-                        node.rm_diff_loss = rm_diff_loss[i].detach()
+                        #node.rm_diff_loss = rm_diff_loss[i].detach()
                 mlm_loss, mlm_diff_loss, coherence_loss, reconstruction_loss, eos_loss, join_loss, reconstruction_diff_loss, re_loss, rm_loss = None, None, None, None, None, None, None, None, None
 
         # with xp.Trace('ComputeTotalLoss' + str(level_num)):

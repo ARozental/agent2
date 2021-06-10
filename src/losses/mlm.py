@@ -89,10 +89,10 @@ def calc_mlm_loss(agent_level, matrices, real_positions, eos_positions, embeddin
     # mlm_diff = (((matrices - transformed) * real_positions).norm(dim=[1, 2]))
     # mlm_diff = mlm_diff / ((matrices * real_positions).norm(dim=[1, 2]))
     # mlm_diff = (mlm_diff * (4.4 / math.log(embeddings.shape[0]))) #/ 100
-    mlm_diff = torch.zeros(batch, device=Config.device)
-    rmlm_diff = mlm_diff
+    #mlm_diff = torch.zeros(batch, device=Config.device)
+    #rmlm_diff = mlm_diff
 
-    return mlm_losses, rmlm_losses, mlm_diff,rmlm_diff
+    return mlm_losses, rmlm_losses
 
 
 def calc_rmlm_loss(agent_level, post_decoder, real_positions_for_mask, eos_positions, real_positions, matrices, embeddings, labels):

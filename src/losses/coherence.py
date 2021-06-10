@@ -52,9 +52,9 @@ def calc_coherence_loss(agent_level, matrices, real_positions, eos_positions, em
     #                                 torch.ones(batch, dtype=torch.long, device=Config.device) ])
     # total_cd_loss = ce_loss(predictions, predictions_labels).sum()  # rcd is reconstruction coherence discrimination
 
-    total_cd_loss = torch.tensor(0.0, device=Config.device)
+    #total_cd_loss = torch.tensor(0.0, device=Config.device)
 
-    return coherence_losses, total_cd_loss
+    return coherence_losses#, total_cd_loss
 
 
 def calc_rc_loss(agent_level, reencoded_matrices, real_positions, lower_agent_level, post_decoder, matrices):

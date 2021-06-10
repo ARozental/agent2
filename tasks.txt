@@ -23,16 +23,12 @@ Refactoring:
 13. when starting a job on gpu1, (with late start?) gpu0 also starts a new process with ~1gb
 
 CURRENT TASKS:
-big batch refactor
-run with 8 cores, see results
-reconstructed text on tpu
 fix get_children so it'll work again with level2+
 go over new pndb logic together; there is no way it actually does what I hope it does
-set max num words from out side, using max possible doesn't scale well => low priority
-start grad_acc only after <config, 500k?> batches
-in dataset logic filter out bad batches, find out why after 4k batchs we got bad pndb; delete the raise error from graph; put print for it in pre processing
+in dataset logic filter out bad batches => currently done in model
 why colab TB no show??
 multi-gpu
+fix tpu
 kill annoying <unk> token for wiki dataset
 turn off the logic to skip docs when continuing training
 

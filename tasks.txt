@@ -35,6 +35,11 @@ why colab TB no show??
 multi-gpu
 kill annoying <unk> token for wiki dataset
 turn off the logic to skip docs when continuing training
+
+
+FIX BUG OF NOT READING FROM CONFIG FILE BUT FROM MAIN CONFIG INSTEAD!!!! (node_sizes, save every works...)
+
+
 change config to reflect real numbers for level batch use different version for gpu/tpu??
     better: have max memory instead of menually finding max size per level in each config
 

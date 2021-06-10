@@ -139,7 +139,9 @@ def node_batch_to_small_batches(node_batch, level):
     res = []
     while node_batchs:
         batch = node_batchs.pop()
-        if len(batch) >= max_size:
+        if len(batch) == max_size:
+          res.append(batch)
+        elif len(batch) > max_size:
             res.append(batch[:max_size])
             node_batchs.append(batch[max_size:])
         elif len(temp_res) + len(batch) <= max_size:
@@ -166,3 +168,12 @@ def make_noise(t):
     changed_examples = torch.rand(t.shape[0], 1, device=Config.device).round()
     n = torch.normal(torch.mean(t).data, torch.std(t).data, size=t.shape, device=Config.device)
     return t + Config.noise * changed_examples * n
+
+
+def apply_recursive(func, obj):
+  if isinstance(obj, dict):  # if dict, apply to each key
+    return {k: apply_recursive(func, v) for k, v in obj.items()}
+  elif isinstance(obj, list):  # if list, apply to each element
+    return [apply_recursive(func, elem) for elem in obj]
+  else:
+    return func(obj)

@@ -1,7 +1,6 @@
 {
-  "model_folder": "test_memory",
-  "exp_folder": "runs/test_memory",
-  "viz_file": "../viz/models/test_memory.csv",
+  "model_folder": "s128_pndb128_rmlm2",
+  "exp_folder": "runs/s128_pndb128_rmlm2",
   "sequence_lengths": [16, 16, 6, 3, 4],
   "vector_sizes": [32, 64, 128, 96, 128, 156],
   "num_heads": [4, 8, 2, 2, 2, 2],
@@ -12,16 +11,17 @@
   "mini_batch_size": 1024,
   "drop_rate": 0.0,
   "join_texts": true,
-  "use_pndb1": null,
+  "use_pndb1": 128,
   "use_pndb2": null,
   "agent_level": 1,
   "log_experiment": true,
   "log_every": 2000,
   "save_every": 2000,
   "grad_clip_value":0.999,
-  "grad_acc_steps": 16,
-  "optimizer": "Madgrad",
-  "lr": 0.0005,
+  "grad_acc_steps": 1,
+  "lr": 0.001,
   "momentum": 0.9,
-  "gpu_num": 0
+  "gpu_num": 1,
+  "noise": 0,
+  "force_resume": "y"
 }

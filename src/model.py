@@ -7,12 +7,13 @@ from src.losses.coherence import calc_coherence_loss
 from src.losses.reconstruction import calc_reconstruction_loss
 from src.losses.generation import calc_generation_loss
 from src.pre_processing import Node, TreeTokenizer
-from src.utils import iter_even_split, group_by_root, make_noise, node_batch_to_small_batches
+from src.utils import iter_even_split, group_by_root, make_noise, node_batch_to_small_batches, apply_recursive
 from src.profiler import Profiler as xp
 from src.agent.pndb import Pndb
 import torch.nn as nn
 import torch
 import numpy as np
+from src.losses.calc import loss_object_to_main_loss, loss_object_to_reconstruction_weights_loss
 
 
 class AgentModel(nn.Module):
@@ -25,6 +26,8 @@ class AgentModel(nn.Module):
         for i in range(1, Config.agent_level + 1):
             self.agent_levels[i].previous_level = self.agent_levels[i - 1]
 
+        self.reconstruction_params = [param for name, param in self.named_parameters() if (("decompressor" in name) or ("decoder" in name))]
+        self.main_params = [param for name, param in self.named_parameters() if ("discriminator" not in name) and ("generator" not in name)]
 
     def set_word_vectors(self, node_batch, debug=False):
         max_distinct_id = max([node.distinct_lookup_id for node in node_batch])  # TODO - Check for dummy nodes in here
@@ -63,12 +66,12 @@ class AgentModel(nn.Module):
         lookup_ids += 2 + int(Config.join_texts)
 
         if debug:
-            all_word_vectors = torch.index_select(word_embedding_matrix, 0, lookup_ids)  # [words_in_batch,word_vector_size]
+            all_word_vectors = torch.index_select(word_embedding_matrix, 0, lookup_ids).detach()  # [words_in_batch,word_vector_size]
             [n.set_vector(v) for n, v in zip(node_batch, all_word_vectors)]
 
         return None, word_embedding_matrix, num_dummy_distinct
 
-    def forward(self, batch_tree, generate=False, debug=False):
+    def forward(self, batch_tree, generate=False, debug=False,last_obj={}):
         total_g_loss, total_disc_loss, total_loss = 0, 0, 0
         loss_object = {}
         previous_vectors = None
@@ -81,6 +84,9 @@ class AgentModel(nn.Module):
                     vectors, wm, num_dummy0_embed = self.set_word_vectors(full_node_batch, debug=debug)
                     word_embedding_matrix = wm
 
+            if len(word_embedding_matrix)>Config.max_word_embedding_size:
+              #print("embedding is too big:", len(word_embedding_matrix))
+              return total_g_loss, total_disc_loss, total_loss, last_obj #todo: make it
             node_batchs=node_batch_to_small_batches(full_node_batch,level_num)
             for node_batch in node_batchs:
 
@@ -89,7 +95,6 @@ class AgentModel(nn.Module):
 
                 with xp.Trace('GetChildren' + str(level_num)):
                     if level_num == 0:
-                        print("real_node_num:",real_node_num)
                         matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy,A1s, pndb_lookup_ids = \
                             self.agent_levels[
                                 level_num].get_children(
@@ -97,7 +102,6 @@ class AgentModel(nn.Module):
                                 self.char_embedding_layer.weight,
                                 word_embedding_matrix, debug=debug)
                     elif level_num == 1:
-                        print("real_node_num1:",real_node_num)
                         matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy, A1s, pndb_lookup_ids = \
                           self.agent_levels[
                             level_num].get_children(
@@ -123,7 +127,7 @@ class AgentModel(nn.Module):
                     dummy_logit_bias = None
 
                 with xp.Trace('MLMLoss' + str(level_num)):
-                    mlm_loss, mlm_diff_loss = calc_mlm_loss(self.agent_levels[level_num], matrices, real_positions,
+                    mlm_loss,rm_loss, mlm_diff_loss,rm_diff_loss = calc_mlm_loss(self.agent_levels[level_num], matrices, real_positions,
                                                             eos_positions,
                                                             embedding_matrix,
                                                             labels, num_dummy=num_dummy,
@@ -142,7 +146,7 @@ class AgentModel(nn.Module):
                       decompressed = self.agent_levels[level_num].decompressor(make_noise(vectors))
 
                 with xp.Trace('ReconstructionLoss' + str(level_num)):
-                    reconstruction_diff_loss, reconstruction_loss, eos_loss, rc_loss, re_loss, rj_loss, rm_loss, rm_diff_loss, rcd_loss = \
+                    reconstruction_diff_loss, reconstruction_loss, eos_loss, rc_loss, re_loss, rj_loss, rcd_loss = \
                         calc_reconstruction_loss(
                             self.agent_levels[level_num],
                             matrices, decompressed, real_positions,
@@ -182,13 +186,19 @@ class AgentModel(nn.Module):
                         "rcd": (rcd_loss.view(-1, 2) * loss_keeper.unsqueeze(-1)).mean(),  # TODO - Check if correct
                     }
 
+                    main_loss = loss_object_to_main_loss({level_num: losses}) / len(full_node_batch)
+                    main_loss.backward(retain_graph=True)
+
                     if level_num not in loss_object:  # On the first node_batch
                         loss_object[level_num] = losses
                         for label, value in losses.items():
-                            loss_object[level_num][label] = value*real_node_num
+                            loss_object[level_num][label] = value.detach() / len(full_node_batch)
                     else:
                         for label, value in losses.items():
-                            loss_object[level_num][label] += value*real_node_num
+                            loss_object[level_num][label] += value.detach() / len(full_node_batch)
+
+
+                    losses,main_loss,r_loss = None,None,None
 
                 if generate:  # todo: fix here
                     g_loss, disc_loss = calc_generation_loss(self.agent_levels[level_num], vectors, matrices, real_positions)
@@ -203,32 +213,28 @@ class AgentModel(nn.Module):
 
                 if debug:
                     for i, node in enumerate(node_batch):
-                        node.mlm_loss = mlm_loss[i]
-                        node.mlm_diff_loss = mlm_diff_loss[i]
-                        node.coherence_loss = coherence_loss[i]
-                        node.reconstruction_loss = reconstruction_loss[i]
-                        node.eos_loss = eos_loss[i]
-                        node.join_loss = join_loss[i]
-                        node.reconstruction_diff_loss = reconstruction_diff_loss[i]
-                        node.rc_loss = rc_loss[i]
-                        node.re_loss = re_loss[i]
-                        node.rj_loss = rj_loss[i]
-                        node.rm_loss = rm_loss[i]
-                        node.rm_diff_loss = rm_diff_loss[i]
+                        node.mlm_loss = mlm_loss[i].detach()
+                        node.mlm_diff_loss = mlm_diff_loss[i].detach()
+                        node.coherence_loss = coherence_loss[i].detach()
+                        node.reconstruction_loss = reconstruction_loss[i].detach()
+                        node.eos_loss = eos_loss[i].detach()
+                        node.join_loss = join_loss[i].detach()
+                        node.reconstruction_diff_loss = reconstruction_diff_loss[i].detach()
+                        node.rc_loss = rc_loss[i].detach()
+                        node.re_loss = re_loss[i].detach()
+                        node.rj_loss = rj_loss[i].detach()
+                        node.rm_loss = rm_loss[i].detach()
+                        node.rm_diff_loss = rm_diff_loss[i].detach()
+                mlm_loss, mlm_diff_loss, coherence_loss, reconstruction_loss, eos_loss, join_loss, reconstruction_diff_loss, re_loss, rm_loss = None, None, None, None, None, None, None, None, None
 
-                with xp.Trace('ComputeTotalLoss' + str(level_num)):
-                    current_losses = []
-                    for label, loss in loss_object[level_num].items():
-                        if label not in ['g', 'disc', 'cd', 'rcd']:
-                            loss /= (len(node_batch) - num_dummy_nodes)
-                            current_losses.append(loss)
-                            loss_object[level_num][label] = loss  # Keep loss_object as a tensor for custom backwards
-                            # loss_object[level_num][label] = loss.item()  # Pull out of the GPU for logging
-                    total_loss += torch.stack(current_losses).sum()
-
-
-            for label, value in losses.items():
-              loss_object[level_num][label] = loss_object[level_num][label] / len(full_node_batch)
+        # with xp.Trace('ComputeTotalLoss' + str(level_num)):
+        #   current_losses = []
+        #   for label, loss in loss_object[level_num].items():
+        #     if label not in ['g', 'disc', 'cd', 'rcd']:
+        #       current_losses.append(loss)
+        #       loss_object[level_num][label] = loss  # Keep loss_object as a tensor for custom backwards
+        #       # loss_object[level_num][label] = loss.item()  # Pull out of the GPU for logging
+        #   total_loss += torch.stack(current_losses).sum()
 
         return total_g_loss, total_disc_loss, total_loss, loss_object
 

@@ -44,5 +44,6 @@ Adam with big size and low lr works great => it seems Adagrad can NEVER get to A
 
 maybe reconstruction can't generate good words because it is not deep enough
 maybe reconstruction won't generate good words; give it reconstruction-coherence loss and backprop only on reconstruction weights
+is lr too high for new model?
 
 

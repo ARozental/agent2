@@ -86,7 +86,7 @@ def train(index, flags, training_started):
         main_optimizer = madgrad.MADGRAD(main_params, lr=Config.lr, momentum=Config.momentum)  # 0.01,0.9 is the default
     # main_optimizer = torch.optim.AdamW(main_params, 0.001) #todo: for dummy only
 
-    lambda_lr = lambda batch: math.exp(math.log(0.5) / Config.half_life_steps) ** batch
+    lambda_lr = lambda batch: Config.half_life_steps / (Config.half_life_steps+batch)
     scheduler = torch.optim.lr_scheduler.LambdaLR(main_optimizer, lambda_lr)
 
     # generator_optimizer = torch.optim.AdamW(generator_params, 0.001)
@@ -120,9 +120,9 @@ def train(index, flags, training_started):
                 training_started.set()
 
             # This is not the most efficient, but needs to be done to not skip these examples in future epochs
-            if Config.skip_batches is not None and (epoch == 0 and step < Config.skip_batches):
-                global_step += 1
-                continue
+            # if Config.skip_batches is not None and (epoch == 0 and step < Config.skip_batches):
+            #     global_step += 1
+            #     continue
 
             current_model_time = time.time()
             model.train()
@@ -135,42 +135,40 @@ def train(index, flags, training_started):
             if Config.use_tpu:
                 will_reconstruct = False  # Remove this once have the decode working on TPU
 
-            print(len(batch.level_nodes[0]),len(batch.level_nodes[1]),len(batch.level_nodes[0])/ len(batch.level_nodes[1]))# todo: this is for debug => fix it
+            #print(len(batch.level_nodes[0]),len(batch.level_nodes[1]),len(batch.level_nodes[0])/ len(batch.level_nodes[1]))# todo: this is for debug => fix it
 
             with xp.StepTrace('train_loop', step_num=step):
-                with xp.Trace('build_graph'):
-                    with profiler.profile(profile_memory=True, record_shapes=True) as prof:
+                g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT,
+                                                                          debug=will_reconstruct,
+                                                                          last_obj=total_loss_object)
 
-                        g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT,
-                                                                              debug=will_reconstruct)
-                    print(prof.key_averages().table(sort_by="self_cpu_memory_usage"))
+                main_loss = loss_object_to_main_loss(loss_object) / grad_acc_steps
+                r_loss = loss_object_to_reconstruction_weights_loss(loss_object) / grad_acc_steps
+                #c_loss = loss_object_to_extra_coherence_weights_loss(loss_object) / Config.grad_acc_steps
 
-                    main_loss = loss_object_to_main_loss(loss_object) / grad_acc_steps
-                    r_loss = loss_object_to_reconstruction_weights_loss(loss_object) / grad_acc_steps
-                    #c_loss = loss_object_to_extra_coherence_weights_loss(loss_object) / Config.grad_acc_steps
+                # Divide by grad_acc_steps & detach from the graph
+                loss_object = {
+                    level_num: {key: value.detach() / grad_acc_steps for key, value in level.items()}
+                    for level_num, level in loss_object.items()
+                }
 
-                    # Divide by grad_acc_steps & detach from the graph
-                    loss_object = {
-                        level_num: {key: value.detach() / grad_acc_steps for key, value in level.items()}
-                        for level_num, level in loss_object.items()
-                    }
+                # Sum up the loss objects
+                total_loss_object = loss_object #fix for when grad_acc > 1
+                # if total_loss_object is None:
+                #     total_loss_object = loss_object
+                # else:
+                #     total_loss_object = merge_dicts(total_loss_object, loss_object)
 
-                    # Sum up the loss objects
-                    if total_loss_object is None:
-                        total_loss_object = loss_object
-                    else:
-                        total_loss_object = merge_dicts(total_loss_object, loss_object)
-
-                    [setattr(p, "requires_grad", False) for p in main_params]
-                    # [setattr(p, "requires_grad", True) for p in coherence_params]
-                    # c_loss.backward(retain_graph=True)
-                    # [setattr(p, "requires_grad", False) for p in coherence_params]
-                    [setattr(p, "requires_grad", True) for p in reconstruction_params]
-                    r_loss.backward(retain_graph=True)
-                    [setattr(p, "requires_grad", True) for p in main_params]
+                # [setattr(p, "requires_grad", False) for p in main_params]
+                # # [setattr(p, "requires_grad", True) for p in coherence_params]
+                # # c_loss.backward(retain_graph=True)
+                # # [setattr(p, "requires_grad", False) for p in coherence_params]
+                # [setattr(p, "requires_grad", True) for p in reconstruction_params]
+                # r_loss.backward(retain_graph=True)
+                # [setattr(p, "requires_grad", True) for p in main_params]
 
 
-                    main_loss.backward()
+                # main_loss.backward()
 
                 total_loss += main_loss.detach()
 
@@ -200,8 +198,8 @@ def train(index, flags, training_started):
                         Logger.log_losses(g_loss, disc_loss, main_loss, total_loss_object, step=global_step)
                         Logger.log_l2_classifiers(model, step=global_step)
 
-                    total_loss_object = None
-                    total_loss = 0
+                    #total_loss_object = None
+                    #total_loss = 0
             total_model_time += (time.time() - current_model_time)
 
             # TODO - Take out the TPU blocker once printing reconstructed is working on TPU
@@ -230,8 +228,8 @@ def train(index, flags, training_started):
                     for i, text in enumerate(reconstructed):
                         print('Level', i, text)
                         Logger.log_reconstructed(text, i, step=global_step)
-                        for j, item in enumerate(text):
-                            Logger.log_viz(batch.level_nodes[i][j], text[j], i, step=global_step)
+                        #for j, item in enumerate(text):
+                        #    Logger.log_viz(batch.level_nodes[i][j], text[j], i, step=global_step)
                         if i == len(reconstructed) - 1:  # Upper most level
                             are_equal = [t == e for t, e in zip(text, expected)]
                             if False not in are_equal:

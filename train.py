@@ -153,10 +153,11 @@ def train(index, flags, training_started):
                 }
 
                 # Sum up the loss objects
-                if total_loss_object is None:
-                    total_loss_object = loss_object
-                else:
-                    total_loss_object = merge_dicts(total_loss_object, loss_object)
+                total_loss_object = loss_object #fix for when grad_acc > 1
+                # if total_loss_object is None:
+                #     total_loss_object = loss_object
+                # else:
+                #     total_loss_object = merge_dicts(total_loss_object, loss_object)
 
                 # [setattr(p, "requires_grad", False) for p in main_params]
                 # # [setattr(p, "requires_grad", True) for p in coherence_params]

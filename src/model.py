@@ -198,7 +198,7 @@ class AgentModel(nn.Module):
                             loss_object[level_num][label] += value.detach() / len(full_node_batch)
 
                     with xp.Trace('ComputeTotalLoss' + str(level_num)):
-                      total_loss += main_loss.data
+                      total_loss += main_loss.detach()
 
                     losses,main_loss,r_loss = None,None,None
 

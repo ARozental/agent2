@@ -111,7 +111,7 @@ def train(index, flags, training_started):
             parallel_loader = dataloader
 
         total_loss = 0
-        total_loss_object = {}
+        total_loss_object = None
         total_model_time = 0
         start_time = time.time()
         for step, batch in enumerate(parallel_loader):

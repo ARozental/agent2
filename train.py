@@ -143,7 +143,6 @@ def train(index, flags, training_started):
                                                                           last_obj=total_loss_object)
 
                 main_loss = loss_object_to_main_loss(loss_object) / grad_acc_steps
-                print(loss_object)
                 r_loss = loss_object_to_reconstruction_weights_loss(loss_object) / grad_acc_steps
                 #c_loss = loss_object_to_extra_coherence_weights_loss(loss_object) / Config.grad_acc_steps
 

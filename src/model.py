@@ -74,7 +74,7 @@ class AgentModel(nn.Module):
 
         return None, word_embedding_matrix, num_dummy_distinct
 
-    def forward(self, batch_tree, generate=False, debug=False,last_obj={}):
+    def forward(self, batch_tree, generate=False, debug=False,last_obj={},global_step=0):
         total_g_loss, total_disc_loss, total_loss = 0, 0, 0
         loss_object = {}
         previous_vectors = None
@@ -89,8 +89,10 @@ class AgentModel(nn.Module):
 
             if len(word_embedding_matrix)>Config.max_word_embedding_size:
               #print("embedding is too big:", len(word_embedding_matrix))
-              return total_g_loss, total_disc_loss, total_loss, last_obj #todo: move to pre processing + pad embedding for TPU here
+              return total_g_loss, total_disc_loss, total_loss, last_obj #todo: move to pre processing + pad embedding and batches for TPU here
             node_batchs=node_batch_to_small_batches(full_node_batch,level_num)
+            if global_step<Config.early_steps:
+              node_batchs = node_batchs[0:1]
             for node_batch in node_batchs:
 
                 num_dummy_nodes = len([True for node in node_batch if node.is_dummy])
@@ -104,6 +106,7 @@ class AgentModel(nn.Module):
                                 node_batch,
                                 self.char_embedding_layer.weight,
                                 word_embedding_matrix, debug=debug)
+                        print(matrices.shape)
                     elif level_num == 1:
                         matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy, A1s, pndb_lookup_ids = \
                           self.agent_levels[

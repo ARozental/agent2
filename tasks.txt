@@ -32,6 +32,7 @@ fix tpu
 kill annoying <unk> token for wiki dataset
 FIX BUG OF NOT READING FROM CONFIG FILE BUT FROM MAIN CONFIG INSTEAD!!!! (node_sizes, save every works...)
 do we need grad_norm now?
+no delete history and no pass for late start
 
 
 change config to reflect real numbers for level batch use different version for gpu/tpu??

@@ -106,7 +106,6 @@ class AgentModel(nn.Module):
                                 node_batch,
                                 self.char_embedding_layer.weight,
                                 word_embedding_matrix, debug=debug)
-                        print(matrices.shape)
                     elif level_num == 1:
                         matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy, A1s, pndb_lookup_ids = \
                           self.agent_levels[

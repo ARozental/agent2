@@ -82,6 +82,7 @@ class AgentModel(nn.Module):
         for level_num in range(Config.agent_level + 1):
             # All the nodes in this level (not including join tokens if on lowest level)
             full_node_batch = [node for node in batch_tree.level_nodes[level_num] if level_num > 0 or not node.is_join()]
+            num_real_nodes = len(full_node_batch)
             if level_num == 0:
                 with xp.Trace('SetWordVectors'):
                     vectors, wm, num_dummy0_embed = self.set_word_vectors(full_node_batch, debug=debug)
@@ -91,8 +92,11 @@ class AgentModel(nn.Module):
               #print("embedding is too big:", len(word_embedding_matrix))
               return total_g_loss, total_disc_loss, total_loss, last_obj #todo: move to pre processing + pad embedding and batches for TPU here
             node_batchs=node_batch_to_small_batches(full_node_batch,level_num)
+
             if global_step<Config.early_steps and (not debug):
               node_batchs = node_batchs[0:1]
+              num_real_nodes = len(node_batchs[0])
+
             for node_batch in node_batchs:
 
                 num_dummy_nodes = len([True for node in node_batch if node.is_dummy])
@@ -191,7 +195,7 @@ class AgentModel(nn.Module):
                         #"rcd": (rcd_loss.view(-1, 2) * loss_keeper.unsqueeze(-1)).mean(),  # TODO - Check if correct
                     }
 
-                    main_loss = loss_object_to_main_loss({level_num: losses}) / len(full_node_batch)
+                    main_loss = loss_object_to_main_loss({level_num: losses}) / num_real_nodes
                     main_loss.backward(retain_graph=True) #after 20k batches this gave RuntimeError: cuDNN error: CUDNN_STATUS_EXECUTION_FAILED => WTF
 
                     if Config.use_tpu and not Config.profile_tpu:
@@ -200,10 +204,10 @@ class AgentModel(nn.Module):
                     if level_num not in loss_object:  # On the first node_batch
                         loss_object[level_num] = losses
                         for label, value in losses.items():
-                            loss_object[level_num][label] = value.detach() / len(full_node_batch)
+                            loss_object[level_num][label] = value.detach() / num_real_nodes
                     else:
                         for label, value in losses.items():
-                            loss_object[level_num][label] += value.detach() / len(full_node_batch)
+                            loss_object[level_num][label] += value.detach() / num_real_nodes
 
 
                     losses,main_loss,r_loss = None,None,None

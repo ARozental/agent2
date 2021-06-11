@@ -140,7 +140,8 @@ def train(index, flags, training_started):
             with xp.StepTrace('train_loop', step_num=step):
                 g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT,
                                                                           debug=will_reconstruct,
-                                                                          last_obj=total_loss_object)
+                                                                          last_obj=total_loss_object,
+                                                                          global_step=global_step)
 
                 main_loss = loss_object_to_main_loss(loss_object) / grad_acc_steps
                 #r_loss = loss_object_to_reconstruction_weights_loss(loss_object) / grad_acc_steps

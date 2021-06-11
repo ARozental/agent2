@@ -91,7 +91,7 @@ class AgentModel(nn.Module):
               #print("embedding is too big:", len(word_embedding_matrix))
               return total_g_loss, total_disc_loss, total_loss, last_obj #todo: move to pre processing + pad embedding and batches for TPU here
             node_batchs=node_batch_to_small_batches(full_node_batch,level_num)
-            if global_step<Config.early_steps:
+            if global_step<Config.early_steps and (not debug):
               node_batchs = node_batchs[0:1]
             for node_batch in node_batchs:
 

@@ -9,7 +9,7 @@ class Config:
 
     sequence_lengths = [16, 16, 6, 3, 4]  # [10,12,6,20,20]
     # vector_sizes = [8, 10, 12, 14, 16, 18]  # [4,6,8,10] #letters,words,sentences,paragraphs,chapters,book
-    vector_sizes = [32, 64, 96, 96, 128, 156]  # [4,6,8,10] #letters,words,sentences,paragraphs,chapters,book
+    vector_sizes = [32, 64, 128, 96, 128, 156]  # [4,6,8,10] #letters,words,sentences,paragraphs,chapters,book
     num_heads = [4, 8, 2, 2, 2, 2]  # [2,3,4,5] #for transformers
     fnn_sizes = vector_sizes  # [8, 10, 12, 14, 16, 18]  # [2,3,4,5] #for fnn in transformers
     num_transformer_layers = [2, 2, 2, 2, 2, 2]  # [2,2,2,2]

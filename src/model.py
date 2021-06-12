@@ -104,14 +104,14 @@ class AgentModel(nn.Module):
 
                 with xp.Trace('GetChildren' + str(level_num)):
                     if level_num == 0:
-                        matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy,A1s, pndb_lookup_ids = \
+                        matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy,A1s, pndb_lookup_ids,random_matrices = \
                             self.agent_levels[
                                 level_num].get_children(
                                 node_batch,
                                 self.char_embedding_layer.weight,
                                 word_embedding_matrix, debug=debug)
                     elif level_num == 1:
-                        matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy, A1s, pndb_lookup_ids = \
+                        matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy, A1s, pndb_lookup_ids,random_matrices = \
                           self.agent_levels[
                             level_num].get_children(
                             node_batch,
@@ -119,7 +119,7 @@ class AgentModel(nn.Module):
                             None, debug=debug)
                         num_dummy += num_dummy0_embed
                     else:
-                        matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy, A1s, pndb_lookup_ids = \
+                        matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy, A1s, pndb_lookup_ids,random_matrices = \
                             self.agent_levels[
                                 level_num].get_children(
                                 node_batch,
@@ -146,7 +146,9 @@ class AgentModel(nn.Module):
                     coherence_loss = calc_coherence_loss(self.agent_levels[level_num], matrices,
                                                                   real_positions,
                                                                   eos_positions,
-                                                                  embedding_matrix, num_dummy=num_dummy)
+                                                                  embedding_matrix,
+                                                                  random_matrices,
+                                                                  num_dummy=num_dummy)
 
                 with xp.Trace('CallingDecompressor' + str(level_num)):
                     if Config.noise == 0 or debug:
@@ -155,7 +157,7 @@ class AgentModel(nn.Module):
                       decompressed = self.agent_levels[level_num].decompressor(make_noise(vectors))
 
                 with xp.Trace('ReconstructionLoss' + str(level_num)):
-                    reconstruction_diff_loss, reconstruction_loss, eos_loss, re_loss, rj_loss = \
+                    reconstruction_diff_loss, reconstruction_loss, eos_loss, re_loss, rj_loss,rc_loss = \
                         calc_reconstruction_loss(
                             self.agent_levels[level_num],
                             matrices, decompressed, real_positions,
@@ -186,7 +188,7 @@ class AgentModel(nn.Module):
                         "j": (join_loss * loss_keeper).sum(),
                         "d": (reconstruction_diff_loss * loss_keeper).sum(),
 
-                        #"rc": (rc_loss.view(matrices.shape[:2]) * loss_keeper.unsqueeze(-1)).sum(),
+                        "rc": (rc_loss.view(matrices.shape[:2]) * loss_keeper.unsqueeze(-1)).sum(),
                         "re": (re_loss * loss_keeper).sum(),
                         "rj": (rj_loss * loss_keeper).sum(),
                         "rm": (rm_loss * loss_keeper).sum(),
@@ -232,7 +234,7 @@ class AgentModel(nn.Module):
                         node.eos_loss = eos_loss[i].detach()
                         node.join_loss = join_loss[i].detach()
                         node.reconstruction_diff_loss = reconstruction_diff_loss[i].detach()
-                        #node.rc_loss = rc_loss[i].detach()
+                        node.rc_loss = rc_loss[i].detach()
                         node.re_loss = re_loss[i].detach()
                         node.rj_loss = rj_loss[i].detach()
                         node.rm_loss = rm_loss[i].detach()

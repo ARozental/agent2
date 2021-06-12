@@ -18,7 +18,7 @@ class Logger:
         'e': 'eos',
         'j': 'join',
         'd': 'reconstruction_diff',
-        #'rc': 'reconstruction_coherence',
+        'rc': 'reconstruction_coherence',
         're': 'reconstruction_eos',
         'rj': 'reconstruction_join',
         'rm': 'reconstruction_mlm',

@@ -182,12 +182,13 @@ class TreeTokenizer:
             pass
             #batch_tree.trim_nodes() #if we don't use tpu why would we do this trim?? => gpu explodes without it => why??
         batch_tree.make_distinct_words()
+        batch_tree.add_coherence_random_ids()
 
-        valid = batch_tree.valid_tree()
-        if valid:
+        #valid = batch_tree.valid_tree() #todo: fix here, use it
+        if True:
           return batch_tree
         else:
-          return batch_tree #todo: fix here
+          return batch_tree
 
     @classmethod
     def compute_struct_stats(cls, struct, stats, level):

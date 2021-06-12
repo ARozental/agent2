@@ -1,6 +1,7 @@
 from src.pre_processing.node import Node
 from src.config import Config
 import numpy as np
+import random
 
 
 class BatchTree:
@@ -114,3 +115,21 @@ class BatchTree:
 
           return False
       return True
+
+    def add_coherence_random_ids(self):
+      tokens = [n.tokens for n in self.level_nodes[0]]
+      shuffled_tokens = [item for sublist in tokens for item in sublist if item!=Config.eos_token_id]
+      shuffled_ids = [n.distinct_lookup_id for n in self.level_nodes[0]]
+      random.shuffle(shuffled_tokens)
+      random.shuffle(shuffled_ids)
+
+      for n in self.level_nodes[0]:
+        random_tokens = []
+        for t in n.tokens:
+          if t == Config.eos_token_id:
+            random_tokens.append(Config.eos_token_id)
+          else:
+            random_tokens.append(shuffled_tokens.pop())
+        n.random_tokens = random_tokens
+        n.random_lookup_id = shuffled_ids.pop()
+      return

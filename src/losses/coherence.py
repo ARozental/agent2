@@ -15,12 +15,12 @@ def make_fake_normal_vectors(vectors):
     return fake
 
 
-def calc_coherence_loss(agent_level, matrices, real_positions, eos_positions, embeddings, num_dummy=0):
+def calc_coherence_loss(agent_level, matrices, real_positions, eos_positions, embeddings,random_matrices, num_dummy=0):
     # matrices,mask,labels => [batch,seq_length,vec_size], embeddings => [seq_length,vec_size]
     batch, seq_length, vec_size = matrices.shape
 
-    # 50% of examples don't change at all, move to config?
-    changed_examples = torch.rand(batch, 1, device=Config.device).round()
+    #changed_examples = torch.rand(batch, 1, device=Config.device).round()
+    changed_examples = (torch.rand(batch, 1, device=Config.device) + 0.66).floor()
 
     change_probs = torch.rand(batch, 1, device=Config.device) * Config.max_coherence_noise
     changed_tokens = torch.add(torch.rand(batch, seq_length, device=Config.device), change_probs).floor()
@@ -30,10 +30,13 @@ def calc_coherence_loss(agent_level, matrices, real_positions, eos_positions, em
 
     # todo: make sure the pad token is not here, also no join for levels 0 and 1 otherwise pad learns
     # random_indexes = torch.fmod(torch.randperm(batch * seq_length).to(Config.device), embeddings.shape[0])
-    num_indices = (embeddings.size(0) - num_dummy)  # Number of real indices to use
-    random_indexes = (torch.rand(batch * seq_length, device=Config.device) * num_indices).floor().long()
-    random_vec_replacements = torch.index_select(embeddings, 0, random_indexes)
-    random_vec_replacements = random_vec_replacements.view(batch, seq_length, vec_size)
+
+    #hard coherence
+    #num_indices = (embeddings.size(0) - num_dummy)  # Number of real indices to use
+    #random_indexes = (torch.rand(batch * seq_length, device=Config.device) * num_indices).floor().long()
+    #random_vec_replacements = torch.index_select(embeddings, 0, random_indexes)
+    #random_vec_replacements = random_vec_replacements.view(batch, seq_length, vec_size)
+    random_vec_replacements = random_matrices
 
     pre_encoder = (1 - changed_examples).unsqueeze(-1) * matrices
     pre_encoder += changed_examples.unsqueeze(-1) * changed_tokens.unsqueeze(-1) * random_vec_replacements
@@ -42,7 +45,8 @@ def calc_coherence_loss(agent_level, matrices, real_positions, eos_positions, em
     vectors_for_coherence = agent_level.compressor(agent_level.encoder(pre_encoder, real_positions, eos_positions),
                                                    real_positions)
     scores, probs, class_predictions = agent_level.coherence_checker(vectors_for_coherence)
-    coherence_losses = (scores.squeeze(-1) - labels) ** 2 + (bce_loss(probs.squeeze(-1), labels.ceil()) * 0.05)
+    coherence_losses = (scores.squeeze(-1) - labels) ** 2 + (bce_loss(probs.squeeze(-1), labels.ceil()) * 0.01)
+    coherence_losses = coherence_losses
 
     # # fake stuff
     # fake_vectors = make_fake_normal_vectors(vectors_for_coherence)
@@ -69,23 +73,16 @@ def calc_rc_loss(agent_level, reencoded_matrices, real_positions, lower_agent_le
     return coherence_losses, rcd_loss
 
 
-def calc_lower_rc_loss(agent_level, reencoded_matrices, real_positions, lower_agent_level, matrices, post_decoder):
+def calc_lower_rc_loss(real_positions, lower_agent_level, post_decoder):
     batch, seq_length, vec_size = post_decoder.shape
-    vectors_for_coherence = post_decoder.view(-1,
-                                              vec_size)  # todo fix bug we also take the would be masked vecotrs here
-    labels = torch.ones(batch * seq_length, device=Config.device)
-    scores, probs, class_predictions = lower_agent_level.coherence_checker.lower_forward(vectors_for_coherence,
-                                                                                         torch.cat([
-                                                                                                       matrices * real_positions.unsqueeze(
-                                                                                                           -1),
-                                                                                                       post_decoder * real_positions.unsqueeze(
-                                                                                                           -1)]))
-    coherence_losses = (scores.squeeze(-1) - labels) ** 2 + (bce_loss(probs.squeeze(-1), labels.ceil()) * 0.05)
+    vectors_for_coherence = post_decoder.view(-1,vec_size)  # todo fix bug we also take the would be masked vecotrs here
+
+    scores, probs, class_predictions = lower_agent_level.coherence_checker(vectors_for_coherence)
     real_positions = real_positions.view(-1)
+
+    labels = torch.zeros(batch * seq_length, device=Config.device) #because for a trained model reconstructed vector are coherent
+    coherence_losses = scores.squeeze(-1) ** 2 + (bce_loss(probs.squeeze(-1), labels) * 0.01)
     coherence_losses = coherence_losses * real_positions
 
-    predictions_labels = torch.cat([torch.zeros(batch, device=Config.device), torch.ones(batch, device=Config.device)])
 
-    rcd_loss = bce_loss(class_predictions.squeeze(-1), predictions_labels)
-
-    return coherence_losses, rcd_loss
+    return coherence_losses#, rcd_loss

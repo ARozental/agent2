@@ -103,7 +103,7 @@ def train(index, flags, training_started):
     all_model_times = []
     global_step = 0
     if Config.skip_batches is not None:
-      global_step = Config.skip_batches
+      global_step = Config.skip_batches-1
     for epoch in range(10001):
         # print('Epoch', epoch + 1)
 

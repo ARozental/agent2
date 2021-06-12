@@ -5,6 +5,8 @@ from src.utils import group_by_root,distinct
 import torch.nn.functional as F
 import torch.nn as nn
 import torch
+import random
+
 
 
 class AgentLevel(nn.Module):
@@ -67,19 +69,21 @@ class AgentLevel(nn.Module):
             real_positions = (lookup_ids != Config.pad_token_id).float()
             eos_positions = (lookup_ids == Config.eos_token_id).float()
             matrices = torch.index_select(embedding, 0, lookup_ids.view(-1))
-            matrices = matrices.view(
-                lookup_ids.size(0),
-                Config.sequence_lengths[self.level],
-                Config.vector_sizes[self.level]
-            )
+            matrices = matrices.view(lookup_ids.size(0),Config.sequence_lengths[self.level],Config.vector_sizes[self.level])
 
             add_value = 2 + int(Config.join_texts)
             word_lookup_ids = torch.tensor([node.distinct_lookup_id+add_value for node in node_batch], dtype=torch.long,device=Config.device)
             vectors = torch.index_select(word_embedding0, 0,word_lookup_ids)
             #vectors = self.compressor(self.encoder(matrices, real_positions, eos_positions), real_positions) #same but less efficient
 
+
+            #create_coherence_matrixes
+            random_ids = torch.tensor([node.get_padded_random_tokens() for node in node_batch], dtype=torch.long,device=Config.device)
+            random_matrices = torch.index_select(embedding, 0, random_ids.view(-1))
+            random_matrices = random_matrices.view(lookup_ids.size(0),Config.sequence_lengths[self.level],Config.vector_sizes[self.level])
+
             # lookup_ids is also labels
-            return matrices, real_positions, eos_positions, None, embedding, lookup_ids, vectors, 0, None, None
+            return matrices, real_positions, eos_positions, None, embedding, lookup_ids, vectors, 0, None, None,random_matrices
         elif self.level == 1:
             id_name = 'distinct_lookup_id'
             add_value = 2 + int(Config.join_texts)
@@ -90,15 +94,32 @@ class AgentLevel(nn.Module):
                 embedding = torch.cat((embedding,torch.stack([self.pad_vector] * extra_dummy)), 0)
 
             all_ids = [[2 if child.is_join() else getattr(child, id_name) + add_value for child in node.children] + [0]
-                       for node in node_batch]  # [0] is EOS, 2 is JOIN
+                       for node in node_batch]  # [0] is EOS, 2 is JOIN #inconsistant with level 0
             all_ids = [item + [1] * (max_length - len(item)) for item in all_ids]  # 1 is PAD
 
             # This array may be longer than the max_length because it assumes that the EoS token exists
             # But some sentences, etc don't have the EoS at all if they were split
             all_ids = [item[:max_length] for item in all_ids]
 
+
+            flat_shuffled_ids = [item for sublist in all_ids for item in sublist if (item>2)]
+            random.shuffle(flat_shuffled_ids)
+            shuffled_ids = []
+            for sentence in all_ids:
+                random_sentence = []
+                for w in sentence:
+                    if w < 3:
+                        random_sentence.append(w)
+                    else:
+                        random_sentence.append(flat_shuffled_ids.pop())
+                shuffled_ids.append(random_sentence)
+
             # [sentences in node_batch, max words in sentence, word vec size]
             all_ids = torch.tensor(all_ids, device=Config.device, dtype=torch.long)
+            shuffled_ids = torch.tensor(shuffled_ids, device=Config.device, dtype=torch.long)
+            random_matrices = torch.index_select(embedding, 0, shuffled_ids.flatten())
+            random_matrices = random_matrices.reshape((all_ids.size(0), shuffled_ids.size(1), random_matrices.size(1)))
+
 
             mask = (all_ids == Config.pad_token_id).bool()
             # TODO - Which is faster? int() or float()?
@@ -148,7 +169,7 @@ class AgentLevel(nn.Module):
               pndb_lookup_ids = torch.tensor(pndb_lookup_ids,device=Config.device)
 
 
-            return matrices, real_positions, eos_positions, join_positions, embedding, labels, vectors, num_dummy,A1s,pndb_lookup_ids
+            return matrices, real_positions, eos_positions, join_positions, embedding, labels, vectors, num_dummy,A1s,pndb_lookup_ids,random_matrices
         else:
             add_value = 2 + int(Config.join_texts)
             num_dummy = 0
@@ -187,7 +208,7 @@ class AgentLevel(nn.Module):
             vectors = self.compressor(self.encoder(matrices, real_positions, eos_positions), real_positions)
             if debug:
                 [n.set_vector(v) for n, v in zip(node_batch, vectors)]
-            return matrices, real_positions, eos_positions, join_positions, embedding, labels, vectors, num_dummy, None, None
+            return matrices, real_positions, eos_positions, join_positions, embedding, labels, vectors, num_dummy, None, None,None
 
 
     def vecs_to_children_vecs(self, vecs):

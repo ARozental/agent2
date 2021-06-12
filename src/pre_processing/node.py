@@ -19,8 +19,10 @@ class Node:
         self.children = children
         self.level = level
         self.tokens = tokens
+        self.random_tokens = None #for coherence
         self.vector = None
         self.distinct_lookup_id = None
+        self.random_lookup_id = None #for coherence
         self.mlm_loss = None
         self.mlm_diff_loss = None
         self.coherence_loss = None
@@ -41,6 +43,8 @@ class Node:
 
     def get_padded_word_tokens(self):
         return self.tokens + [Config.pad_token_id] * (Config.sequence_lengths[0] - len(self.tokens))
+    def get_padded_random_tokens(self):
+        return self.random_tokens + [Config.pad_token_id] * (Config.sequence_lengths[0] - len(self.tokens))
 
     def set_vector(self, v):
         self.vector = v

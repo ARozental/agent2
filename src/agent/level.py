@@ -83,7 +83,7 @@ class AgentLevel(nn.Module):
             random_matrices = random_matrices.view(lookup_ids.size(0),Config.sequence_lengths[self.level],Config.vector_sizes[self.level])
 
             # lookup_ids is also labels
-            return matrices, real_positions, eos_positions, None, embedding, lookup_ids, vectors, 0, None, None,random_matrices
+            return matrices, real_positions, eos_positions, None, embedding, lookup_ids, vectors, 0, None, None,random_matrices.detach()
         elif self.level == 1:
             id_name = 'distinct_lookup_id'
             add_value = 2 + int(Config.join_texts)
@@ -169,7 +169,7 @@ class AgentLevel(nn.Module):
               pndb_lookup_ids = torch.tensor(pndb_lookup_ids,device=Config.device)
 
 
-            return matrices, real_positions, eos_positions, join_positions, embedding, labels, vectors, num_dummy,A1s,pndb_lookup_ids,random_matrices
+            return matrices, real_positions, eos_positions, join_positions, embedding, labels, vectors, num_dummy,A1s,pndb_lookup_ids,random_matrices.detach()
         else:
             add_value = 2 + int(Config.join_texts)
             num_dummy = 0

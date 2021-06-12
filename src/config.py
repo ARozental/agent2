@@ -23,7 +23,7 @@ class Config:
     drop_rate = 0.0
     noise = 0
     max_word_embedding_size = 10000
-    early_steps = 0
+    early_steps = 100000
 
     pad_token_id = 1  # hard coded; will break logic if changed!!!
     eos_token_id = 2  # hard coded; will break logic if changed!!!

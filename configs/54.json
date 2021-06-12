@@ -1,6 +1,6 @@
 {
-  "model_folder": "new_coherence_late",
-  "exp_folder": "runs/new_coherence_late",
+  "model_folder": "new_coherence_early_100k",
+  "exp_folder": "runs/new_coherence_early_100k",
   "sequence_lengths": [16, 16, 6, 3, 4],
   "vector_sizes": [32, 64, 128, 96, 128, 156],
   "num_heads": [4, 8, 2, 2, 2, 2],
@@ -23,5 +23,6 @@
   "momentum": 0.9,
   "gpu_num": 0,
   "noise": 0,
+  "early_steps": 100000,
   "force_resume": "y"
 }

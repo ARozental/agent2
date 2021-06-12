@@ -13,7 +13,7 @@ def loss_object_to_main_loss(obj):
         loss += obj[l]['j'] * 0.001  # do we even need it??
         loss += obj[l]['d'] * Config.main_d  # moved here as a test
 
-        loss += obj[l]['rc'] * 0.4
+        loss += obj[l]['rc'] * 0.01
         loss += obj[l]['re'] * 0.1
         loss += obj[l]['rj'] * 0.01
         #loss += obj[l]['rmd'] * Config.main_rmd

@@ -85,7 +85,6 @@ class AgentLevel(nn.Module):
             # lookup_ids is also labels
             return matrices, real_positions, eos_positions, None, embedding, lookup_ids, vectors, 0, None, None,random_matrices.detach()
         elif self.level == 1:
-            id_name = 'distinct_lookup_id'
             add_value = 2 + int(Config.join_texts)
             num_dummy = 0
             if Config.use_tpu: #add pad vectors to ensure constant word embedding matrix size
@@ -93,32 +92,37 @@ class AgentLevel(nn.Module):
                 extra_dummy = total_possible - embedding.size(0)
                 embedding = torch.cat((embedding,torch.stack([self.pad_vector] * extra_dummy)), 0)
 
-            all_ids = [[2 if child.is_join() else getattr(child, id_name) + add_value for child in node.children] + [0]
+            all_ids = [[2 if child.is_join() else getattr(child, 'distinct_lookup_id') + add_value for child in node.children] + [0]
                        for node in node_batch]  # [0] is EOS, 2 is JOIN #inconsistant with level 0
+            random_ids = [[2 if child.is_join() else getattr(child, 'random_lookup_id') + add_value for child in node.children] + [0]
+                       for node in node_batch]  # [0] is EOS, 2 is JOIN #inconsistant with level 0
+
             all_ids = [item + [1] * (max_length - len(item)) for item in all_ids]  # 1 is PAD
+            random_ids = [item + [1] * (max_length - len(item)) for item in random_ids]  # 1 is PAD
 
             # This array may be longer than the max_length because it assumes that the EoS token exists
             # But some sentences, etc don't have the EoS at all if they were split
             all_ids = [item[:max_length] for item in all_ids]
+            random_ids = [item[:max_length] for item in random_ids]
 
 
-            flat_shuffled_ids = [item for sublist in all_ids for item in sublist if (item>2)]
-            random.shuffle(flat_shuffled_ids)
-            shuffled_ids = []
-            for sentence in all_ids:
-                random_sentence = []
-                for w in sentence:
-                    if w < 3:
-                        random_sentence.append(w)
-                    else:
-                        random_sentence.append(flat_shuffled_ids.pop())
-                shuffled_ids.append(random_sentence)
+            # flat_shuffled_ids = [item for sublist in all_ids for item in sublist if (item>2)]
+            # random.shuffle(flat_shuffled_ids)
+            # shuffled_ids = []
+            # for sentence in all_ids:
+            #     random_sentence = []
+            #     for w in sentence:
+            #         if w < 3:
+            #             random_sentence.append(w)
+            #         else:
+            #             random_sentence.append(flat_shuffled_ids.pop())
+            #     shuffled_ids.append(random_sentence)
 
             # [sentences in node_batch, max words in sentence, word vec size]
             all_ids = torch.tensor(all_ids, device=Config.device, dtype=torch.long)
-            shuffled_ids = torch.tensor(shuffled_ids, device=Config.device, dtype=torch.long)
-            random_matrices = torch.index_select(embedding, 0, shuffled_ids.flatten())
-            random_matrices = random_matrices.reshape((all_ids.size(0), shuffled_ids.size(1), random_matrices.size(1)))
+            random_ids = torch.tensor(random_ids, device=Config.device, dtype=torch.long)
+            random_matrices = torch.index_select(embedding, 0, random_ids.flatten())
+            random_matrices = random_matrices.reshape((all_ids.size(0), random_ids.size(1), random_matrices.size(1)))
 
 
             mask = (all_ids == Config.pad_token_id).bool()

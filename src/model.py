@@ -135,13 +135,6 @@ class AgentModel(nn.Module):
                 else:
                     dummy_logit_bias = None
 
-                with xp.Trace('MLMLoss' + str(level_num)):
-                    mlm_loss,rm_loss = calc_mlm_loss(self.agent_levels[level_num], matrices, real_positions,
-                                                            eos_positions,
-                                                            embedding_matrix,
-                                                            labels, num_dummy=num_dummy,
-                                                            dummy_logit_bias=dummy_logit_bias)
-
                 with xp.Trace('CoherenceLoss' + str(level_num)):
                     coherence_loss = calc_coherence_loss(self.agent_levels[level_num], matrices,
                                                                   real_positions,
@@ -149,6 +142,14 @@ class AgentModel(nn.Module):
                                                                   embedding_matrix,
                                                                   random_matrices,
                                                                   num_dummy=num_dummy)
+                    random_matrices = None
+
+                with xp.Trace('MLMLoss' + str(level_num)):
+                    mlm_loss,rm_loss = calc_mlm_loss(self.agent_levels[level_num], matrices, real_positions,
+                                                            eos_positions,
+                                                            embedding_matrix,
+                                                            labels, num_dummy=num_dummy,
+                                                            dummy_logit_bias=dummy_logit_bias)
 
                 with xp.Trace('CallingDecompressor' + str(level_num)):
                     if Config.noise == 0 or debug:

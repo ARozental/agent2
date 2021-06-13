@@ -32,19 +32,21 @@ class AgentModel(nn.Module):
         self.reconstruction_params = [param for name, param in self.named_parameters() if (("decompressor" in name) or ("decoder" in name))]
         self.main_params = [param for name, param in self.named_parameters() if ("discriminator" not in name) and ("generator" not in name)]
 
-    def set_word_vectors(self, node_batch, debug=False):
-        max_distinct_id = max([node.distinct_lookup_id for node in node_batch])  # TODO - Check for dummy nodes in here
-        id_to_tokens = {node.distinct_lookup_id: node.get_padded_word_tokens() for node in node_batch}
+    def set_word_vectors(self, batch_tree, debug=False):
+        node_batch = batch_tree.level_nodes[0]
+        #max_distinct_id = batch_tree.max_distinct_id
+        #id_to_tokens = batch_tree.id_to_tokens #{node.distinct_lookup_id: node.get_padded_word_tokens() for node in node_batch}
+        num_dummy_distinct = batch_tree.num_dummy_distinct
 
-        if Config.use_tpu:
-            num_dummy_distinct = Config.node_sizes[0] - max_distinct_id
-            for i in range(num_dummy_distinct):
-                id_to_tokens[i + max_distinct_id + 1] = [4] + ([Config.pad_token_id] * (Config.sequence_lengths[0] - 1))
-        else:
-            num_dummy_distinct = 0
+        # if Config.use_tpu:
+        #     num_dummy_distinct = Config.node_sizes[0] - max_distinct_id
+        #     for i in range(num_dummy_distinct):
+        #         id_to_tokens[i + max_distinct_id + 1] = [4] + ([Config.pad_token_id] * (Config.sequence_lengths[0] - 1))
+        # else:
+        #     num_dummy_distinct = 0
 
-        distinct_word_embedding_tokens = [id_to_tokens[distinct_id] for distinct_id in
-                                          range(max_distinct_id + num_dummy_distinct + 1)]
+        #distinct_word_embedding_tokens = [id_to_tokens[distinct_id] for distinct_id in range(max_distinct_id + num_dummy_distinct + 1)]
+        distinct_word_embedding_tokens = batch_tree.distinct_word_embedding_tokens
         local_char_embedding_tokens = torch.tensor(distinct_word_embedding_tokens, dtype=torch.long,
                                                    device=Config.device)
         real_positions = (local_char_embedding_tokens != Config.pad_token_id).float()
@@ -80,12 +82,13 @@ class AgentModel(nn.Module):
         previous_vectors = None
         word_embedding_matrix= None
         for level_num in range(Config.agent_level + 1):
-            # All the nodes in this level (not including join tokens if on lowest level)
-            full_node_batch = [node for node in batch_tree.level_nodes[level_num] if level_num > 0 or not node.is_join()]
+            # All the nodes in this level (not including join tokens if on lowest level)=>shouldn't have those
+            #full_node_batch = [node for node in batch_tree.level_nodes[level_num] if level_num > 0 or not node.is_join()]
+            full_node_batch = batch_tree.level_nodes[level_num]
             num_real_nodes = len(full_node_batch)
             if level_num == 0:
                 with xp.Trace('SetWordVectors'):
-                    vectors, wm, num_dummy0_embed = self.set_word_vectors(full_node_batch, debug=debug)
+                    vectors, wm, num_dummy0_embed = self.set_word_vectors(batch_tree, debug=debug)
                     word_embedding_matrix = wm
 
             if len(word_embedding_matrix)>Config.max_word_embedding_size:
@@ -93,14 +96,15 @@ class AgentModel(nn.Module):
               return total_g_loss, total_disc_loss, total_loss, last_obj #todo: move to pre processing + pad embedding and batches for TPU here
             node_batchs=node_batch_to_small_batches(full_node_batch,level_num)
 
-            if global_step<Config.early_steps and (not debug):
-              node_batchs = node_batchs[0:1]
-              num_real_nodes = len(node_batchs[0])
-
+            # if global_step<Config.early_steps and (not debug):
+            #   node_batchs = node_batchs[0:1]
+            #   num_real_nodes = len(node_batchs[0])
+            done_nodes = 0
             for node_batch in node_batchs:
-
-                num_dummy_nodes = len([True for node in node_batch if node.is_dummy])
-                real_node_num = (len(node_batch) - num_dummy_nodes)
+                num_dummy_nodes = 0
+                if Config.use_tpu:
+                    num_dummy_nodes = len([True for node in node_batch if node.is_dummy])
+                #real_node_num = (len(node_batch) - num_dummy_nodes)
 
                 with xp.Trace('GetChildren' + str(level_num)):
                     if level_num == 0:
@@ -109,14 +113,20 @@ class AgentModel(nn.Module):
                                 level_num].get_children(
                                 node_batch,
                                 self.char_embedding_layer.weight,
-                                word_embedding_matrix, debug=debug)
+                                word_embedding_matrix,
+                                done_nodes=done_nodes,
+                                batch_tree=batch_tree,
+                                debug=debug)
                     elif level_num == 1:
                         matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy, A1s, pndb_lookup_ids,random_matrices = \
                           self.agent_levels[
                             level_num].get_children(
                             node_batch,
                             word_embedding_matrix,
-                            None, debug=debug)
+                            None,
+                            done_nodes=done_nodes,
+                            batch_tree=batch_tree,
+                            debug=debug)
                         num_dummy += num_dummy0_embed
                     else:
                         matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy, A1s, pndb_lookup_ids,random_matrices = \
@@ -126,6 +136,8 @@ class AgentModel(nn.Module):
                                 None,
                                 None, debug=debug)
                         num_dummy += num_dummy0_embed
+                    done_nodes+=len(node_batch)
+
 
                 if Config.use_tpu:
                     with xp.Trace('DummyLogitBias' + str(level_num)):

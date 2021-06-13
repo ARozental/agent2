@@ -13,6 +13,16 @@ class BatchTree:
         self.batch_root = batch_root
         self.distinct_word_embedding_tokens = None  # the i-th element has word tokens
 
+        #spare some work for get_children and forward
+        self.random_ids0 = None
+        self.all_ids1 = None
+        self.random_ids1 = None
+        self.level_0_lookup_ids = None
+        #self.max_distinct_id = None
+        self.id_to_tokens = None
+        self.distinct_word_embedding_tokens = None
+        self.num_dummy_distinct = None
+
         # generalizes word embedding tokens
         self.distinct_embedding_tokens = {i: [] for i in range(
             Config.agent_level)}  # {0: [sorted nodes for words], 1: [sorted nodes for sentences]}
@@ -116,6 +126,8 @@ class BatchTree:
           return False
       return True
 
+
+    #adds to batch root everything that can be pre calculated so it can run in parallel in dataloader collate_fn
     def add_coherence_random_ids(self):
       tokens = [n.tokens for n in self.level_nodes[0]]
       shuffled_tokens = [item for sublist in tokens for item in sublist if item!=Config.eos_token_id]
@@ -132,4 +144,47 @@ class BatchTree:
             random_tokens.append(shuffled_tokens.pop())
         n.random_tokens = random_tokens
         n.random_lookup_id = shuffled_ids.pop()
+
+
+
+      #all other things to pre calc
+      node_batch = self.level_nodes[0]
+      max_distinct_id = max([node.distinct_lookup_id for node in node_batch])
+      self.id_to_tokens = {node.distinct_lookup_id: node.get_padded_word_tokens() for node in node_batch}
+
+      if Config.use_tpu:
+        self.num_dummy_distinct = Config.node_sizes[0] - max_distinct_id
+        for i in range(self.num_dummy_distinct):
+          self.id_to_tokens[i + max_distinct_id + 1] = [4] + ([Config.pad_token_id] * (Config.sequence_lengths[0] - 1)) #TWF is this line
+      else:
+        self.num_dummy_distinct = 0
+      self.distinct_word_embedding_tokens = [self.id_to_tokens[distinct_id] for distinct_id in range(max_distinct_id + self.num_dummy_distinct + 1)]
+
+      self.random_ids0 = [node.get_padded_random_tokens() for node in node_batch]
+      self.level_0_lookup_ids = [node.get_padded_word_tokens() for node in node_batch]
+
+      #for get_children level 1:
+      node_batch1 = self.level_nodes[1]
+
+      max_length = Config.sequence_lengths[1]
+      add_value = 2 + int(Config.join_texts)
+      all_ids = [
+        [2 if child.is_join() else getattr(child, 'distinct_lookup_id') + add_value for child in node.children] + [0]
+        for node in node_batch1]  # [0] is EOS, 2 is JOIN #inconsistant with level 0
+      random_ids = [
+        [2 if child.is_join() else getattr(child, 'random_lookup_id') + add_value for child in node.children] + [0]
+        for node in node_batch1]  # [0] is EOS, 2 is JOIN #inconsistant with level 0
+
+      #all_ids is broken
+      all_ids = [item + [1] * (max_length - len(item)) for item in all_ids]  # 1 is PAD
+      random_ids = [item + [1] * (max_length - len(item)) for item in random_ids]  # 1 is PAD
+
+      # This array may be longer than the max_length because it assumes that the EoS token exists
+      # But some sentences, etc don't have the EoS at all if they were split
+
+
+      self.all_ids1 = [item[:max_length] for item in all_ids]
+      self.random_ids1 = [item[:max_length] for item in random_ids]
+
+
       return

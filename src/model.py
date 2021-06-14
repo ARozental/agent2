@@ -159,6 +159,8 @@ class AgentModel(nn.Module):
                                                                   random_matrices,
                                                                   num_dummy=num_dummy)
                 del random_matrices
+                with torch.cuda.device(Config.device):
+                    torch.cuda.empty_cache()
                 #torch.cuda.empty_cache() WTF this line gives RuntimeError: CUDA error: out of memory on first small (s=80) batch
 
                 with xp.Trace('MLMLoss' + str(level_num)):

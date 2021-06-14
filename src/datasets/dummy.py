@@ -12,7 +12,7 @@ def chapter_to_paragraphs(text):
 
 class DummyDataset(LocalDataset):
     def __init__(self, **kwargs):
-        super().__init__(folder=os.path.join('datasets', 'dummy', '*.txt'), **kwargs)
+        super().__init__(folder=os.path.join('datasets', 'dummy', '*.txt'), divide_data=False, **kwargs)
         assert Config.agent_level <= Config.levels['PARAGRAPH']
 
     def init_tree_tokenizer(self):

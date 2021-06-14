@@ -82,7 +82,6 @@ class AgentLevel(nn.Module):
             #create_coherence_matrixes
             #old_random_ids = torch.tensor([node.get_padded_random_tokens() for node in node_batch], dtype=torch.long,device=Config.device)
             random_ids = torch.tensor(batch_tree.random_ids0[done_nodes:done_nodes+num_nodes], dtype=torch.long,device=Config.device)
-            #print(old_random_ids==random_ids)
             random_matrices = torch.index_select(embedding, 0, random_ids.view(-1))
             random_matrices = random_matrices.view(lookup_ids.size(0),Config.sequence_lengths[self.level],Config.vector_sizes[self.level])
 
@@ -96,67 +95,9 @@ class AgentLevel(nn.Module):
                 extra_dummy = total_possible - embedding.size(0)
                 embedding = torch.cat((embedding,torch.stack([self.pad_vector] * extra_dummy)), 0)
 
-            # all_ids = [[2 if child.is_join() else getattr(child, 'distinct_lookup_id') + add_value for child in node.children] + [0]
-            #            for node in node_batch]  # [0] is EOS, 2 is JOIN #inconsistant with level 0
-            # random_ids = [[2 if child.is_join() else getattr(child, 'random_lookup_id') + add_value for child in node.children] + [0]
-            #            for node in node_batch]  # [0] is EOS, 2 is JOIN #inconsistant with level 0
-            #
-            # all_ids = [item + [1] * (max_length - len(item)) for item in all_ids]  # 1 is PAD
-            # random_ids = [item + [1] * (max_length - len(item)) for item in random_ids]  # 1 is PAD
-            #
-            # # This array may be longer than the max_length because it assumes that the EoS token exists
-            # # But some sentences, etc don't have the EoS at all if they were split
-            # all_ids = [item[:max_length] for item in all_ids]
-            # random_ids = [item[:max_length] for item in random_ids]
-
             all_ids = batch_tree.all_ids1[done_nodes:done_nodes+num_nodes]
             random_ids = batch_tree.random_ids1[done_nodes:done_nodes+num_nodes]
 
-            # print("new",new_all_ids)
-            # print("old",all_ids)
-            # 1+None
-            #print(TreeTokenizer.deep_detokenize(batch_tree.id_to_tokens[7],0))
-            #print([TreeTokenizer.detokenize(batch_tree.id_to_tokens[x]) for x in all_ids[0]])
-            # print([TreeTokenizer.detokenize(batch_tree.id_to_tokens[x]) for x in all_ids[1]])
-            #print([TreeTokenizer.detokenize(batch_tree.id_to_tokens[x]) for x in new_all_ids[0]])
-            # print([TreeTokenizer.detokenize(batch_tree.id_to_tokens[x]) for x in new_all_ids[1]])
-            # sentences = [[n.id for n in x.children] for x in node_batch]
-            # #print("level nodes 1:", sentences)
-            # #print(sorted(list(batch_tree.id_to_tokens.keys())))
-            # #print("id_to_tokens keys:",sorted(list(batch_tree.id_to_tokens.keys())))
-            #
-            # #print("level nodes 1.1:", [[i for i in batch_tree.id_to_tokens[x]] for x in sentences[0]])
-            # ac = [[child.distinct_lookup_id + add_value for child in node.children] + [0] for node in node_batch]
-
-
-            # print(all_ids)
-            # print(new_all_ids)
-            # print(all_ids==new_all_ids)#[done_nodes:done_nodes+num_nodes])
-            # [x for x in range(1000000)]
-            # 1+None
-            # print(all_ids[0:2])
-            # print(batch_tree.all_ids1[0:2])
-            # print(len(all_ids))
-            # print(len(batch_tree.all_ids1))
-            #
-            #
-            # #print(random_ids[0:2])
-            # #print(batch_tree.random_ids1[0:2])
-            # print("------------------")
-
-            # flat_shuffled_ids = [item for sublist in all_ids for item in sublist if (item>2)]
-            # random.shuffle(flat_shuffled_ids)
-            # shuffled_ids = []
-            # for sentence in all_ids:
-            #     random_sentence = []
-            #     for w in sentence:
-            #         if w < 3:
-            #             random_sentence.append(w)
-            #         else:
-            #             random_sentence.append(flat_shuffled_ids.pop())
-            #     shuffled_ids.append(random_sentence)
-
-            # [sentences in node_batch, max words in sentence, word vec size]
             all_ids = torch.tensor(all_ids, device=Config.device, dtype=torch.long)
             random_ids = torch.tensor(random_ids, device=Config.device, dtype=torch.long)
             random_matrices = torch.index_select(embedding, 0, random_ids.flatten())

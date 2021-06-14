@@ -189,10 +189,6 @@ class TreeTokenizer:
         # print("level nodes text 0:", [cls.detokenize(x.tokens) for x in batch_tree.level_nodes[0]])
         # print("level nodes text 1:", [[cls.detokenize(n.tokens) for n in x.children] for x in batch_tree.level_nodes[1]])
         # print("level nodes text 1:", [[n.id for n in x.children] for x in batch_tree.level_nodes[1]])
-        # 1+None
-        #print("id_to_tokens keys:", sorted(list(batch_tree.id_to_tokens.keys())))
-        #print("distinct lookup ids:", sorted([n.distinct_lookup_id for n in batch_tree.level_nodes[0]]))
-        #1+None
 
         #valid = batch_tree.valid_tree() #todo: fix here, use it
         if True:

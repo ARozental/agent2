@@ -78,7 +78,7 @@ class AgentModel(nn.Module):
 
     def forward(self, batch_tree, generate=False, debug=False,last_obj={},global_step=0):
         total_g_loss, total_disc_loss, total_loss = 0, 0, 0
-        if batch_tree.distinct_word_embedding_tokens > Config.max_word_embedding_size:
+        if len(batch_tree.distinct_word_embedding_tokens) > Config.max_word_embedding_size:
           return total_g_loss, total_disc_loss, total_loss, last_obj  # todo: move to pre processing + pad embedding and batches for TPU here
 
         loss_object = {}

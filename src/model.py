@@ -78,6 +78,9 @@ class AgentModel(nn.Module):
 
     def forward(self, batch_tree, generate=False, debug=False,last_obj={},global_step=0):
         total_g_loss, total_disc_loss, total_loss = 0, 0, 0
+        if batch_tree.distinct_word_embedding_tokens > Config.max_word_embedding_size:
+          return total_g_loss, total_disc_loss, total_loss, last_obj  # todo: move to pre processing + pad embedding and batches for TPU here
+
         loss_object = {}
         previous_vectors = None
         word_embedding_matrix= None
@@ -91,9 +94,6 @@ class AgentModel(nn.Module):
                     vectors, wm, num_dummy0_embed = self.set_word_vectors(batch_tree, debug=debug)
                     word_embedding_matrix = wm
 
-            if len(word_embedding_matrix)>Config.max_word_embedding_size:
-              #print("embedding is too big:", len(word_embedding_matrix))
-              return total_g_loss, total_disc_loss, total_loss, last_obj #todo: move to pre processing + pad embedding and batches for TPU here
             node_batchs=node_batch_to_small_batches(full_node_batch,level_num)
 
             # if global_step<Config.early_steps and (not debug):

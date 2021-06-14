@@ -81,8 +81,8 @@ class AgentLevel(nn.Module):
 
             #create_coherence_matrixes
             #old_random_ids = torch.tensor([node.get_padded_random_tokens() for node in node_batch], dtype=torch.long,device=Config.device)
-            random_ids = torch.tensor(batch_tree.random_ids0[done_nodes:done_nodes+num_nodes], dtype=torch.long,device=Config.device)
-            random_matrices = torch.index_select(embedding, 0, random_ids.view(-1))
+            random_ids = torch.tensor(batch_tree.random_ids0[done_nodes:done_nodes+num_nodes], dtype=torch.long,device=Config.device,requires_grad=False)
+            random_matrices = torch.index_select(embedding, 0, random_ids.view(-1)).detach()
             random_matrices = random_matrices.view(lookup_ids.size(0),Config.sequence_lengths[self.level],Config.vector_sizes[self.level])
 
             # lookup_ids is also labels
@@ -100,7 +100,7 @@ class AgentLevel(nn.Module):
 
             all_ids = torch.tensor(all_ids, device=Config.device, dtype=torch.long)
             random_ids = torch.tensor(random_ids, device=Config.device, dtype=torch.long)
-            random_matrices = torch.index_select(embedding, 0, random_ids.flatten())
+            random_matrices = torch.index_select(embedding, 0, random_ids.flatten()).detach()
             random_matrices = random_matrices.reshape((all_ids.size(0), random_ids.size(1), random_matrices.size(1)))
 
 

@@ -184,6 +184,12 @@ class TreeTokenizer:
         batch_tree.make_distinct_words()
         batch_tree.add_coherence_random_ids()
 
+        # #it is ok here:
+        # print("tree text 0:", [cls.detokenize(x.tokens) for x in batch_tree.batch_root.children[0].children])
+        # print("level nodes text 0:", [cls.detokenize(x.tokens) for x in batch_tree.level_nodes[0]])
+        # print("level nodes text 1:", [[cls.detokenize(n.tokens) for n in x.children] for x in batch_tree.level_nodes[1]])
+        # print("level nodes text 1:", [[n.id for n in x.children] for x in batch_tree.level_nodes[1]])
+
         #valid = batch_tree.valid_tree() #todo: fix here, use it
         if True:
           return batch_tree

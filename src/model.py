@@ -154,7 +154,8 @@ class AgentModel(nn.Module):
                                                                   embedding_matrix,
                                                                   random_matrices,
                                                                   num_dummy=num_dummy)
-                    random_matrices = None
+                del random_matrices
+                torch.cuda.empty_cache()
 
                 with xp.Trace('MLMLoss' + str(level_num)):
                     mlm_loss,rm_loss = calc_mlm_loss(self.agent_levels[level_num], matrices, real_positions,

@@ -78,6 +78,10 @@ class AgentModel(nn.Module):
 
     def forward(self, batch_tree, generate=False, debug=False,last_obj={},global_step=0):
         total_g_loss, total_disc_loss, total_loss = 0, 0, 0
+        print("emb: ",len(batch_tree.distinct_word_embedding_tokens))
+        print("level 0: ",len(batch_tree.level_nodes[0]))
+        print("level 1: ",len(batch_tree.level_nodes[1]))
+        print("----------------")
         if len(batch_tree.distinct_word_embedding_tokens) > Config.max_word_embedding_size:
           return total_g_loss, total_disc_loss, total_loss, last_obj  # todo: move to pre processing + pad embedding and batches for TPU here
 
@@ -155,7 +159,7 @@ class AgentModel(nn.Module):
                                                                   random_matrices,
                                                                   num_dummy=num_dummy)
                 del random_matrices
-                #torch.cuda.empty_cache() WTF this line gives RuntimeError: CUDA error: out of memory
+                #torch.cuda.empty_cache() WTF this line gives RuntimeError: CUDA error: out of memory on first small (s=80) batch
 
                 with xp.Trace('MLMLoss' + str(level_num)):
                     mlm_loss,rm_loss = calc_mlm_loss(self.agent_levels[level_num], matrices, real_positions,

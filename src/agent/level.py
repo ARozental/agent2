@@ -89,39 +89,51 @@ class AgentLevel(nn.Module):
             # lookup_ids is also labels
             return matrices, real_positions, eos_positions, None, embedding, lookup_ids, vectors, 0, None, None,random_matrices.detach()
         elif self.level == 1:
-            add_value = 2 + int(Config.join_texts)
+            #add_value = 2 + int(Config.join_texts)
             num_dummy = 0
             if Config.use_tpu: #add pad vectors to ensure constant word embedding matrix size
                 total_possible = len(node_batch) * max_length
                 extra_dummy = total_possible - embedding.size(0)
                 embedding = torch.cat((embedding,torch.stack([self.pad_vector] * extra_dummy)), 0)
 
-            all_ids = [[2 if child.is_join() else getattr(child, 'distinct_lookup_id') + add_value for child in node.children] + [0]
-                       for node in node_batch]  # [0] is EOS, 2 is JOIN #inconsistant with level 0
-            random_ids = [[2 if child.is_join() else getattr(child, 'random_lookup_id') + add_value for child in node.children] + [0]
-                       for node in node_batch]  # [0] is EOS, 2 is JOIN #inconsistant with level 0
+            # all_ids = [[2 if child.is_join() else getattr(child, 'distinct_lookup_id') + add_value for child in node.children] + [0]
+            #            for node in node_batch]  # [0] is EOS, 2 is JOIN #inconsistant with level 0
+            # random_ids = [[2 if child.is_join() else getattr(child, 'random_lookup_id') + add_value for child in node.children] + [0]
+            #            for node in node_batch]  # [0] is EOS, 2 is JOIN #inconsistant with level 0
+            #
+            # all_ids = [item + [1] * (max_length - len(item)) for item in all_ids]  # 1 is PAD
+            # random_ids = [item + [1] * (max_length - len(item)) for item in random_ids]  # 1 is PAD
+            #
+            # # This array may be longer than the max_length because it assumes that the EoS token exists
+            # # But some sentences, etc don't have the EoS at all if they were split
+            # all_ids = [item[:max_length] for item in all_ids]
+            # random_ids = [item[:max_length] for item in random_ids]
 
-            all_ids = [item + [1] * (max_length - len(item)) for item in all_ids]  # 1 is PAD
-            random_ids = [item + [1] * (max_length - len(item)) for item in random_ids]  # 1 is PAD
+            all_ids = batch_tree.all_ids1[done_nodes:done_nodes+num_nodes]
+            random_ids = batch_tree.random_ids1[done_nodes:done_nodes+num_nodes]
 
-            # This array may be longer than the max_length because it assumes that the EoS token exists
-            # But some sentences, etc don't have the EoS at all if they were split
-            all_ids = [item[:max_length] for item in all_ids]
-            random_ids = [item[:max_length] for item in random_ids]
+            # print("new",new_all_ids)
+            # print("old",all_ids)
+            # 1+None
+            #print(TreeTokenizer.deep_detokenize(batch_tree.id_to_tokens[7],0))
+            #print([TreeTokenizer.detokenize(batch_tree.id_to_tokens[x]) for x in all_ids[0]])
+            # print([TreeTokenizer.detokenize(batch_tree.id_to_tokens[x]) for x in all_ids[1]])
+            #print([TreeTokenizer.detokenize(batch_tree.id_to_tokens[x]) for x in new_all_ids[0]])
+            # print([TreeTokenizer.detokenize(batch_tree.id_to_tokens[x]) for x in new_all_ids[1]])
+            # sentences = [[n.id for n in x.children] for x in node_batch]
+            # #print("level nodes 1:", sentences)
+            # #print(sorted(list(batch_tree.id_to_tokens.keys())))
+            # #print("id_to_tokens keys:",sorted(list(batch_tree.id_to_tokens.keys())))
+            #
+            # #print("level nodes 1.1:", [[i for i in batch_tree.id_to_tokens[x]] for x in sentences[0]])
+            # ac = [[child.distinct_lookup_id + add_value for child in node.children] + [0] for node in node_batch]
 
-            new_all_ids = batch_tree.all_ids1[done_nodes:done_nodes+num_nodes]
-            # print(batch_tree.id_to_tokens[7])
-            # print(TreeTokenizer.deep_detokenize(batch_tree.id_to_tokens[7],0))
-            print([TreeTokenizer.detokenize(batch_tree.id_to_tokens[x]) for x in all_ids[0]])
-            print([TreeTokenizer.detokenize(batch_tree.id_to_tokens[x]) for x in all_ids[1]])
-            print([TreeTokenizer.detokenize(batch_tree.id_to_tokens[x]) for x in new_all_ids[0]])
-            print([TreeTokenizer.detokenize(batch_tree.id_to_tokens[x]) for x in new_all_ids[1]])
 
-            print(all_ids)
-            print(new_all_ids)
-            print(all_ids==new_all_ids)#[done_nodes:done_nodes+num_nodes])
-            [x for x in range(1000000)]
-            1+None
+            # print(all_ids)
+            # print(new_all_ids)
+            # print(all_ids==new_all_ids)#[done_nodes:done_nodes+num_nodes])
+            # [x for x in range(1000000)]
+            # 1+None
             # print(all_ids[0:2])
             # print(batch_tree.all_ids1[0:2])
             # print(len(all_ids))

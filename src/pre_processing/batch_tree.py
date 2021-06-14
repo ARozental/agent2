@@ -175,7 +175,6 @@ class BatchTree:
         [2 if child.is_join() else getattr(child, 'random_lookup_id') + add_value for child in node.children] + [0]
         for node in node_batch1]  # [0] is EOS, 2 is JOIN #inconsistant with level 0
 
-      #all_ids is broken
       all_ids = [item + [1] * (max_length - len(item)) for item in all_ids]  # 1 is PAD
       random_ids = [item + [1] * (max_length - len(item)) for item in random_ids]  # 1 is PAD
 

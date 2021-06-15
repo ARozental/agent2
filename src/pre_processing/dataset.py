@@ -8,13 +8,16 @@ def worker_init_fn(worker_id):
     dataset = worker_info.dataset  # the dataset copy in this worker process
     num_workers = worker_info.num_workers
 
-    dataset.data = dataset.data[worker_id::num_workers]
+    if dataset.divide_data:
+        dataset.data = dataset.data[worker_id::num_workers]
+
     dataset.init_tree_tokenizer()
 
 
 class Dataset(IterableDataset):
-    def __init__(self, **kwargs):
+    def __init__(self, divide_data=True, **kwargs):
         self.init_tree_tokenizer()
+        self.divide_data = divide_data
 
     def init_tree_tokenizer(self):
         """

@@ -119,7 +119,7 @@ class AgentLevel(nn.Module):
             real_positions = (1 - mask.float())
             vectors = self.compressor(self.encoder(matrices, real_positions, eos_positions), real_positions)
             if debug or Config.agent_level>1:
-                [n.set_vector(v) for n, v in zip(node_batch, vectors)]
+                [n.set_vector(v.detach()) for n, v in zip(node_batch, vectors)]
 
 
             #pndb
@@ -192,7 +192,7 @@ class AgentLevel(nn.Module):
             real_positions = (1 - mask.float())
             vectors = self.compressor(self.encoder(matrices, real_positions, eos_positions), real_positions)
             if debug:
-                [n.set_vector(v) for n, v in zip(node_batch, vectors)]
+                [n.set_vector(v.detach()) for n, v in zip(node_batch, vectors)]
             return matrices, real_positions, eos_positions, join_positions, embedding, labels, vectors, num_dummy, None, None,None
 
 

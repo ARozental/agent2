@@ -105,6 +105,9 @@ class AgentModel(nn.Module):
             #   num_real_nodes = len(node_batchs[0])
             done_nodes = 0
             for node_batch in node_batchs:
+                with torch.cuda.device(Config.device):
+                    torch.cuda.empty_cache()
+
                 num_dummy_nodes = 0
                 if Config.use_tpu:
                     num_dummy_nodes = len([True for node in node_batch if node.is_dummy])

@@ -78,10 +78,10 @@ class AgentModel(nn.Module):
 
     def forward(self, batch_tree, generate=False, debug=False,last_obj={},global_step=0):
         total_g_loss, total_disc_loss, total_loss = 0, 0, 0
-        # print("emb: ",len(batch_tree.distinct_word_embedding_tokens))
-        # print("level 0: ",len(batch_tree.level_nodes[0]))
-        # print("level 1: ",len(batch_tree.level_nodes[1]))
-        # print("----------------")
+        print("emb: ",len(batch_tree.distinct_word_embedding_tokens))
+        print("level 0: ",len(batch_tree.level_nodes[0]))
+        print("level 1: ",len(batch_tree.level_nodes[1]))
+        print("----------------")
         if len(batch_tree.distinct_word_embedding_tokens) > Config.max_word_embedding_size:
           return total_g_loss, total_disc_loss, total_loss, last_obj  # todo: move to pre processing + pad embedding and batches for TPU here
 

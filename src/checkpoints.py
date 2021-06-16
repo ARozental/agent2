@@ -1,6 +1,8 @@
 from src.config import Config
 from src.storage import Storage
+import numpy as np
 import torch
+import random
 import json
 import os
 
@@ -43,13 +45,20 @@ class Checkpoints:
             json.dump(config, f)
 
     @classmethod
-    def save(cls, model, epoch, step):
+    def save(cls, epoch, step, model, main_optimizer, scheduler):
         if Config.save_every is None:
             return
 
-        if step > 0:# and step % Config.save_every == 0:
-            with Storage.fs.open(os.path.join(cls.MODEL_FOLDER, str(epoch) + '.' + str(step)), 'wb') as f:
-                torch.save(model.state_dict(), f)
+        if step > 0:  # and step % Config.save_every == 0:
+            with Storage.fs.open(os.path.join(cls.MODEL_FOLDER, str(epoch) + '.' + str(step) + '.tar'), 'wb') as f:
+                torch.save({
+                    'model': model.state_dict(),
+                    'main_optimizer': main_optimizer.state_dict(),
+                    'scheduler': scheduler.state_dict(),
+                    'random.torch': torch.get_rng_state(),
+                    'random.python': random.getstate(),
+                    'random.numpy': np.random.get_state(),
+                }, f)
 
     @classmethod
     def find_existing_model(cls):
@@ -85,18 +94,19 @@ class Checkpoints:
         return checkpoint_file
 
     @classmethod
-    def load(cls, model):
+    def load(cls, model, main_optimizer, scheduler):
         checkpoint_file = Config.use_checkpoint
         if checkpoint_file is None:
             # See if a model already exists in the folder
             existing_model = cls.find_existing_model()
             if existing_model is not None:
-                if Config.force_resume == "y":
-                  should_resume = 'y'
+                if Config.force_resume is not None:
+                    should_resume = Config.force_resume
                 else:
-                  should_resume = input('An existing version exists in the folder `' + str(cls.MODEL_FOLDER) + '`.  ' +
-                                      'Would you like to resume from the latest file `' + str(existing_model) + '`? ' +
-                                      '[y/n] ')
+                    should_resume = input(
+                        'An existing version exists in the folder `' + str(cls.MODEL_FOLDER) + '`.  ' +
+                        'Would you like to resume from the latest file `' + str(existing_model) + '`? ' +
+                        '[y/n] ')
                 if should_resume.lower() in ['y', 'yes']:
                     checkpoint_file = os.path.join(Config.model_folder, existing_model)
 
@@ -107,8 +117,18 @@ class Checkpoints:
         if not Storage.fs.exists(file):
             raise ValueError('The corresponding model folder for loading a checkpoint does not exist.')
 
-        with Storage.fs.open(file, 'rb') as f:
-            model.load_state_dict(torch.load(f))  # Load model weights
+        if file.endswith('.tar'):
+            with Storage.fs.open(file, 'rb') as f:
+                checkpoint = torch.load(f)
+            model.load_state_dict(checkpoint['model'])
+            main_optimizer.load_state_dict(checkpoint['main_optimizer'])
+            scheduler.load_state_dict(checkpoint['scheduler'])
+            torch.set_rng_state(checkpoint['random.torch'])
+            random.setstate(checkpoint['random.python'])
+            np.random.set_state(checkpoint['random.numpy'])
+        else:  # Old resume
+            with Storage.fs.open(file, 'rb') as f:
+                model.load_state_dict(torch.load(f))  # Load model weights
 
         # Calculate stopping point of checkpoint (Epoch is position 0 but can ignore it)
         step = int(checkpoint_file.split('.')[1]) + 1

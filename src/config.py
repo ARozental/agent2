@@ -56,8 +56,7 @@ class Config:
     exp_folder = None  # Folder name in "runs" to log into. None defaults to tensorboard default
     viz_file = None  # CSV file where to save viz results in
 
-    force_resume = True
-
+    force_resume = None
 
     # Run configuration below (keeping device here makes it easier to use throughout all of the code)
     use_cuda = True

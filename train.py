@@ -98,7 +98,7 @@ def train(index, flags, training_started):
     Storage.setup()
     Logger.setup()
     Checkpoints.setup()
-    Checkpoints.load(model)
+    Checkpoints.load(model, main_optimizer, scheduler)
     all_times = []
     all_model_times = []
     global_step = 0
@@ -240,7 +240,7 @@ def train(index, flags, training_started):
                                 #torch.save(model.state_dict(), "models/dummy_model")
                                 exit()
 
-                Checkpoints.save(model, epoch, global_step)
+                Checkpoints.save(epoch, global_step, model, main_optimizer, scheduler)
 
             if Config.use_tpu and Config.debug_tpu and step % grad_acc_steps == 0:
                 current_time = time.time() - start_time

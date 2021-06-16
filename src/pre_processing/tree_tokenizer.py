@@ -10,11 +10,12 @@ from src.utils import md5
 
 class Splitters:
     sentence_splitter = nltk.data.load('tokenizers/punkt/english.pickle')
+    word_splitter = re.compile(' ')
 
     @classmethod
     def sentence_to_words(cls, sentence):
         # "I like big butts." => ['I', 'like', 'big', 'butts.']
-        return re.split(' ', sentence)
+        return cls.word_splitter.split(sentence)
 
     @classmethod
     def paragraph_to_sentences(cls, p):
@@ -111,10 +112,10 @@ class TreeTokenizer:
     @classmethod
     def text_to_tree_struct(cls, text, level):
         # "I like big butts. I can not lie." => [[[32], [61, 58, 60, 54], [51, 58, 56], [51, 70, 69, 69, 68, 10]], [[32], [52, 50, 63], [63, 64, 69], [61, 58, 54, 10]]]
-        if level == 0:
-            return cls.tokenize_word(text)
-
         parts = cls.split_functions[level - 1](text)
+        if level == 1:
+            return [cls.tokenize_word(part) for part in parts if len(part) > 0]
+
         return [cls.text_to_tree_struct(part, level - 1) for part in parts if len(part) > 0]
 
     @classmethod
@@ -147,24 +148,24 @@ class TreeTokenizer:
         text = [text]  # Make it an array just in case
 
         if Config.agent_level < Config.levels['BOOK'] <= len(cls.split_functions):
-            text = [chapter.strip() for book in text for chapter in
-                    cls.split_functions[Config.levels['BOOK'] - 1](book) if len(chapter.strip()) > 0]
+            text = [chapter for book in text for chapter in cls.split_functions[Config.levels['BOOK'] - 1](book)]
 
         if Config.agent_level < Config.levels['CHAPTER'] <= len(cls.split_functions):
-            text = [paragraph.strip() for chapter in text for paragraph in
-                    cls.split_functions[Config.levels['CHAPTER'] - 1](chapter) if len(paragraph.strip()) > 0]
+            text = [paragraph for chapter in text for paragraph in
+                    cls.split_functions[Config.levels['CHAPTER'] - 1](chapter)]
 
         if Config.agent_level < Config.levels['PARAGRAPH'] <= len(cls.split_functions):
-            text = [sent.strip() for paragraph in text for sent in
-                    cls.split_functions[Config.levels['PARAGRAPH'] - 1](paragraph) if len(sent.strip()) > 0]
+            text = [sent for paragraph in text for sent in
+                    cls.split_functions[Config.levels['PARAGRAPH'] - 1](paragraph)]
 
         return text
 
     @classmethod
     def batch_texts_to_trees(cls, texts):  # todo: why is it called twice??
         # input: ["I like big butts. I can not lie.","You other brothers can't deny"]
-        # print("l1", len(texts))
-        texts_md5s = [[item.strip(), md5(text)] for text in texts for item in cls.parse_extra_levels(text)]
+        texts_md5s = [md5(text) for text in texts]
+        texts_md5s = [[item.strip(), text_md5] for (text, text_md5) in zip(texts, texts_md5s) for item in
+                      cls.parse_extra_levels(text) if len(item) > 0]
 
         texts = [x[0] for x in texts_md5s[:Config.mini_batch_size]]  # todo: fix that mini batch size thingy
         md5s = [x[1] for x in texts_md5s[:Config.mini_batch_size]]

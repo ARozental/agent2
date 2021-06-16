@@ -14,9 +14,6 @@ import torch.nn as nn
 import torch
 import numpy as np
 from src.losses.calc import loss_object_to_main_loss, loss_object_to_reconstruction_weights_loss
-if Config.use_tpu:
-    import torch_xla.core.xla_model as xm
-
 
 
 class AgentModel(nn.Module):
@@ -76,7 +73,7 @@ class AgentModel(nn.Module):
 
         return None, word_embedding_matrix, num_dummy_distinct
 
-    def forward(self, batch_tree, generate=False, debug=False,last_obj={},global_step=0):
+    def forward(self, batch_tree, generate=False, debug=False,last_obj={},global_step=0, xm=None):
         total_g_loss, total_disc_loss, total_loss = 0, 0, 0
         # print("emb: ",len(batch_tree.distinct_word_embedding_tokens))
         # print("level 0: ",len(batch_tree.level_nodes[0]))
@@ -228,7 +225,7 @@ class AgentModel(nn.Module):
                     main_loss.backward(retain_graph=True) #after 20k batches this gave RuntimeError: cuDNN error: CUDNN_STATUS_EXECUTION_FAILED => WTF
 
                     if Config.use_tpu and not Config.profile_tpu:
-                      xm.mark_step()
+                        xm.mark_step()
 
                     if level_num not in loss_object:  # On the first node_batch
                         loss_object[level_num] = losses

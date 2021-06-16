@@ -83,6 +83,8 @@ class AgentModel(nn.Module):
         # print("level 1: ",len(batch_tree.level_nodes[1]))
         # print("----------------")
         if len(batch_tree.distinct_word_embedding_tokens) > Config.max_word_embedding_size:
+          if global_step==0:
+            print("First batch is too big for embedding")
           return total_g_loss, total_disc_loss, total_loss, last_obj  # todo: move to pre processing + pad embedding and batches for TPU here
 
         loss_object = {}
@@ -105,8 +107,9 @@ class AgentModel(nn.Module):
             #   num_real_nodes = len(node_batchs[0])
             done_nodes = 0
             for node_batch in node_batchs:
-                with torch.cuda.device(Config.device):
-                    torch.cuda.empty_cache()
+                if Config.use_cuda and torch.cuda.is_available():
+                    with torch.cuda.device(Config.device):
+                        torch.cuda.empty_cache()
 
                 num_dummy_nodes = 0
                 if Config.use_tpu:
@@ -162,8 +165,9 @@ class AgentModel(nn.Module):
                                                                   random_matrices,
                                                                   num_dummy=num_dummy)
                 del random_matrices
-                with torch.cuda.device(Config.device):
-                    torch.cuda.empty_cache()
+                if Config.use_cuda and torch.cuda.is_available():
+                    with torch.cuda.device(Config.device):
+                        torch.cuda.empty_cache()
                 #torch.cuda.empty_cache() WTF this line gives RuntimeError: CUDA error: out of memory on first small (s=80) batch
 
                 with xp.Trace('MLMLoss' + str(level_num)):

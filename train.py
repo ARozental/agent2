@@ -144,7 +144,7 @@ def train(index, flags, training_started):
                                                                           debug=will_reconstruct,
                                                                           last_obj=total_loss_object,
                                                                           global_step=global_step,
-                                                                          xm=xm)
+                                                                          xm=None if not Config.use_tpu else xm)
 
                 main_loss = loss_object_to_main_loss(loss_object) / grad_acc_steps
                 # r_loss = loss_object_to_reconstruction_weights_loss(loss_object) / grad_acc_steps

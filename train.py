@@ -22,7 +22,6 @@ import torch
 import torchvision.models as models
 import torch.autograd.profiler as profiler
 
-
 Commands.parse_arguments()
 xp.setup()
 
@@ -214,11 +213,8 @@ def train(index, flags, training_started):
                     # total_loss = 0
             total_model_time += (time.time() - current_model_time)
 
-            # TODO - Take out the TPU blocker once printing reconstructed is working on TPU
-            if not Config.use_tpu and (
-                (epoch % (grad_acc_steps * Config.log_every) == 0 and step == 0) or
-                (step % (grad_acc_steps * Config.log_every) == 0 and step > 0)
-            ):
+            if (epoch % (grad_acc_steps * Config.log_every) == 0 and step == 0) or \
+                (step % (grad_acc_steps * Config.log_every) == 0 and step > 0):
                 print('Epoch', epoch, 'Batch', step)
                 if not Config.use_tpu:
                     # These are very inefficient for the TPU to print out

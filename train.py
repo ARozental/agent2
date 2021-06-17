@@ -144,7 +144,7 @@ def train(index, flags, training_started):
             )
 
             if Config.use_tpu:
-                will_reconstruct = False  # Remove this once have the decode working on TPU
+                will_reconstruct = False  # The TPU version computes the reconstruct vectors separately on the CPU
 
             # print(len(batch.level_nodes[0]),len(batch.level_nodes[1]),len(batch.level_nodes[0])/ len(batch.level_nodes[1]))# todo: this is for debug => fix it
 
@@ -220,16 +220,27 @@ def train(index, flags, training_started):
                 (step % (grad_acc_steps * Config.log_every) == 0 and step > 0)
             ):
                 print('Epoch', epoch, 'Batch', step)
-                print(loss_object)
-                print(main_loss)
+                if not Config.use_tpu:
+                    # These are very inefficient for the TPU to print out
+                    print(loss_object)
+                    print(main_loss)
                 model.eval()
+
+                if Config.use_tpu:
+                    # Moving model to CPU for evaluation
+                    old_device = Config.device
+                    Config.device = torch.device('cpu')
+                    model.to(Config.device)
+                    for key, value in inputs.items():
+                        inputs[key] = value.to(Config.device)
+                    model.compute_vectors(batch, inputs)
 
                 if GENERATE_TEXT:
                     generated = {i: model.generate_texts(i, 1)[0] for i in reversed(range(Config.agent_level + 1))}
                     print(generated)
                     Logger.log_text(generated, step=global_step)
 
-                if PRINT_RECONSTRUCTED_TEXT and not Config.use_tpu:  # TODO - Take out the TPU once working
+                if PRINT_RECONSTRUCTED_TEXT:
                     nodes = batch.batch_root.children
                     expected = [TreeTokenizer.deep_detokenize(node.build_struct(return_eos=True)[0], Config.agent_level)
                                 for node in nodes]
@@ -250,6 +261,11 @@ def train(index, flags, training_started):
                                 exit()
 
                 Checkpoints.save(epoch, global_step, model, main_optimizer, scheduler)
+
+                if Config.use_tpu:
+                    # Moving model back to TPU
+                    Config.device = old_device
+                    model.to(Config.device)
 
             if Config.use_tpu and Config.debug_tpu and step % grad_acc_steps == 0:
                 current_time = time.time() - start_time

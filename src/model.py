@@ -274,6 +274,23 @@ class AgentModel(nn.Module):
 
         return total_g_loss, total_disc_loss, total_loss, loss_object
 
+    def compute_vectors(self, batch_tree, inputs):
+        _, word_embedding_matrix, _ = self.set_word_vectors(batch_tree, inputs, debug=True)
+        for level_num in range(1, Config.agent_level + 1):
+            node_batchs = node_batch_to_small_batches(batch_tree.level_nodes[level_num], level_num)
+            done_nodes = 0
+            for node_batch in node_batchs:
+                _ = self.agent_levels[
+                        level_num].get_children(
+                        node_batch,
+                        inputs,
+                        word_embedding_matrix,
+                        None,
+                        done_nodes=done_nodes,
+                        batch_tree=batch_tree,
+                        debug=True)
+                done_nodes += len(node_batch)
+
     def debug_decode(self, batch_tree, node_batch=None):
         if node_batch is None:
             node_batch = batch_tree.level_nodes[0]

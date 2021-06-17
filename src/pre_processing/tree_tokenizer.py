@@ -5,6 +5,7 @@ from collections import defaultdict
 import nltk
 import os
 import re
+import torch
 from src.utils import md5
 
 
@@ -192,10 +193,22 @@ class TreeTokenizer:
         # print("level nodes text 1:", [[n.id for n in x.children] for x in batch_tree.level_nodes[1]])
 
         #valid = batch_tree.valid_tree() #todo: fix here, use it
-        if True:
-          return batch_tree
-        else:
-          return batch_tree
+        add_value = 2 + int(Config.join_texts)
+        return batch_tree, {
+            # model.set_word_vectors
+            'local_char_embedding_tokens': torch.tensor(batch_tree.distinct_word_embedding_tokens, dtype=torch.long),
+            'word_vectors_lookup_ids': torch.tensor([x.distinct_lookup_id for x in batch_tree.level_nodes[0]],
+                                                    dtype=torch.long) + add_value,
+
+            # level.get_children
+            '0_lookup_ids': torch.tensor(batch_tree.level_0_lookup_ids, dtype=torch.long),
+            '0_word_lookup_ids': torch.tensor(
+                [node.distinct_lookup_id + add_value for node in batch_tree.level_nodes[0]], dtype=torch.long),
+            '0_random_ids': torch.tensor(batch_tree.random_ids0, dtype=torch.long),
+
+            '1_all_ids': torch.tensor(batch_tree.all_ids1, dtype=torch.long),
+            '1_random_ids': torch.tensor(batch_tree.random_ids1, dtype=torch.long),
+        }
 
     @classmethod
     def compute_struct_stats(cls, struct, stats, level):

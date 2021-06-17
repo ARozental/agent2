@@ -60,21 +60,19 @@ class AgentLevel(nn.Module):
         # needed to make sure w1 can never be negative
         return F.elu(dot * self.join_classifier_w * torch.sign(self.join_classifier_w)) + self.join_classifier_b
 
-    def get_children(self, node_batch, embedding=None, word_embedding0=None,batch_tree=None, done_nodes=0,debug=False):
+    def get_children(self, node_batch, inputs, embedding=None, word_embedding0=None,batch_tree=None, done_nodes=0,debug=False):
         max_length = Config.sequence_lengths[self.level]
         num_nodes = len(node_batch)
         if self.level == 0:  # words => get token vectors
             #old_lookup_ids = torch.tensor([node.get_padded_word_tokens() for node in node_batch], dtype=torch.long,device=Config.device)
-            lookup_ids = torch.tensor(batch_tree.level_0_lookup_ids[done_nodes:done_nodes+num_nodes], dtype=torch.long,device=Config.device)
+            lookup_ids = inputs['0_lookup_ids'][done_nodes:done_nodes + num_nodes]
 
             real_positions = (lookup_ids != Config.pad_token_id).float()
             eos_positions = (lookup_ids == Config.eos_token_id).float()
             matrices = torch.index_select(embedding, 0, lookup_ids.view(-1))
             matrices = matrices.view(lookup_ids.size(0),Config.sequence_lengths[self.level],Config.vector_sizes[self.level])
 
-            add_value = 2 + int(Config.join_texts)
-
-            word_lookup_ids = torch.tensor([node.distinct_lookup_id+add_value for node in node_batch], dtype=torch.long,device=Config.device)
+            word_lookup_ids = inputs['0_word_lookup_ids'][done_nodes:done_nodes + num_nodes]
             vectors = torch.index_select(word_embedding0, 0,word_lookup_ids)
             #vectors = self.compressor(self.encoder(matrices, real_positions, eos_positions), real_positions) #same but less efficient
 
@@ -82,7 +80,7 @@ class AgentLevel(nn.Module):
             #create_coherence_matrixes
             #old_random_ids = torch.tensor([node.get_padded_random_tokens() for node in node_batch], dtype=torch.long,device=Config.device)
             with torch.no_grad():
-                random_ids = torch.tensor(batch_tree.random_ids0[done_nodes:done_nodes+num_nodes], dtype=torch.long,device=Config.device)
+                random_ids = inputs['0_random_ids'][done_nodes:done_nodes + num_nodes]
                 random_matrices = torch.index_select(embedding, 0, random_ids.view(-1))#.detach()
                 random_matrices = random_matrices.view(lookup_ids.size(0),Config.sequence_lengths[self.level],Config.vector_sizes[self.level])
 
@@ -96,15 +94,11 @@ class AgentLevel(nn.Module):
                 extra_dummy = total_possible - embedding.size(0)
                 embedding = torch.cat((embedding,torch.stack([self.pad_vector] * extra_dummy)), 0)
 
-            all_ids = batch_tree.all_ids1[done_nodes:done_nodes+num_nodes]
-            random_ids = batch_tree.random_ids1[done_nodes:done_nodes+num_nodes]
-
-            all_ids = torch.tensor(all_ids, device=Config.device, dtype=torch.long)
+            all_ids = inputs['1_all_ids'][done_nodes:done_nodes + num_nodes]
             with torch.no_grad():
-                random_ids = torch.tensor(random_ids, device=Config.device, dtype=torch.long)
+                random_ids = inputs['1_random_ids'][done_nodes:done_nodes + num_nodes]
                 random_matrices = torch.index_select(embedding, 0, random_ids.flatten())
                 random_matrices = random_matrices.reshape((random_ids.size(0), random_ids.size(1), random_matrices.size(1)))
-
 
             mask = (all_ids == Config.pad_token_id).bool()
             # TODO - Which is faster? int() or float()?

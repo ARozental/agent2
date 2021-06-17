@@ -10,7 +10,7 @@ from src.storage import Storage
 from src.utils import seed_torch, merge_dicts, metsumm
 from src.model import AgentModel
 from src.profiler import Profiler as xp
-from torch.utils.data.dataloader import DataLoader
+from torch.utils.data.dataloader import DataLoader, default_collate
 import numpy as np
 import torch
 import time
@@ -42,6 +42,10 @@ PRINT_RECONSTRUCTED_TEXT = True
 Config.setup_device()
 
 
+def custom_collate_fn(data):
+    return data[0][0], default_collate([data[0][1]])
+
+
 # Need to wrap in a function for the child workers
 def train(index, flags, training_started):
     if Config.use_tpu:
@@ -61,8 +65,8 @@ def train(index, flags, training_started):
 
     dataloader = DataLoader(
         dataset,
-        batch_size=Config.batch_size,
-        collate_fn=TreeTokenizer.batch_texts_to_trees,
+        batch_size=1,
+        collate_fn=custom_collate_fn,
         worker_init_fn=worker_init_fn,
         num_workers=4,
         prefetch_factor=10,
@@ -116,7 +120,12 @@ def train(index, flags, training_started):
         total_loss_object = None
         total_model_time = 0
         start_time = time.time()
-        for step, batch in enumerate(parallel_loader):
+        for step, (batch, inputs) in enumerate(parallel_loader):
+            for key, value in inputs.items():
+                inputs[key] = value.squeeze(0)
+                if Config.use_cuda:
+                    inputs[key] = inputs[key].to(Config.device)
+
             grad_acc_steps = Config.grad_acc_fn(global_step)
             if Config.profile_tpu and step >= 4:
                 training_started.set()
@@ -140,7 +149,7 @@ def train(index, flags, training_started):
             # print(len(batch.level_nodes[0]),len(batch.level_nodes[1]),len(batch.level_nodes[0])/ len(batch.level_nodes[1]))# todo: this is for debug => fix it
 
             with xp.StepTrace('train_loop', step_num=step):
-                g_loss, disc_loss, main_loss, loss_object = model.forward(batch, generate=GENERATE_TEXT,
+                g_loss, disc_loss, main_loss, loss_object = model.forward(batch, inputs, generate=GENERATE_TEXT,
                                                                           debug=will_reconstruct,
                                                                           last_obj=total_loss_object,
                                                                           global_step=global_step,

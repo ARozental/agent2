@@ -29,8 +29,7 @@ class AgentModel(nn.Module):
         self.reconstruction_params = [param for name, param in self.named_parameters() if (("decompressor" in name) or ("decoder" in name))]
         self.main_params = [param for name, param in self.named_parameters() if ("discriminator" not in name) and ("generator" not in name)]
 
-    def set_word_vectors(self, batch_tree, debug=False):
-        node_batch = batch_tree.level_nodes[0]
+    def set_word_vectors(self, batch_tree, inputs, debug=False):
         #max_distinct_id = batch_tree.max_distinct_id
         #id_to_tokens = batch_tree.id_to_tokens #{node.distinct_lookup_id: node.get_padded_word_tokens() for node in node_batch}
         num_dummy_distinct = batch_tree.num_dummy_distinct
@@ -42,10 +41,7 @@ class AgentModel(nn.Module):
         # else:
         #     num_dummy_distinct = 0
 
-        #distinct_word_embedding_tokens = [id_to_tokens[distinct_id] for distinct_id in range(max_distinct_id + num_dummy_distinct + 1)]
-        distinct_word_embedding_tokens = batch_tree.distinct_word_embedding_tokens
-        local_char_embedding_tokens = torch.tensor(distinct_word_embedding_tokens, dtype=torch.long,
-                                                   device=Config.device)
+        local_char_embedding_tokens = inputs['local_char_embedding_tokens']
         real_positions = (local_char_embedding_tokens != Config.pad_token_id).float()
         eos_positions = local_char_embedding_tokens == Config.eos_token_id
         local_char_embedding_matrix = self.char_embedding_layer(local_char_embedding_tokens)
@@ -64,16 +60,15 @@ class AgentModel(nn.Module):
         )  # {0: eos, 1:pad, 2:join}
         word_embedding_matrix = torch.cat([special_vectors, word_embedding_matrix], 0)
 
-        lookup_ids = torch.tensor([x.distinct_lookup_id for x in node_batch], dtype=torch.long, device=Config.device)
-        lookup_ids += 2 + int(Config.join_texts)
+        lookup_ids = inputs['word_vectors_lookup_ids']
 
         if debug:
             all_word_vectors = torch.index_select(word_embedding_matrix, 0, lookup_ids).detach()  # [words_in_batch,word_vector_size]
-            [n.set_vector(v) for n, v in zip(node_batch, all_word_vectors)]
+            [n.set_vector(v) for n, v in zip(batch_tree.level_nodes[0], all_word_vectors)]
 
         return None, word_embedding_matrix, num_dummy_distinct
 
-    def forward(self, batch_tree, generate=False, debug=False,last_obj={},global_step=0, xm=None):
+    def forward(self, batch_tree, inputs, generate=False, debug=False,last_obj={},global_step=0, xm=None):
         total_g_loss, total_disc_loss, total_loss = 0, 0, 0
         # print("emb: ",len(batch_tree.distinct_word_embedding_tokens))
         # print("level 0: ",len(batch_tree.level_nodes[0]))
@@ -94,7 +89,7 @@ class AgentModel(nn.Module):
             num_real_nodes = len(full_node_batch)
             if level_num == 0:
                 with xp.Trace('SetWordVectors'):
-                    vectors, wm, num_dummy0_embed = self.set_word_vectors(batch_tree, debug=debug)
+                    vectors, wm, num_dummy0_embed = self.set_word_vectors(batch_tree, inputs, debug=debug)
                     word_embedding_matrix = wm
 
             node_batchs=node_batch_to_small_batches(full_node_batch,level_num)
@@ -119,6 +114,7 @@ class AgentModel(nn.Module):
                             self.agent_levels[
                                 level_num].get_children(
                                 node_batch,
+                                inputs,
                                 self.char_embedding_layer.weight,
                                 word_embedding_matrix,
                                 done_nodes=done_nodes,
@@ -129,6 +125,7 @@ class AgentModel(nn.Module):
                           self.agent_levels[
                             level_num].get_children(
                             node_batch,
+                            inputs,
                             word_embedding_matrix,
                             None,
                             done_nodes=done_nodes,
@@ -140,6 +137,7 @@ class AgentModel(nn.Module):
                             self.agent_levels[
                                 level_num].get_children(
                                 node_batch,
+                                inputs,
                                 None,
                                 None, debug=debug)
                         num_dummy += num_dummy0_embed

@@ -71,7 +71,7 @@ class WikiDataset(Dataset):
         return self._parse_article(article)
 
     def __iter__(self):
-        for index in self.data:
-            out = self._parse_article(self.dataset['train'][index])
-            if self.valid_text(out):
-              yield out
+        for batch in range(len(self.data) // Config.batch_size):
+            begin = batch * Config.batch_size
+            articles = [self._parse_article(self.dataset['train'][begin + num]) for num in range(Config.batch_size)]
+            yield TreeTokenizer.batch_texts_to_trees(articles)

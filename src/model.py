@@ -133,7 +133,7 @@ class AgentModel(nn.Module):
                             batch_tree=batch_tree,
                             debug=debug)
                         num_dummy += num_dummy0_embed
-                        if debug and first_A1s == None: #todo: cancat and have it working on all batch nodes later
+                        if debug and first_A1s == None and (Config.use_pndb1 or Config.use_pndb2): #todo: cancat and have it working on all batch nodes later
                           first_A1s, first_pndb_lookup_ids = A1s.detach(), pndb_lookup_ids.detach()
                     else:
                         matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy, A1s, pndb_lookup_ids,random_matrices = \

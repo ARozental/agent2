@@ -56,7 +56,7 @@ class AgentModel(nn.Module):
 
     def forward(self, batch_tree, inputs, generate=False, debug=False, last_obj={}, global_step=0, xm=None):
         total_g_loss, total_disc_loss, total_loss = 0, 0, 0
-        first_A1s, first_pndb_lookup_ids = None, None  # for when we want to debug just the first 5 texts, todo: remove after full_decode uses the reconstruction loss function
+        first_A1s, first_pndb_lookup_ids = [], []  # for when we want to debug just the first 5 texts, todo: remove after full_decode uses the reconstruction loss function
         # print("emb: ",len(batch_tree.distinct_word_embedding_tokens))
         # print("level 0: ",len(batch_tree.level_nodes[0]))
         # print("level 1: ",len(batch_tree.level_nodes[1]))
@@ -108,10 +108,8 @@ class AgentModel(nn.Module):
                                 batch_index=batch_index,
                                 debug=debug)
                         num_dummy += num_dummy0_embed
-
-                        # todo: cancat and have it working on all batch nodes later
-                        if debug and first_A1s is None and (Config.use_pndb1 or Config.use_pndb2):
-                            first_A1s, first_pndb_lookup_ids = A1s.detach(), pndb_lookup_ids.detach()
+                        if debug and first_A1s == [] and (Config.use_pndb1 or Config.use_pndb2): #todo: cancat and have it working on all batch nodes later
+                          first_A1s, first_pndb_lookup_ids = A1s.detach(), pndb_lookup_ids.detach()
                     else:
                         matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy, A1s, pndb_lookup_ids, random_matrices = \
                             self.agent_levels[

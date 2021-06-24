@@ -36,39 +36,12 @@ class BatchTree:
         self.level_nodes = {i: [] for i in range(Config.agent_level + 1)}
         [self.__batch_up_nodes1(c) for c in self.batch_root.children]
 
-    def trim_nodes(self):
-        # Trim the nodes down to fit the node_sizes
-        # Need >= because the add0 and add1 need to be larger than 0; need to avoid having one be > 0 and one be == 0
-        # TODO - Make this better to do level by level (delete sentences to get level 1 done, then trim out words to get level 0 done)
-        while len(self.level_nodes[0]) >= Config.node_sizes[0] or len(self.level_nodes[1]) >= Config.node_sizes[1]:
-            self.batch_root.children = self.batch_root.children[:-1]
-            self.batch_up_nodes()
-
     # TODO - Make this work for any number of levels, only works when Config.agent_level == 1
     def fill_dummy_nodes(self):
         assert Config.agent_level <= Config.levels['SENTENCE']
 
-        if Config.dynamic_node_sizes:
-            if BatchTree.FIRST_RUN:  # On the first step of the model, do max batch size
-                Config.node_sizes = Config.node_sizes_max.copy()
-                BatchTree.FIRST_RUN = False
-            else:
-                # Dynamically change the node_sizes to be the smallest size that will fit all of the nodes
-                for level in range(Config.agent_level + 1):
-                    num_nodes = len(self.level_nodes[level])
-                    values = [int(Config.node_sizes_max[level] * percent) for percent in [0.25, 0.5, 0.75] if
-                              num_nodes < int(Config.node_sizes_max[level] * percent)]
-                    if len(values) == 0:
-                        Config.node_sizes[level] = Config.node_sizes_max[level]  # Set the max size
-                    else:
-                        Config.node_sizes[level] = values[0]  # Set the smallest value that fits
-
-        self.trim_nodes()
-
-        add0 = Config.node_sizes[0] - len(self.level_nodes[0])
-        add1 = Config.node_sizes[1] - len(self.level_nodes[1])
-        assert add0 > 0
-        assert add1 > 0
+        add0 = len(self.level_nodes[0]) % Config.node_sizes[0]
+        add1 = len(self.level_nodes[1]) % Config.node_sizes[1]
 
         children_per = np.array_split(range(add0), add1)
         for num_per in children_per:

@@ -164,10 +164,11 @@ def distinct(lst):
     return output
 
 
-def make_noise(t):
+def make_noise(t,noise):
+    noise = torch.min(noise,noise/noise)*t.norm(dim=[-1]).mean() #capped at 1
     changed_examples = torch.rand(t.shape[0], 1, device=Config.device).round()
     n = torch.normal(torch.mean(t).data, torch.std(t).data, size=t.shape, device=Config.device)
-    return t + Config.noise * changed_examples * n
+    return t + noise * changed_examples * n
 
 
 def apply_recursive(func, obj):

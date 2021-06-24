@@ -70,6 +70,7 @@ class AgentModel(nn.Module):
 
     def forward(self, batch_tree, inputs, generate=False, debug=False,last_obj={},global_step=0, xm=None):
         total_g_loss, total_disc_loss, total_loss = 0, 0, 0
+        first_A1s, first_pndb_lookup_ids = None,None #for when we want to debug just the first 5 texts, todo: remove after full_decode uses the reconstruction loss function
         # print("emb: ",len(batch_tree.distinct_word_embedding_tokens))
         # print("level 0: ",len(batch_tree.level_nodes[0]))
         # print("level 1: ",len(batch_tree.level_nodes[1]))
@@ -132,6 +133,8 @@ class AgentModel(nn.Module):
                             batch_tree=batch_tree,
                             debug=debug)
                         num_dummy += num_dummy0_embed
+                        if debug and first_A1s == None: #todo: cancat and have it working on all batch nodes later
+                          first_A1s, first_pndb_lookup_ids = A1s.detach(), pndb_lookup_ids.detach()
                     else:
                         matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy, A1s, pndb_lookup_ids,random_matrices = \
                             self.agent_levels[
@@ -173,10 +176,10 @@ class AgentModel(nn.Module):
                                                             dummy_logit_bias=dummy_logit_bias)
 
                 with xp.Trace('CallingDecompressor' + str(level_num)):
-                    if Config.noise == 0 or debug:
+                    if Config.noise == False or debug or level_num==Config.agent_level:
                       decompressed = self.agent_levels[level_num].decompressor(vectors)
                     else:
-                      decompressed = self.agent_levels[level_num].decompressor(make_noise(vectors))
+                      decompressed = self.agent_levels[level_num].decompressor(make_noise(vectors,last_obj[level_num+1]["d"]))
 
                 with xp.Trace('ReconstructionLoss' + str(level_num)):
                     reconstruction_diff_loss, reconstruction_loss, eos_loss, re_loss, rj_loss,rc_loss = \
@@ -272,7 +275,7 @@ class AgentModel(nn.Module):
         #       # loss_object[level_num][label] = loss.item()  # Pull out of the GPU for logging
         #   total_loss += torch.stack(current_losses).sum()
 
-        return total_g_loss, total_disc_loss, total_loss, loss_object
+        return total_g_loss, total_disc_loss, total_loss, loss_object, first_A1s, first_pndb_lookup_ids
 
     def compute_vectors(self, batch_tree, inputs):
         _, word_embedding_matrix, _ = self.set_word_vectors(batch_tree, inputs, debug=True)
@@ -308,7 +311,7 @@ class AgentModel(nn.Module):
         return output
 
     # todo: refactor it to not get embedding_matrices as a parameter (only the char matrix is needed and it belongs to self)
-    def full_decode(self, nodes):
+    def full_decode(self, nodes, A1s, pndb_lookup_ids):
         assert len(set([node.level for node in nodes])) == 1  # All nodes must be on the same level
 
         agent_level = self.agent_levels[nodes[0].level]
@@ -316,7 +319,7 @@ class AgentModel(nn.Module):
         if len(node_vectors) == 0:  # If all of the nodes are joins
             return [(-1, True) for _ in nodes]
         node_vectors = torch.stack(node_vectors)
-        children_vectors, children_eos, _, _ = agent_level.vecs_to_children_vecs(node_vectors)
+        children_vectors, children_eos, _, _ = agent_level.vecs_to_children_vecs(node_vectors,A1s, pndb_lookup_ids)
         children_eos = children_eos.tolist()
 
         if nodes[0].level == 0:
@@ -355,7 +358,7 @@ class AgentModel(nn.Module):
                 n.level = node.level - 1
                 n.parent = node
                 children_nodes.append(n)
-            results.append((self.full_decode(children_nodes), children_eos[index]))
+            results.append((self.full_decode(children_nodes,A1s, pndb_lookup_ids), children_eos[index]))
             index += 1
 
         return results
@@ -368,5 +371,6 @@ class AgentModel(nn.Module):
             n.vector = v
             n.level = level
             nodes.append(n)
+        A1s, pndb_lookup_ids = None,None #todo: just have 1 A1 here fix the generator
         decoded = self.full_decode(nodes)
         return [TreeTokenizer.deep_detokenize(r[0], level) for r in decoded]

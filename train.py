@@ -116,7 +116,7 @@ def train(index, flags, training_started):
             parallel_loader = dataloader
 
         total_loss = 0
-        total_loss_object = None
+        total_loss_object = {1:{"d":0.0}}
         total_model_time = 0
         start_time = time.time()
         for step, (batch, inputs) in enumerate(parallel_loader):
@@ -148,12 +148,11 @@ def train(index, flags, training_started):
             # print(len(batch.level_nodes[0]),len(batch.level_nodes[1]),len(batch.level_nodes[0])/ len(batch.level_nodes[1]))# todo: this is for debug => fix it
 
             with xp.StepTrace('train_loop', step_num=step):
-                g_loss, disc_loss, main_loss, loss_object = model.forward(batch, inputs, generate=GENERATE_TEXT,
+                g_loss, disc_loss, main_loss, loss_object, first_A1s, first_pndb_lookup_ids = model.forward(batch, inputs, generate=GENERATE_TEXT,
                                                                           debug=will_reconstruct,
                                                                           last_obj=total_loss_object,
                                                                           global_step=global_step,
-                                                                          xm=None if not Config.use_tpu else xm)
-
+                                                                          xm=None if not Config.use_tpu else xm,)
                 main_loss = loss_object_to_main_loss(loss_object) / grad_acc_steps
                 # r_loss = loss_object_to_reconstruction_weights_loss(loss_object) / grad_acc_steps
                 # c_loss = loss_object_to_extra_coherence_weights_loss(loss_object) / Config.grad_acc_steps
@@ -240,7 +239,7 @@ def train(index, flags, training_started):
                     nodes = batch.batch_root.children
                     expected = [TreeTokenizer.deep_detokenize(node.build_struct(return_eos=True)[0], Config.agent_level)
                                 for node in nodes]
-                    reconstructed = [model.full_decode(batch.level_nodes[i][:5]) for i in range(Config.agent_level + 1)]
+                    reconstructed = [model.full_decode(batch.level_nodes[i][:5],first_A1s, first_pndb_lookup_ids[0:5]) for i in range(Config.agent_level + 1)]
 
                     reconstructed = [[TreeTokenizer.deep_detokenize(node[0], i) for node in items] for i, items in
                                      enumerate(reconstructed)]

@@ -14,14 +14,14 @@ class Config:
     fnn_sizes = vector_sizes  # [8, 10, 12, 14, 16, 18]  # [2,3,4,5] #for fnn in transformers
     num_transformer_layers = [2, 2, 2, 2, 2, 2]  # [2,2,2,2]
     mlm_rate = 0.15  # 0.15 like BERT
-    batch_size = 80  # How many books/articles/etc per batch.
+    batch_size = 1  # How many books/articles/etc per batch.
     node_sizes = [4096, 512, 4096, 1000, 1000]  # How many nodes to process at a time at each level => todo: change, each here limits the other
     node_sizes_max = [8192, 1024]  # Used for the TPU; only used when "dynamic_node_sizes" is True
     dynamic_node_sizes = False  # Used for the TPU to make it do 25%/50%/75%
     mini_batch_size = 1024 #max number of max_agent_level document, not working as intender but has an effect: final number is ~1.7 times higers, can be higher than batch size like when we get wiki articles as input but only doing up to level 1 (sentneces). should be at least as high as corresponding node size
 
     drop_rate = 0.0
-    noise = 0
+    noise = False
     max_word_embedding_size = 10000
     early_steps = 0 #I think it might fuck up and get stuck near a bad minimun - r_diff wise
 
@@ -33,7 +33,7 @@ class Config:
     max_coherence_noise = 0.8
 
     # PNDB - None is off; integer for number of questions
-    use_pndb1 = None
+    use_pndb1 = 8
     use_pndb2 = None
 
     # smoothing

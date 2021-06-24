@@ -33,7 +33,7 @@ class Config:
     max_coherence_noise = 0.8
 
     # PNDB - None is off; integer for number of questions
-    use_pndb1 = 8
+    use_pndb1 = None
     use_pndb2 = None
 
     # smoothing

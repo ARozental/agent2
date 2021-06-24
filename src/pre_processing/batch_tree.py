@@ -1,7 +1,9 @@
+from src.utils import node_batch_to_small_batches
 from src.pre_processing.node import Node
 from src.config import Config
 import numpy as np
 import random
+import torch
 
 
 class BatchTree:
@@ -10,22 +12,11 @@ class BatchTree:
     def __init__(self, batch_root):
         self.level_nodes = {i: [] for i in range(
             Config.agent_level + 1)}  # {0: [sorted nodes for words], 1: [sorted nodes for sentences]}
+        self.level_batches = {i: [] for i in range(Config.agent_level + 1)}
         self.batch_root = batch_root
-        self.distinct_word_embedding_tokens = None  # the i-th element has word tokens
 
-        #spare some work for get_children and forward
-        self.random_ids0 = None
-        self.all_ids1 = None
-        self.random_ids1 = None
-        self.level_0_lookup_ids = None
-        #self.max_distinct_id = None
-        self.id_to_tokens = None
-        self.distinct_word_embedding_tokens = None
+        # spare some work for get_children and forward
         self.num_dummy_distinct = None
-
-        # generalizes word embedding tokens
-        self.distinct_embedding_tokens = {i: [] for i in range(
-            Config.agent_level)}  # {0: [sorted nodes for words], 1: [sorted nodes for sentences]}
 
     def __batch_up_nodes1(self, node):
         self.level_nodes[node.level].append(node)
@@ -68,95 +59,87 @@ class BatchTree:
         for node in self.level_nodes[0]:
             node.distinct_lookup_id = mapping[str(node.tokens)]
 
-        # Get the words in order
-        # self.distinct_word_embedding_tokens = [tokens_to_nodes[tokens] for tokens in unique_words]
-
-    def make_distinct_texts(self, lvl):
-        # generalizes make_distinct_words
-        # the i-th element of distinct_word_embedding_tokens gets word tokens with full padding
-        # each node in level_nodes[0] (word), gets distinct_lookup_id set to the relevant i from distinct_word_embedding_tokens
-        # in the forward pass we will only embed self.distinct_word_embedding_tokens and fill the DVT word vector with lookup to this matrix
-        mapping = {str(n.tokens): [i, n.get_padded_word_tokens()] for i, n in
-                   zip(reversed(range(len(self.level_nodes[lvl]))), self.level_nodes[lvl])}
-        for n in self.level_nodes[lvl]:
-            n.distinct_lookup_id = mapping[str(n.tokens)][0]
-        id_and_pads = list(mapping.values())
-        id_and_pads.sort()  # by id (first element) is the default
-        self.distinct_word_embedding_tokens = [x[lvl] for x in id_and_pads]
+    def make_node_batches(self):
+        for level in range(Config.agent_level + 1):
+            self.level_batches[level] = node_batch_to_small_batches(self.level_nodes[level], level)
 
     def valid_tree(self):
-      for i in range(Config.agent_level + 1):
-        node_batch = self.level_nodes[i]
-        md5s = [n.root_md5 for n in node_batch]
-        seen = set([])
-        for j in range(1, len(md5s)):
-          if md5s[j] in seen and md5s[j] != md5s[j - 1]:
-            print("bad batch ")
-            print(md5s)
-            print([x.build_struct() for x in node_batch])
-            print("--------")
+        for i in range(Config.agent_level + 1):
+            node_batch = self.level_nodes[i]
+            md5s = [n.root_md5 for n in node_batch]
+            seen = set([])
+            for j in range(1, len(md5s)):
+                if md5s[j] in seen and md5s[j] != md5s[j - 1]:
+                    print("bad batch ")
+                    print(md5s)
+                    print([x.build_struct() for x in node_batch])
+                    print("--------")
 
-          return False
-      return True
+                return False
+        return True
 
+    def prepare_batch(self, node_batch, level):
+        add_value = 2 + int(Config.join_texts)
+        if level == 0:
+            return {
+                'lookup_ids': torch.tensor([node.get_padded_word_tokens() for node in node_batch], dtype=torch.long),
+                'word_lookup_ids': torch.tensor([node.distinct_lookup_id + add_value for node in node_batch],
+                                                dtype=torch.long),
+                'random_ids': torch.tensor([node.get_padded_random_tokens() for node in node_batch], dtype=torch.long),
+            }
+        elif level == 1:
+            max_length = Config.sequence_lengths[1]
+            add_value = 2 + int(Config.join_texts)
+            all_ids = [[2 if child.is_join() else getattr(child, 'distinct_lookup_id') + add_value for child in
+                        node.children] + [0] for node in node_batch]  # [0] is EOS, 2 is JOIN #inconsistant with level 0
+            random_ids = [[2 if child.is_join() else getattr(child, 'random_lookup_id') + add_value for child in
+                           node.children] + [0] for node in
+                          node_batch]  # [0] is EOS, 2 is JOIN #inconsistant with level 0
 
-    #adds to batch root everything that can be pre calculated so it can run in parallel in dataloader collate_fn
+            all_ids = [item + [1] * (max_length - len(item)) for item in all_ids]  # 1 is PAD
+            random_ids = [item + [1] * (max_length - len(item)) for item in random_ids]  # 1 is PAD
+
+            # This array may be longer than the max_length because it assumes that the EoS token exists
+            # But some sentences, etc don't have the EoS at all if they were split
+
+            all_ids = [item[:max_length] for item in all_ids]
+            random_ids = [item[:max_length] for item in random_ids]
+
+            return {
+                'all_ids': torch.tensor(all_ids, dtype=torch.long),
+                'random_ids': torch.tensor(random_ids, dtype=torch.long),
+            }
+        else:
+            raise NotImplementedError('Not implemented for level >= 2.')
+
+    # adds to batch root everything that can be pre calculated so it can run in parallel in dataloader collate_fn
     def add_coherence_random_ids(self):
-      tokens = [n.tokens for n in self.level_nodes[0]]
-      shuffled_tokens = [item for sublist in tokens for item in sublist if item!=Config.eos_token_id]
-      shuffled_ids = [n.distinct_lookup_id for n in self.level_nodes[0]]
-      random.shuffle(shuffled_tokens)
-      random.shuffle(shuffled_ids)
+        tokens = [n.tokens for n in self.level_nodes[0]]
+        shuffled_tokens = [item for sublist in tokens for item in sublist if item != Config.eos_token_id]
+        shuffled_ids = [n.distinct_lookup_id for n in self.level_nodes[0]]
+        random.shuffle(shuffled_tokens)
+        random.shuffle(shuffled_ids)
 
-      for n in self.level_nodes[0]:
-        random_tokens = []
-        for t in n.tokens:
-          if t == Config.eos_token_id:
-            random_tokens.append(Config.eos_token_id)
-          else:
-            random_tokens.append(shuffled_tokens.pop())
-        n.random_tokens = random_tokens
-        n.random_lookup_id = shuffled_ids.pop()
+        for n in self.level_nodes[0]:
+            random_tokens = []
+            for t in n.tokens:
+                if t == Config.eos_token_id:
+                    random_tokens.append(Config.eos_token_id)
+                else:
+                    random_tokens.append(shuffled_tokens.pop())
+            n.random_tokens = random_tokens
+            n.random_lookup_id = shuffled_ids.pop()
 
+        # all other things to pre calc
+        max_distinct_id = max([node.distinct_lookup_id for node in self.level_nodes[0]])
+        id_to_tokens = {node.distinct_lookup_id: node.get_padded_word_tokens() for node in self.level_nodes[0]}
 
+        if Config.use_tpu:
+            self.num_dummy_distinct = Config.node_sizes[0] - max_distinct_id
+            for i in range(self.num_dummy_distinct):
+                # WTF is this line
+                id_to_tokens[i + max_distinct_id + 1] = [4] + ([Config.pad_token_id] * (Config.sequence_lengths[0] - 1))
+        else:
+            self.num_dummy_distinct = 0
 
-      #all other things to pre calc
-      node_batch = self.level_nodes[0]
-      max_distinct_id = max([node.distinct_lookup_id for node in node_batch])
-      self.id_to_tokens = {node.distinct_lookup_id: node.get_padded_word_tokens() for node in node_batch}
-
-      if Config.use_tpu:
-        self.num_dummy_distinct = Config.node_sizes[0] - max_distinct_id
-        for i in range(self.num_dummy_distinct):
-          self.id_to_tokens[i + max_distinct_id + 1] = [4] + ([Config.pad_token_id] * (Config.sequence_lengths[0] - 1)) #TWF is this line
-      else:
-        self.num_dummy_distinct = 0
-      self.distinct_word_embedding_tokens = [self.id_to_tokens[distinct_id] for distinct_id in range(max_distinct_id + self.num_dummy_distinct + 1)]
-
-      self.random_ids0 = [node.get_padded_random_tokens() for node in node_batch]
-      self.level_0_lookup_ids = [node.get_padded_word_tokens() for node in node_batch]
-
-      #for get_children level 1:
-      node_batch1 = self.level_nodes[1]
-
-      max_length = Config.sequence_lengths[1]
-      add_value = 2 + int(Config.join_texts)
-      all_ids = [
-        [2 if child.is_join() else getattr(child, 'distinct_lookup_id') + add_value for child in node.children] + [0]
-        for node in node_batch1]  # [0] is EOS, 2 is JOIN #inconsistant with level 0
-      random_ids = [
-        [2 if child.is_join() else getattr(child, 'random_lookup_id') + add_value for child in node.children] + [0]
-        for node in node_batch1]  # [0] is EOS, 2 is JOIN #inconsistant with level 0
-
-      all_ids = [item + [1] * (max_length - len(item)) for item in all_ids]  # 1 is PAD
-      random_ids = [item + [1] * (max_length - len(item)) for item in random_ids]  # 1 is PAD
-
-      # This array may be longer than the max_length because it assumes that the EoS token exists
-      # But some sentences, etc don't have the EoS at all if they were split
-
-
-      self.all_ids1 = [item[:max_length] for item in all_ids]
-      self.random_ids1 = [item[:max_length] for item in random_ids]
-
-
-      return
+        return [id_to_tokens[distinct_id] for distinct_id in range(max_distinct_id + self.num_dummy_distinct + 1)]

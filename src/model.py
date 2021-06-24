@@ -26,22 +26,8 @@ class AgentModel(nn.Module):
         for i in range(1, Config.agent_level + 1):
             self.agent_levels[i].previous_level = self.agent_levels[i - 1]
 
-        self.reconstruction_params = [param for name, param in self.named_parameters() if (("decompressor" in name) or ("decoder" in name))]
-        self.main_params = [param for name, param in self.named_parameters() if ("discriminator" not in name) and ("generator" not in name)]
-
     def set_word_vectors(self, batch_tree, inputs, debug=False):
-        #max_distinct_id = batch_tree.max_distinct_id
-        #id_to_tokens = batch_tree.id_to_tokens #{node.distinct_lookup_id: node.get_padded_word_tokens() for node in node_batch}
-        num_dummy_distinct = batch_tree.num_dummy_distinct
-
-        # if Config.use_tpu:
-        #     num_dummy_distinct = Config.node_sizes[0] - max_distinct_id
-        #     for i in range(num_dummy_distinct):
-        #         id_to_tokens[i + max_distinct_id + 1] = [4] + ([Config.pad_token_id] * (Config.sequence_lengths[0] - 1))
-        # else:
-        #     num_dummy_distinct = 0
-
-        local_char_embedding_tokens = inputs['local_char_embedding_tokens']
+        local_char_embedding_tokens = inputs['set_word_vectors']['local_char_embedding_tokens']
         real_positions = (local_char_embedding_tokens != Config.pad_token_id).float()
         eos_positions = local_char_embedding_tokens == Config.eos_token_id
         local_char_embedding_matrix = self.char_embedding_layer(local_char_embedding_tokens)
@@ -60,46 +46,39 @@ class AgentModel(nn.Module):
         )  # {0: eos, 1:pad, 2:join}
         word_embedding_matrix = torch.cat([special_vectors, word_embedding_matrix], 0)
 
-        lookup_ids = inputs['word_vectors_lookup_ids']
-
         if debug:
-            all_word_vectors = torch.index_select(word_embedding_matrix, 0, lookup_ids).detach()  # [words_in_batch,word_vector_size]
+            lookup_ids = inputs['set_word_vectors']['lookup_ids']
+            all_word_vectors = torch.index_select(word_embedding_matrix, 0,
+                                                  lookup_ids).detach()  # [words_in_batch,word_vector_size]
             [n.set_vector(v) for n, v in zip(batch_tree.level_nodes[0], all_word_vectors)]
 
-        return None, word_embedding_matrix, num_dummy_distinct
+        return None, word_embedding_matrix, batch_tree.num_dummy_distinct
 
-    def forward(self, batch_tree, inputs, generate=False, debug=False,last_obj={},global_step=0, xm=None):
+    def forward(self, batch_tree, inputs, generate=False, debug=False, last_obj={}, global_step=0, xm=None):
         total_g_loss, total_disc_loss, total_loss = 0, 0, 0
-        first_A1s, first_pndb_lookup_ids = None,None #for when we want to debug just the first 5 texts, todo: remove after full_decode uses the reconstruction loss function
+        first_A1s, first_pndb_lookup_ids = None, None  # for when we want to debug just the first 5 texts, todo: remove after full_decode uses the reconstruction loss function
         # print("emb: ",len(batch_tree.distinct_word_embedding_tokens))
         # print("level 0: ",len(batch_tree.level_nodes[0]))
         # print("level 1: ",len(batch_tree.level_nodes[1]))
         # print("----------------")
-        if len(batch_tree.distinct_word_embedding_tokens) > Config.max_word_embedding_size:
-          if global_step==0:
-            print("First batch is too big for embedding")
-          return total_g_loss, total_disc_loss, total_loss, last_obj  # todo: move to pre processing + pad embedding and batches for TPU here
+        if len(inputs['set_word_vectors']['local_char_embedding_tokens']) > Config.max_word_embedding_size:
+            if global_step == 0:
+                print("First batch is too big for embedding")
+            return total_g_loss, total_disc_loss, total_loss, last_obj  # todo: move to pre processing + pad embedding and batches for TPU here
 
         loss_object = {}
-        previous_vectors = None
-        word_embedding_matrix= None
+        word_embedding_matrix = None
         for level_num in range(Config.agent_level + 1):
             # All the nodes in this level (not including join tokens if on lowest level)=>shouldn't have those
-            #full_node_batch = [node for node in batch_tree.level_nodes[level_num] if level_num > 0 or not node.is_join()]
+            # full_node_batch = [node for node in batch_tree.level_nodes[level_num] if level_num > 0 or not node.is_join()]
             full_node_batch = batch_tree.level_nodes[level_num]
-            num_real_nodes = len(full_node_batch)
+            num_real_nodes = len(full_node_batch)  # TODO - Is this correct for TPU?
             if level_num == 0:
                 with xp.Trace('SetWordVectors'):
                     vectors, wm, num_dummy0_embed = self.set_word_vectors(batch_tree, inputs, debug=debug)
                     word_embedding_matrix = wm
 
-            node_batchs=node_batch_to_small_batches(full_node_batch,level_num)
-
-            # if global_step<Config.early_steps and (not debug):
-            #   node_batchs = node_batchs[0:1]
-            #   num_real_nodes = len(node_batchs[0])
-            done_nodes = 0
-            for node_batch in node_batchs:
+            for batch_index, node_batch in enumerate(batch_tree.level_batches[level_num]):
                 if Config.use_cuda and torch.cuda.is_available():
                     with torch.cuda.device(Config.device):
                         torch.cuda.empty_cache()
@@ -107,36 +86,34 @@ class AgentModel(nn.Module):
                 num_dummy_nodes = 0
                 if Config.use_tpu:
                     num_dummy_nodes = len([True for node in node_batch if node.is_dummy])
-                #real_node_num = (len(node_batch) - num_dummy_nodes)
 
                 with xp.Trace('GetChildren' + str(level_num)):
                     if level_num == 0:
-                        matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy,A1s, pndb_lookup_ids,random_matrices = \
+                        matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy, A1s, pndb_lookup_ids, random_matrices = \
                             self.agent_levels[
                                 level_num].get_children(
                                 node_batch,
                                 inputs,
                                 self.char_embedding_layer.weight,
                                 word_embedding_matrix,
-                                done_nodes=done_nodes,
-                                batch_tree=batch_tree,
+                                batch_index=batch_index,
                                 debug=debug)
                     elif level_num == 1:
-                        matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy, A1s, pndb_lookup_ids,random_matrices = \
-                          self.agent_levels[
-                            level_num].get_children(
-                            node_batch,
-                            inputs,
-                            word_embedding_matrix,
-                            None,
-                            done_nodes=done_nodes,
-                            batch_tree=batch_tree,
-                            debug=debug)
+                        matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy, A1s, pndb_lookup_ids, random_matrices = \
+                            self.agent_levels[
+                                level_num].get_children(
+                                node_batch,
+                                inputs,
+                                word_embedding_matrix,
+                                batch_index=batch_index,
+                                debug=debug)
                         num_dummy += num_dummy0_embed
-                        if debug and first_A1s == None and (Config.use_pndb1 or Config.use_pndb2): #todo: cancat and have it working on all batch nodes later
-                          first_A1s, first_pndb_lookup_ids = A1s.detach(), pndb_lookup_ids.detach()
+
+                        # todo: cancat and have it working on all batch nodes later
+                        if debug and first_A1s is None and (Config.use_pndb1 or Config.use_pndb2):
+                            first_A1s, first_pndb_lookup_ids = A1s.detach(), pndb_lookup_ids.detach()
                     else:
-                        matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy, A1s, pndb_lookup_ids,random_matrices = \
+                        matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy, A1s, pndb_lookup_ids, random_matrices = \
                             self.agent_levels[
                                 level_num].get_children(
                                 node_batch,
@@ -144,8 +121,6 @@ class AgentModel(nn.Module):
                                 None,
                                 None, debug=debug)
                         num_dummy += num_dummy0_embed
-                    done_nodes+=len(node_batch)
-
 
                 if Config.use_tpu:
                     with xp.Trace('DummyLogitBias' + str(level_num)):
@@ -157,39 +132,40 @@ class AgentModel(nn.Module):
 
                 with xp.Trace('CoherenceLoss' + str(level_num)):
                     coherence_loss = calc_coherence_loss(self.agent_levels[level_num], matrices,
-                                                                  real_positions,
-                                                                  eos_positions,
-                                                                  embedding_matrix,
-                                                                  random_matrices,
-                                                                  num_dummy=num_dummy)
+                                                         real_positions,
+                                                         eos_positions,
+                                                         embedding_matrix,
+                                                         random_matrices,
+                                                         num_dummy=num_dummy)
                 del random_matrices
                 if Config.use_cuda and torch.cuda.is_available():
                     with torch.cuda.device(Config.device):
                         torch.cuda.empty_cache()
-                #torch.cuda.empty_cache() WTF this line gives RuntimeError: CUDA error: out of memory on first small (s=80) batch
+                # torch.cuda.empty_cache() WTF this line gives RuntimeError: CUDA error: out of memory on first small (s=80) batch
 
                 with xp.Trace('MLMLoss' + str(level_num)):
-                    mlm_loss,rm_loss = calc_mlm_loss(self.agent_levels[level_num], matrices, real_positions,
-                                                            eos_positions,
-                                                            embedding_matrix,
-                                                            labels, num_dummy=num_dummy,
-                                                            dummy_logit_bias=dummy_logit_bias)
+                    mlm_loss, rm_loss = calc_mlm_loss(self.agent_levels[level_num], matrices, real_positions,
+                                                      eos_positions,
+                                                      embedding_matrix,
+                                                      labels, num_dummy=num_dummy,
+                                                      dummy_logit_bias=dummy_logit_bias)
 
                 with xp.Trace('CallingDecompressor' + str(level_num)):
-                    if Config.noise == False or debug or level_num==Config.agent_level:
-                      decompressed = self.agent_levels[level_num].decompressor(vectors)
+                    if not Config.noise or debug or level_num == Config.agent_level:
+                        decompressed = self.agent_levels[level_num].decompressor(vectors)
                     else:
-                      decompressed = self.agent_levels[level_num].decompressor(make_noise(vectors,last_obj[level_num+1]["d"]))
+                        decompressed = self.agent_levels[level_num].decompressor(
+                            make_noise(vectors, last_obj[level_num + 1]["d"]))
 
                 with xp.Trace('ReconstructionLoss' + str(level_num)):
-                    reconstruction_diff_loss, reconstruction_loss, eos_loss, re_loss, rj_loss,rc_loss = \
+                    reconstruction_diff_loss, reconstruction_loss, eos_loss, re_loss, rj_loss, rc_loss = \
                         calc_reconstruction_loss(
                             self.agent_levels[level_num],
                             matrices, decompressed, real_positions,
                             eos_positions,
                             join_positions,
-                            embedding_matrix, labels, self.agent_levels[1].pndb,A1s, pndb_lookup_ids, num_dummy=num_dummy, dummy_logit_bias=dummy_logit_bias)
-
+                            embedding_matrix, labels, self.agent_levels[1].pndb, A1s, pndb_lookup_ids,
+                            num_dummy=num_dummy, dummy_logit_bias=dummy_logit_bias)
 
                 with xp.Trace('JoinLoss' + str(level_num)):
                     if Config.join_texts and level_num >= 1:
@@ -206,7 +182,7 @@ class AgentModel(nn.Module):
                 with xp.Trace('CalculateLosses' + str(level_num)):
                     losses = {
                         'm': (mlm_loss * loss_keeper).sum(),
-                        #'md': (mlm_diff_loss * loss_keeper).sum(),
+                        # 'md': (mlm_diff_loss * loss_keeper).sum(),
                         "c": (coherence_loss * loss_keeper).sum(),
                         "r": (reconstruction_loss * loss_keeper).sum(),
                         "e": (eos_loss * loss_keeper).sum(),
@@ -217,13 +193,16 @@ class AgentModel(nn.Module):
                         "re": (re_loss * loss_keeper).sum(),
                         "rj": (rj_loss * loss_keeper).sum(),
                         "rm": (rm_loss * loss_keeper).sum(),
-                        #"rmd": (rm_diff_loss * loss_keeper).sum(),
-                        #"cd": (cd_loss * loss_keeper).mean(),  # This is disabled in coherence loss
-                        #"rcd": (rcd_loss.view(-1, 2) * loss_keeper.unsqueeze(-1)).mean(),  # TODO - Check if correct
+                        # "rmd": (rm_diff_loss * loss_keeper).sum(),
+                        # "cd": (cd_loss * loss_keeper).mean(),  # This is disabled in coherence loss
+                        # "rcd": (rcd_loss.view(-1, 2) * loss_keeper.unsqueeze(-1)).mean(),  # TODO - Check if correct
                     }
 
+                    # TODO - Shouldn't this be divided by len(node_batch)?
                     main_loss = loss_object_to_main_loss({level_num: losses}) / num_real_nodes
-                    main_loss.backward(retain_graph=True) #after 20k batches this gave RuntimeError: cuDNN error: CUDNN_STATUS_EXECUTION_FAILED => WTF
+
+                    # after 20k batches this gave RuntimeError: cuDNN error: CUDNN_STATUS_EXECUTION_FAILED => WTF
+                    main_loss.backward(retain_graph=True)
 
                     if Config.use_tpu and not Config.profile_tpu:
                         xm.mark_step()
@@ -236,11 +215,11 @@ class AgentModel(nn.Module):
                         for label, value in losses.items():
                             loss_object[level_num][label] += value.detach() / num_real_nodes
 
-
-                    losses,main_loss,r_loss = None,None,None
+                    losses, main_loss, r_loss = None, None, None  # TODO - Is this necessary?
 
                 if generate:  # todo: fix here
-                    g_loss, disc_loss = calc_generation_loss(self.agent_levels[level_num], vectors, matrices, real_positions)
+                    g_loss, disc_loss = calc_generation_loss(self.agent_levels[level_num], vectors, matrices,
+                                                             real_positions)
                     loss_object[level_num]["g"] = g_loss.item()
                     loss_object[level_num]["disc"] = disc_loss.item()
                     total_g_loss += g_loss
@@ -253,7 +232,7 @@ class AgentModel(nn.Module):
                 if debug:
                     for i, node in enumerate(node_batch):
                         node.mlm_loss = mlm_loss[i].detach()
-                        #node.mlm_diff_loss = mlm_diff_loss[i].detach()
+                        # node.mlm_diff_loss = mlm_diff_loss[i].detach()
                         node.coherence_loss = coherence_loss[i].detach()
                         node.reconstruction_loss = reconstruction_loss[i].detach()
                         node.eos_loss = eos_loss[i].detach()
@@ -263,7 +242,7 @@ class AgentModel(nn.Module):
                         node.re_loss = re_loss[i].detach()
                         node.rj_loss = rj_loss[i].detach()
                         node.rm_loss = rm_loss[i].detach()
-                        #node.rm_diff_loss = rm_diff_loss[i].detach()
+                        # node.rm_diff_loss = rm_diff_loss[i].detach()
                 mlm_loss, mlm_diff_loss, coherence_loss, reconstruction_loss, eos_loss, join_loss, reconstruction_diff_loss, re_loss, rm_loss = None, None, None, None, None, None, None, None, None
 
         # with xp.Trace('ComputeTotalLoss' + str(level_num)):
@@ -280,19 +259,14 @@ class AgentModel(nn.Module):
     def compute_vectors(self, batch_tree, inputs):
         _, word_embedding_matrix, _ = self.set_word_vectors(batch_tree, inputs, debug=True)
         for level_num in range(1, Config.agent_level + 1):
-            node_batchs = node_batch_to_small_batches(batch_tree.level_nodes[level_num], level_num)
-            done_nodes = 0
-            for node_batch in node_batchs:
+            for batch_index, node_batch in batch_tree.level_batches[level_num]:
                 _ = self.agent_levels[
-                        level_num].get_children(
-                        node_batch,
-                        inputs,
-                        word_embedding_matrix,
-                        None,
-                        done_nodes=done_nodes,
-                        batch_tree=batch_tree,
-                        debug=True)
-                done_nodes += len(node_batch)
+                    level_num].get_children(
+                    node_batch,
+                    inputs,
+                    word_embedding_matrix,
+                    batch_index=batch_index,
+                    debug=True)
 
     def debug_decode(self, batch_tree, node_batch=None):
         if node_batch is None:
@@ -319,7 +293,7 @@ class AgentModel(nn.Module):
         if len(node_vectors) == 0:  # If all of the nodes are joins
             return [(-1, True) for _ in nodes]
         node_vectors = torch.stack(node_vectors)
-        children_vectors, children_eos, _, _ = agent_level.vecs_to_children_vecs(node_vectors,A1s, pndb_lookup_ids)
+        children_vectors, children_eos, _, _ = agent_level.vecs_to_children_vecs(node_vectors, A1s, pndb_lookup_ids)
         children_eos = children_eos.tolist()
 
         if nodes[0].level == 0:
@@ -358,7 +332,7 @@ class AgentModel(nn.Module):
                 n.level = node.level - 1
                 n.parent = node
                 children_nodes.append(n)
-            results.append((self.full_decode(children_nodes,A1s, pndb_lookup_ids), children_eos[index]))
+            results.append((self.full_decode(children_nodes, A1s, pndb_lookup_ids), children_eos[index]))
             index += 1
 
         return results
@@ -371,6 +345,6 @@ class AgentModel(nn.Module):
             n.vector = v
             n.level = level
             nodes.append(n)
-        A1s, pndb_lookup_ids = None,None #todo: just have 1 A1 here fix the generator
+        A1s, pndb_lookup_ids = None, None  # todo: just have 1 A1 here fix the generator
         decoded = self.full_decode(nodes)
         return [TreeTokenizer.deep_detokenize(r[0], level) for r in decoded]

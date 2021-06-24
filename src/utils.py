@@ -140,7 +140,7 @@ def node_batch_to_small_batches(node_batch, level):
     while node_batchs:
         batch = node_batchs.pop()
         if len(batch) == max_size:
-          res.append(batch)
+            res.append(batch)
         elif len(batch) > max_size:
             res.append(batch[:max_size])
             node_batchs.append(batch[max_size:])
@@ -164,17 +164,17 @@ def distinct(lst):
     return output
 
 
-def make_noise(t,noise):
-    noise = torch.min(noise,noise/noise)*t.norm(dim=[-1]).mean() #capped at 1
+def make_noise(t, noise):
+    noise = torch.min(noise, noise / noise) * t.norm(dim=[-1]).mean()  # capped at 1
     changed_examples = torch.rand(t.shape[0], 1, device=Config.device).round()
     n = torch.normal(torch.mean(t).data, torch.std(t).data, size=t.shape, device=Config.device)
     return t + noise * changed_examples * n
 
 
 def apply_recursive(func, obj):
-  if isinstance(obj, dict):  # if dict, apply to each key
-    return {k: apply_recursive(func, v) for k, v in obj.items()}
-  elif isinstance(obj, list):  # if list, apply to each element
-    return [apply_recursive(func, elem) for elem in obj]
-  else:
-    return func(obj)
+    if isinstance(obj, dict):  # if dict, apply to each key
+        return {k: apply_recursive(func, v) for k, v in obj.items()}
+    elif isinstance(obj, list):  # if list, apply to each element
+        return [apply_recursive(func, elem) for elem in obj]
+    else:
+        return func(obj)

@@ -1,7 +1,8 @@
-from . import Compressor, Decompressor, Encoder, Decoder, CoherenceChecker, Generator, Discriminator, CnnDiscriminator, Pndb
+from . import Compressor, Decompressor, Encoder, Decoder, CoherenceChecker, Generator, Discriminator, CnnDiscriminator, \
+    Pndb
 from src.losses.eos import decompressed_to_cdot, cdot_to_probs, calc_eos_loss
 from src.config import Config
-from src.utils import group_by_root,distinct
+from src.utils import group_by_root, distinct
 import torch.nn.functional as F
 import torch.nn as nn
 import torch
@@ -46,11 +47,9 @@ class AgentLevel(nn.Module):
         self.mask_vector = nn.Parameter(torch.rand(Config.vector_sizes[level], requires_grad=True))
         self.pad_vector = nn.Parameter(torch.zeros(Config.vector_sizes[level]), requires_grad=False)
 
-
         self.pndb = None
-        if self.level==1 and (Config.use_pndb1 is not None or Config.use_pndb2 is not None):
+        if self.level == 1 and (Config.use_pndb1 is not None or Config.use_pndb2 is not None):
             self.pndb = Pndb()
-
 
     def eos_classifier1(self, dot):
         # needed to make sure w1 can never be negative
@@ -60,45 +59,44 @@ class AgentLevel(nn.Module):
         # needed to make sure w1 can never be negative
         return F.elu(dot * self.join_classifier_w * torch.sign(self.join_classifier_w)) + self.join_classifier_b
 
-    def get_children(self, node_batch, inputs, embedding=None, word_embedding0=None,batch_tree=None, done_nodes=0,debug=False):
+    def get_children(self, node_batch, inputs, embedding=None, word_embedding0=None, batch_index=0, debug=False):
         max_length = Config.sequence_lengths[self.level]
-        num_nodes = len(node_batch)
+        inputs = inputs[str(self.level) + '-' + str(batch_index)]  # Simplifying the inputs here
         if self.level == 0:  # words => get token vectors
-            #old_lookup_ids = torch.tensor([node.get_padded_word_tokens() for node in node_batch], dtype=torch.long,device=Config.device)
-            lookup_ids = inputs['0_lookup_ids'][done_nodes:done_nodes + num_nodes]
+            lookup_ids = inputs['lookup_ids']
 
             real_positions = (lookup_ids != Config.pad_token_id).float()
             eos_positions = (lookup_ids == Config.eos_token_id).float()
             matrices = torch.index_select(embedding, 0, lookup_ids.view(-1))
-            matrices = matrices.view(lookup_ids.size(0),Config.sequence_lengths[self.level],Config.vector_sizes[self.level])
+            matrices = matrices.view(lookup_ids.size(0), Config.sequence_lengths[self.level],
+                                     Config.vector_sizes[self.level])
 
-            word_lookup_ids = inputs['0_word_lookup_ids'][done_nodes:done_nodes + num_nodes]
-            vectors = torch.index_select(word_embedding0, 0,word_lookup_ids)
-            #vectors = self.compressor(self.encoder(matrices, real_positions, eos_positions), real_positions) #same but less efficient
+            word_lookup_ids = inputs['word_lookup_ids']
+            vectors = torch.index_select(word_embedding0, 0, word_lookup_ids)
+            # vectors = self.compressor(self.encoder(matrices, real_positions, eos_positions), real_positions) #same but less efficient
 
-
-            #create_coherence_matrixes
-            #old_random_ids = torch.tensor([node.get_padded_random_tokens() for node in node_batch], dtype=torch.long,device=Config.device)
+            # create_coherence_matrixes
             with torch.no_grad():
-                random_ids = inputs['0_random_ids'][done_nodes:done_nodes + num_nodes]
-                random_matrices = torch.index_select(embedding, 0, random_ids.view(-1))#.detach()
-                random_matrices = random_matrices.view(lookup_ids.size(0),Config.sequence_lengths[self.level],Config.vector_sizes[self.level])
+                random_ids = inputs['random_ids']
+                random_matrices = torch.index_select(embedding, 0, random_ids.view(-1))  # .detach()
+                random_matrices = random_matrices.view(lookup_ids.size(0), Config.sequence_lengths[self.level],
+                                                       Config.vector_sizes[self.level])
 
             # lookup_ids is also labels
-            return matrices, real_positions, eos_positions, None, embedding, lookup_ids, vectors, 0, None, None,random_matrices
+            return matrices, real_positions, eos_positions, None, embedding, lookup_ids, vectors, 0, None, None, random_matrices
         elif self.level == 1:
-            #add_value = 2 + int(Config.join_texts)
             num_dummy = 0
-            if Config.use_tpu: #add pad vectors to ensure constant word embedding matrix size
+            if Config.use_tpu:  # add pad vectors to ensure constant word embedding matrix size
                 total_possible = len(node_batch) * max_length
                 extra_dummy = total_possible - embedding.size(0)
-                embedding = torch.cat((embedding,torch.stack([self.pad_vector] * extra_dummy)), 0)
+                embedding = torch.cat((embedding, torch.stack([self.pad_vector] * extra_dummy)), 0)
 
-            all_ids = inputs['1_all_ids'][done_nodes:done_nodes + num_nodes]
+            all_ids = inputs['all_ids']
             with torch.no_grad():
-                random_ids = inputs['1_random_ids'][done_nodes:done_nodes + num_nodes]
+                random_ids = inputs['random_ids']
                 random_matrices = torch.index_select(embedding, 0, random_ids.flatten())
-                random_matrices = random_matrices.reshape((random_ids.size(0), random_ids.size(1), random_matrices.size(1)))
+                random_matrices = random_matrices.reshape(
+                    (random_ids.size(0), random_ids.size(1), random_matrices.size(1)))
 
             mask = (all_ids == Config.pad_token_id).bool()
             # TODO - Which is faster? int() or float()?
@@ -112,52 +110,54 @@ class AgentLevel(nn.Module):
 
             real_positions = (1 - mask.float())
             vectors = self.compressor(self.encoder(matrices, real_positions, eos_positions), real_positions)
-            if debug or Config.agent_level>1:
+            if debug or Config.agent_level > 1:
                 [n.set_vector(v.detach()) for n, v in zip(node_batch, vectors)]
 
-
-            #pndb
-            A1s, pndb_lookup_ids = None,None
+            # pndb
+            A1s, pndb_lookup_ids = None, None
             if Config.use_pndb1:
-              #continuous ids verify, todo: if debug
-              # md5s = [n.root_md5 for n in node_batch]
-              # seen = set([])
-              # for i in range(1,len(md5s)):
-              #   if md5s[i] in seen and md5s[i]!=md5s[i-1]:
-              #     raise("WTF pndb") #happened after 4000+ batches
-              #   seen.add(md5s[i])
+                # continuous ids verify, todo: if debug
+                # md5s = [n.root_md5 for n in node_batch]
+                # seen = set([])
+                # for i in range(1,len(md5s)):
+                #   if md5s[i] in seen and md5s[i]!=md5s[i-1]:
+                #     raise("WTF pndb") #happened after 4000+ batches
+                #   seen.add(md5s[i])
 
-              current_root_md5 = node_batch[0].root_md5
-              start_index=0
-              end_index = 0
-              A1s=[]
-              pndb_lookup_ids=[]
-              top_doc_id = 0
-              for n in node_batch:
-                if n.root_md5 == current_root_md5:
-                  end_index+=1
-                else:
-                  A1s.append(self.pndb.create_A_matrix(matrices[start_index:end_index], real_positions[start_index:end_index]))
-                  start_index = end_index
-                  end_index+=1
-                  current_root_md5 = n.root_md5
-                  top_doc_id+=1
-                pndb_lookup_ids.append(top_doc_id)
-              A1s.append(self.pndb.create_A_matrix(matrices[start_index:end_index], real_positions[start_index:end_index]))
-              A1s = torch.stack(A1s)
-              pndb_lookup_ids = torch.tensor(pndb_lookup_ids,device=Config.device)
+                current_root_md5 = node_batch[0].root_md5
+                start_index = 0
+                end_index = 0
+                A1s = []
+                pndb_lookup_ids = []
+                top_doc_id = 0
+                for n in node_batch:
+                    if n.root_md5 == current_root_md5:
+                        end_index += 1
+                    else:
+                        A1s.append(self.pndb.create_A_matrix(matrices[start_index:end_index],
+                                                             real_positions[start_index:end_index]))
+                        start_index = end_index
+                        end_index += 1
+                        current_root_md5 = n.root_md5
+                        top_doc_id += 1
+                    pndb_lookup_ids.append(top_doc_id)
+                A1s.append(
+                    self.pndb.create_A_matrix(matrices[start_index:end_index], real_positions[start_index:end_index]))
+                A1s = torch.stack(A1s)
+                pndb_lookup_ids = torch.tensor(pndb_lookup_ids, device=Config.device)
 
-
-            return matrices, real_positions, eos_positions, join_positions, embedding, labels, vectors, num_dummy,A1s,pndb_lookup_ids,random_matrices
+            return matrices, real_positions, eos_positions, join_positions, embedding, labels, vectors, num_dummy, A1s, pndb_lookup_ids, random_matrices
         else:
             add_value = 2 + int(Config.join_texts)
             num_dummy = 0
             if Config.use_tpu:
-              raise ("WTF level 2 TPU is not implemented")
+                raise NotImplementedError("WTF level 2 TPU is not implemented")
 
-            id_to_index = {v: i for i,v in enumerate([c.id for node in node_batch for c in node.children if not(c.is_join())])}
+            id_to_index = {v: i for i, v in
+                           enumerate([c.id for node in node_batch for c in node.children if not (c.is_join())])}
 
-            all_ids = [[2 if child.is_join() else id_to_index[child.id] + add_value for child in node.children] + [0] for node in node_batch]  # [0] is EOS, 2 is JOIN
+            all_ids = [[2 if child.is_join() else id_to_index[child.id] + add_value for child in node.children] + [0]
+                       for node in node_batch]  # [0] is EOS, 2 is JOIN
             all_ids = [item + [1] * (max_length - len(item)) for item in all_ids]  # 1 is PAD
 
             # This array may be longer than the max_length because it assumes that the EoS token exists
@@ -167,9 +167,9 @@ class AgentLevel(nn.Module):
             # [sentences in node_batch, max words in sentence, word vec size]
             all_ids = torch.tensor(all_ids, device=Config.device, dtype=torch.long)
 
-            #embedding:
-            all_vectors = [c.vector for node in node_batch for c in node.children if not(c.is_join())]
-            embedding = torch.stack([self.eos_vector,self.pad_vector,self.join_vector]+all_vectors)
+            # embedding:
+            all_vectors = [c.vector for node in node_batch for c in node.children if not (c.is_join())]
+            embedding = torch.stack([self.eos_vector, self.pad_vector, self.join_vector] + all_vectors)
 
             mask = (all_ids == Config.pad_token_id).bool()
             # TODO - Which is faster? int() or float()?
@@ -187,14 +187,13 @@ class AgentLevel(nn.Module):
             vectors = self.compressor(self.encoder(matrices, real_positions, eos_positions), real_positions)
             if debug:
                 [n.set_vector(v.detach()) for n, v in zip(node_batch, vectors)]
-            return matrices, real_positions, eos_positions, join_positions, embedding, labels, vectors, num_dummy, None, None,None
+            return matrices, real_positions, eos_positions, join_positions, embedding, labels, vectors, num_dummy, None, None, None
 
-
-    def vecs_to_children_vecs(self, vecs,A1s, pndb_lookup_ids):
+    def vecs_to_children_vecs(self, vecs, A1s, pndb_lookup_ids):
         decompressed = self.decompressor(vecs)
 
-        #todo: use PNDB2 if exists
-        #if Config.use_pndb2 is not None and self.level == 1:
+        # todo: use PNDB2 if exists
+        # if Config.use_pndb2 is not None and self.level == 1:
         #  decompressed = self.pndb.old_get_data_from_A_matrix(pndb2, decompressed)
 
         batch, seq_length, _ = decompressed.shape
@@ -203,8 +202,8 @@ class AgentLevel(nn.Module):
         real_positions_for_mask = (1 - torch.cumsum(projected_eos_positions, dim=1))
         post_decoder = self.decoder(decompressed, real_positions_for_mask, None)
         if Config.use_pndb1 is not None and self.level == 1:
-          # post_decoder = pndb.old_get_data_from_A_matrix(pndb.create_A_matrix(matrices, real_positions), post_decoder)
-          post_decoder = self.pndb.get_data_from_A_matrix(A1s, pndb_lookup_ids, post_decoder)
+            # post_decoder = pndb.old_get_data_from_A_matrix(pndb.create_A_matrix(matrices, real_positions), post_decoder)
+            post_decoder = self.pndb.get_data_from_A_matrix(A1s, pndb_lookup_ids, post_decoder)
 
         _, eos_mask = calc_eos_loss(self, post_decoder, torch.zeros(batch, seq_length, device=Config.device))
 

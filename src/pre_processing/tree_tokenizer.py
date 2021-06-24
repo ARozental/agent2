@@ -180,11 +180,8 @@ class TreeTokenizer:
         batch_tree.batch_up_nodes()
         if Config.use_tpu:
             batch_tree.fill_dummy_nodes()
-        else:
-            pass
-            #batch_tree.trim_nodes() #if we don't use tpu why would we do this trim?? => gpu explodes without it => why??
         batch_tree.make_distinct_words()
-        batch_tree.add_coherence_random_ids()
+        batch_tree.make_node_batches()
 
         # #it is ok here:
         # print("tree text 0:", [cls.detokenize(x.tokens) for x in batch_tree.batch_root.children[0].children])
@@ -192,23 +189,25 @@ class TreeTokenizer:
         # print("level nodes text 1:", [[cls.detokenize(n.tokens) for n in x.children] for x in batch_tree.level_nodes[1]])
         # print("level nodes text 1:", [[n.id for n in x.children] for x in batch_tree.level_nodes[1]])
 
-        #valid = batch_tree.valid_tree() #todo: fix here, use it
+        # valid = batch_tree.valid_tree() # TODO: fix here, use it
+
+        distinct_word_embedding_tokens = batch_tree.add_coherence_random_ids()
         add_value = 2 + int(Config.join_texts)
-        return batch_tree, {
+        lookup_ids = [x.distinct_lookup_id + add_value for x in batch_tree.level_nodes[0]]
+        objects = {
             # model.set_word_vectors
-            'local_char_embedding_tokens': torch.tensor(batch_tree.distinct_word_embedding_tokens, dtype=torch.long),
-            'word_vectors_lookup_ids': torch.tensor([x.distinct_lookup_id for x in batch_tree.level_nodes[0]],
-                                                    dtype=torch.long) + add_value,
-
-            # level.get_children
-            '0_lookup_ids': torch.tensor(batch_tree.level_0_lookup_ids, dtype=torch.long),
-            '0_word_lookup_ids': torch.tensor(
-                [node.distinct_lookup_id + add_value for node in batch_tree.level_nodes[0]], dtype=torch.long),
-            '0_random_ids': torch.tensor(batch_tree.random_ids0, dtype=torch.long),
-
-            '1_all_ids': torch.tensor(batch_tree.all_ids1, dtype=torch.long),
-            '1_random_ids': torch.tensor(batch_tree.random_ids1, dtype=torch.long),
+            'set_word_vectors': {
+                'local_char_embedding_tokens': torch.tensor(distinct_word_embedding_tokens, dtype=torch.long),
+                'lookup_ids': torch.tensor(lookup_ids, dtype=torch.long),
+            },
         }
+
+        # level.get_children
+        for level in range(Config.agent_level + 1):
+            for batch_index, node_batch in enumerate(batch_tree.level_batches[level]):
+                objects[str(level) + '-' + str(batch_index)] = batch_tree.prepare_batch(node_batch, level)
+
+        return batch_tree, objects
 
     @classmethod
     def compute_struct_stats(cls, struct, stats, level):

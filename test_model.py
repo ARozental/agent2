@@ -26,7 +26,7 @@ Config.setup_device()
 
 # Need to wrap in a function for the child workers
 def test_model():
-    model_file_location = "/Users/alonrozental/IdeaProjects/agent2/models/dummy_model"
+    model_file_location = "/Users/alonrozental/IdeaProjects/agent2/models/s256_pndb128_m2"
     Config.device = torch.device('cpu')
     model = AgentModel()
     #model.to(Config.device)

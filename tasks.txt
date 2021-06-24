@@ -35,6 +35,10 @@ do we need grad_norm now?
 no delete history and no pass for late start
 coherence with tokens from batch, not embedding dring back RC
 have a function that consumes max memory at the the start of training
+kill mlm0+r_diff0????
+dummy is broken :(
+replace full_decode, use the actual reconstruction_loss function to avoide code duplication/mismatch
+can't load gpu trained model on cpu
 
 
 change config to reflect real numbers for level batch use different version for gpu/tpu??

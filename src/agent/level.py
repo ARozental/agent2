@@ -190,13 +190,22 @@ class AgentLevel(nn.Module):
             return matrices, real_positions, eos_positions, join_positions, embedding, labels, vectors, num_dummy, None, None,None
 
 
-    def vecs_to_children_vecs(self, vecs):
+    def vecs_to_children_vecs(self, vecs,A1s, pndb_lookup_ids):
         decompressed = self.decompressor(vecs)
+
+        #todo: use PNDB2 if exists
+        #if Config.use_pndb2 is not None and self.level == 1:
+        #  decompressed = self.pndb.old_get_data_from_A_matrix(pndb2, decompressed)
+
         batch, seq_length, _ = decompressed.shape
         _, projected_eos_positions = calc_eos_loss(self, decompressed,
                                                    torch.zeros(batch, seq_length, device=Config.device))
         real_positions_for_mask = (1 - torch.cumsum(projected_eos_positions, dim=1))
         post_decoder = self.decoder(decompressed, real_positions_for_mask, None)
+        if Config.use_pndb1 is not None and self.level == 1:
+          # post_decoder = pndb.old_get_data_from_A_matrix(pndb.create_A_matrix(matrices, real_positions), post_decoder)
+          post_decoder = self.pndb.get_data_from_A_matrix(A1s, pndb_lookup_ids, post_decoder)
+
         _, eos_mask = calc_eos_loss(self, post_decoder, torch.zeros(batch, seq_length, device=Config.device))
 
         eos_mask_max = eos_mask.max(dim=-1).values

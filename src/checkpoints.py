@@ -94,7 +94,7 @@ class Checkpoints:
         return checkpoint_file
 
     @classmethod
-    def load(cls, model, main_optimizer, scheduler):
+    def load(cls, model, main_optimizer=None, scheduler=None):
         checkpoint_file = Config.use_checkpoint
         if checkpoint_file is None:
             # See if a model already exists in the folder
@@ -121,8 +121,10 @@ class Checkpoints:
             with Storage.fs.open(file, 'rb') as f:
                 checkpoint = torch.load(f)
             model.load_state_dict(checkpoint['model'])
-            main_optimizer.load_state_dict(checkpoint['main_optimizer'])
-            scheduler.load_state_dict(checkpoint['scheduler'])
+            if main_optimizer is not None:
+                main_optimizer.load_state_dict(checkpoint['main_optimizer'])
+            if scheduler is not None:
+                scheduler.load_state_dict(checkpoint['scheduler'])
             torch.set_rng_state(checkpoint['random.torch'])
             random.setstate(checkpoint['random.python'])
             np.random.set_state(checkpoint['random.numpy'])

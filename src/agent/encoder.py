@@ -1,5 +1,5 @@
 from src.transformer import PositionalEncoding, EncoderLayer, TransformerEncoder
-from src.profiler import Profiler as xp
+from src.debug.profiler import Profiler as xp
 from src.utils import gelu_new
 from src.config import Config
 import torch.nn as nn

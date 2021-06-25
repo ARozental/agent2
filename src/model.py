@@ -78,7 +78,7 @@ class AgentModel(nn.Module):
         if len(batch_tree.distinct_word_embedding_tokens) > Config.max_word_embedding_size:
           if global_step==0:
             print("First batch is too big for embedding")
-          return total_g_loss, total_disc_loss, total_loss, last_obj  # todo: move to pre processing + pad embedding and batches for TPU here
+          return total_g_loss, total_disc_loss, total_loss, last_obj, first_A1s, first_pndb_lookup_ids  # todo: move to pre processing + pad embedding and batches for TPU here
 
         loss_object = {}
         previous_vectors = None

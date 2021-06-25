@@ -1,4 +1,6 @@
 from src.pre_processing.dataset import Dataset
+from src.pre_processing import TreeTokenizer
+from src.config import Config
 import glob
 
 
@@ -23,5 +25,7 @@ class LocalDataset(Dataset):
         return self._read_file(file)
 
     def __iter__(self):
-        for file in self.data:
-            yield self._read_file(file)
+        for batch in range(len(self.data) // Config.batch_size):
+            begin = batch * Config.batch_size
+            text = [self._read_file(self.data[begin + num]) for num in range(Config.batch_size)]
+            yield TreeTokenizer.batch_texts_to_trees(text)

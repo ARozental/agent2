@@ -120,10 +120,11 @@ def train(index, flags, training_started):
         total_model_time = 0
         start_time = time.time()
         for step, (batch, inputs) in enumerate(parallel_loader):
-            for key, value in inputs.items():
-                inputs[key] = value.squeeze(0)
-                if Config.use_cuda:
-                    inputs[key] = inputs[key].to(Config.device)
+            for parent_key, values in inputs.items():
+                for key, value in values.items():
+                    inputs[parent_key][key] = value.squeeze(0)
+                    if Config.use_cuda:
+                        inputs[parent_key][key] = inputs[parent_key][key].to(Config.device)
 
             grad_acc_steps = Config.grad_acc_fn(global_step)
             if Config.profile_tpu and step >= 4:

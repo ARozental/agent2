@@ -1,23 +1,13 @@
-from src.checkpoints import Checkpoints
 from src.commands import Commands
 from src.config import Config
-from src.losses.calc import loss_object_to_main_loss, loss_object_to_reconstruction_weights_loss, \
-    loss_object_to_extra_coherence_weights_loss
-from src.datasets import BookDataset, DummyDataset, WikiDataset, TestExample
-from src.logger import Logger
+from src.datasets import TestExample
 from src.pre_processing import TreeTokenizer, worker_init_fn
 from src.storage import Storage
-from src.utils import seed_torch, merge_dicts, metsumm
 from src.model import AgentModel
-from src.profiler import Profiler as xp
+from src.debug.profiler import Profiler as xp
 from torch.utils.data.dataloader import DataLoader
-import numpy as np
 import torch
-import time
-import madgrad  # is it any good?
 import torch.optim.lr_scheduler
-import math
-import os
 
 Commands.parse_arguments()
 xp.setup()

@@ -1,26 +1,22 @@
 from src.checkpoints import Checkpoints
 from src.commands import Commands
 from src.config import Config
-from src.losses.calc import loss_object_to_main_loss, loss_object_to_reconstruction_weights_loss, \
-    loss_object_to_extra_coherence_weights_loss
-from src.datasets import BookDataset, DummyDataset, WikiDataset
+from src.debug.reconstruct import reconstruct_text
+from src.losses.calc import loss_object_to_main_loss
+from src.datasets import DummyDataset, WikiDataset
 from src.logger import Logger
-from src.pre_processing import TreeTokenizer, worker_init_fn
+from src.pre_processing import worker_init_fn
 from src.storage import Storage
-from src.utils import seed_torch, merge_dicts, metsumm
+from src.utils import seed_torch, metsumm
 from src.model import AgentModel
-from src.profiler import Profiler as xp
+from src.debug.profiler import Profiler as xp
 from torch.utils.data.dataloader import DataLoader, default_collate
 import numpy as np
-import torch
 import time
 import madgrad  # is it any good?
 import torch.optim.lr_scheduler
-import math
 import os
 import torch
-import torchvision.models as models
-import torch.autograd.profiler as profiler
 
 Commands.parse_arguments()
 xp.setup()
@@ -116,7 +112,7 @@ def train(index, flags, training_started):
             parallel_loader = dataloader
 
         total_loss = 0
-        total_loss_object = {1:{"d":0.0}}
+        total_loss_object = {1: {"d": 0.0}}
         total_model_time = 0
         start_time = time.time()
         for step, (batch, inputs) in enumerate(parallel_loader):
@@ -149,11 +145,13 @@ def train(index, flags, training_started):
             # print(len(batch.level_nodes[0]),len(batch.level_nodes[1]),len(batch.level_nodes[0])/ len(batch.level_nodes[1]))# todo: this is for debug => fix it
 
             with xp.StepTrace('train_loop', step_num=step):
-                g_loss, disc_loss, main_loss, loss_object, first_A1s, first_pndb_lookup_ids = model.forward(batch, inputs, generate=GENERATE_TEXT,
-                                                                          debug=will_reconstruct,
-                                                                          last_obj=total_loss_object,
-                                                                          global_step=global_step,
-                                                                          xm=None if not Config.use_tpu else xm,)
+                g_loss, disc_loss, main_loss, loss_object, first_A1s, first_pndb_lookup_ids = model.forward(batch,
+                                                                                                            inputs,
+                                                                                                            generate=GENERATE_TEXT,
+                                                                                                            debug=will_reconstruct,
+                                                                                                            last_obj=total_loss_object,
+                                                                                                            global_step=global_step,
+                                                                                                            xm=None if not Config.use_tpu else xm, )
                 main_loss = loss_object_to_main_loss(loss_object) / grad_acc_steps
                 # r_loss = loss_object_to_reconstruction_weights_loss(loss_object) / grad_acc_steps
                 # c_loss = loss_object_to_extra_coherence_weights_loss(loss_object) / Config.grad_acc_steps
@@ -237,24 +235,7 @@ def train(index, flags, training_started):
                     Logger.log_text(generated, step=global_step)
 
                 if PRINT_RECONSTRUCTED_TEXT:
-                    nodes = batch.batch_root.children
-                    expected = [TreeTokenizer.deep_detokenize(node.build_struct(return_eos=True)[0], Config.agent_level)
-                                for node in nodes]
-                    reconstructed = [model.full_decode(batch.level_nodes[i][:5],first_A1s, first_pndb_lookup_ids[0:5]) for i in range(Config.agent_level + 1)]
-
-                    reconstructed = [[TreeTokenizer.deep_detokenize(node[0], i) for node in items] for i, items in
-                                     enumerate(reconstructed)]
-                    for i, text in enumerate(reconstructed):
-                        print('Level', i, text)
-                        Logger.log_reconstructed(text, i, step=global_step)
-                        # for j, item in enumerate(text):
-                        #    Logger.log_viz(batch.level_nodes[i][j], text[j], i, step=global_step)
-                        if i == len(reconstructed) - 1:  # Upper most level
-                            are_equal = [t == e for t, e in zip(text, expected)]
-                            if False not in are_equal:
-                                print('MATCHED')
-                                # torch.save(model.state_dict(), "models/dummy_model")
-                                exit()
+                    reconstruct_text(batch, model, first_A1s, first_pndb_lookup_ids, global_step, exit_on_match=True)
 
                 Checkpoints.save(epoch, global_step, model, main_optimizer, scheduler)
 

@@ -1,4 +1,4 @@
-from src.profiler import Profiler as xp
+from src.debug.profiler import Profiler as xp
 from src.config import Config
 import torch.nn as nn
 import torch

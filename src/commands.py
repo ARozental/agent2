@@ -5,7 +5,7 @@ import json
 
 class Commands:
     @staticmethod
-    def parse_arguments():
+    def parse_arguments(debug=False):
         parser = argparse.ArgumentParser(
             usage='python train.py [options]',
             description='Train agent model'
@@ -19,6 +19,9 @@ class Commands:
 
         parser.add_argument('--exp_folder', type=str, default=None,
                             help='Value for "exp_folder"')
+
+        parser.add_argument('--use_checkpoint', type=str, default=None,
+                            help='Value for "use_checkpoint"')
 
         parser.add_argument('--skip', type=int, default=None,
                             help='value for the `skip_batches` config')
@@ -44,19 +47,33 @@ class Commands:
         parser.add_argument('--gcs', action='store_true', default=False,
                             help='Use the GCS Bucket')
 
+        if debug:
+            parser.add_argument('--model-folder', type=str, default=None,
+                                help='Model folder to use for debugging')
+
         args = parser.parse_args()
 
         if args.config is not None:
             Commands.load_config(args.config)
+
         if args.exp_folder is not None:
             Config.exp_folder = args.exp_folder
+
+        if args.use_checkpoint is not None:
+            Config.use_checkpoint = args.use_checkpoint
+
+        if debug and args.model_folder is not None:
+            Config.model_folder = args.model_folder
+
         Config.gpu_num = args.gpu
         Config.use_tpu = args.tpu or args.tpu_all
         Config.use_all_tpu_cores = args.tpu_all
         Config.debug_tpu = args.debug_tpu
         Config.profile_tpu = args.profile_tpu
+
         if args.dummy:
             Config.use_dummy_dataset = True
+
         if args.skip is not None:
             Config.skip_batches = args.skip
 

@@ -1,19 +1,17 @@
 from src.agent import AgentLevel
 from src.config import Config
-from src.losses.eos import calc_eos_loss
 from src.losses.join import calc_join_loss
 from src.losses.mlm import calc_mlm_loss
 from src.losses.coherence import calc_coherence_loss
 from src.losses.reconstruction import calc_reconstruction_loss
 from src.losses.generation import calc_generation_loss
 from src.pre_processing import Node, TreeTokenizer
-from src.utils import iter_even_split, group_by_root, make_noise, node_batch_to_small_batches, apply_recursive
-from src.profiler import Profiler as xp
-from src.agent.pndb import Pndb
+from src.utils import make_noise
+from src.debug.profiler import Profiler as xp
 import torch.nn as nn
 import torch
 import numpy as np
-from src.losses.calc import loss_object_to_main_loss, loss_object_to_reconstruction_weights_loss
+from src.losses.calc import loss_object_to_main_loss
 
 
 class AgentModel(nn.Module):

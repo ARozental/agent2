@@ -168,7 +168,7 @@ def make_noise(t, noise):
     noise = torch.min(noise, noise / noise) * t.norm(dim=[-1]).mean()  # capped at 1
     changed_examples = torch.rand(t.shape[0], 1, device=Config.device).round()
     n = torch.normal(torch.mean(t).data, torch.std(t).data, size=t.shape, device=Config.device)
-    return t + noise * changed_examples * n / 10.0 #because with 1.0 it is wayyy too noisy
+    return t + noise * changed_examples * n / 10.0 #because with 1.0 it is wayyy too noisy; does reconstruction1 without eos0???
 
 
 def apply_recursive(func, obj):

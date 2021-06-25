@@ -7,7 +7,7 @@ from src.datasets import DummyDataset, WikiDataset
 from src.logger import Logger
 from src.pre_processing import worker_init_fn
 from src.storage import Storage
-from src.utils import seed_torch, metsumm
+from src.utils import seed_torch, metsumm, prepare_inputs
 from src.model import AgentModel
 from src.debug.profiler import Profiler as xp
 from torch.utils.data.dataloader import DataLoader, default_collate
@@ -116,11 +116,7 @@ def train(index, flags, training_started):
         total_model_time = 0
         start_time = time.time()
         for step, (batch, inputs) in enumerate(parallel_loader):
-            for parent_key, values in inputs.items():
-                for key, value in values.items():
-                    inputs[parent_key][key] = value.squeeze(0)
-                    if Config.use_cuda:
-                        inputs[parent_key][key] = inputs[parent_key][key].to(Config.device)
+            inputs = prepare_inputs(inputs, squeeze=True)
 
             grad_acc_steps = Config.grad_acc_fn(global_step)
             if Config.profile_tpu and step >= 4:
@@ -225,8 +221,7 @@ def train(index, flags, training_started):
                     old_device = Config.device
                     Config.device = torch.device('cpu')
                     model.to(Config.device)
-                    for key, value in inputs.items():
-                        inputs[key] = value.to(Config.device)
+                    inputs = prepare_inputs(inputs, squeeze=False)
                     model.compute_vectors(batch, inputs)
 
                 if GENERATE_TEXT:

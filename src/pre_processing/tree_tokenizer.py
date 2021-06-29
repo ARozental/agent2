@@ -178,10 +178,10 @@ class TreeTokenizer:
         batch_root.expand_struct(structs, md5s)
         batch_tree = BatchTree(batch_root)
         batch_tree.batch_up_nodes()
-        if Config.use_tpu:
-            batch_tree.fill_dummy_nodes()
         batch_tree.make_distinct_words()
         batch_tree.make_node_batches()
+        if Config.use_tpu:
+            batch_tree.fill_dummy_nodes()
 
         # #it is ok here:
         # print("tree text 0:", [cls.detokenize(x.tokens) for x in batch_tree.batch_root.children[0].children])

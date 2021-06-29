@@ -86,10 +86,6 @@ class AgentLevel(nn.Module):
             return matrices, real_positions, eos_positions, None, embedding, lookup_ids, vectors, 0, None, None, random_matrices
         elif self.level == 1:
             num_dummy = 0
-            if Config.use_tpu:  # add pad vectors to ensure constant word embedding matrix size
-                total_possible = len(node_batch) * max_length
-                extra_dummy = total_possible - embedding.size(0)
-                embedding = torch.cat((embedding, torch.stack([self.pad_vector] * extra_dummy)), 0)
 
             all_ids = inputs['all_ids']
             with torch.no_grad():

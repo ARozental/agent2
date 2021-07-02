@@ -31,21 +31,28 @@ class BatchTree:
     def fill_dummy_nodes(self):
         assert Config.agent_level <= Config.levels['SENTENCE']
 
-        add0 = len(self.level_nodes[0]) % Config.node_sizes[0]
-        add1 = len(self.level_nodes[1]) % Config.node_sizes[1]
+        dummy_parent = Node(level=1, tokens=[2])
+        dummy_parent.distinct_lookup_id = 2
+        dummy_parent.is_dummy = True
+        dummy_parent.children = []
+        self.level_nodes[1].append(dummy_parent)
 
-        children_per = np.array_split(range(add0), add1)
-        for num_per in children_per:
-            dummy_parent = Node(level=1, tokens=[2])
-            dummy_parent.is_dummy = True
-            dummy_parent.children = []
-            for i in range(len(num_per)):
-                dummy_child = Node(level=0, tokens=[2])
-                dummy_child.is_dummy = True
-                self.level_nodes[0].append(dummy_child)
-                dummy_parent.children.append(dummy_child)
+        dummy_child = Node(level=0, tokens=[2])
+        dummy_child.distinct_lookup_id = 2
+        dummy_child.is_dummy = True
+        self.level_nodes[0].append(dummy_child)
+        for _ in range(5):
+            dummy_parent.children.append(dummy_child)
 
-            self.level_nodes[1].append(dummy_parent)
+        for level in range(Config.agent_level + 1):
+            for batch_index, batch in enumerate(self.level_batches[level]):
+                add = Config.node_sizes[level] - len(batch)
+                if level == 0:
+                    self.level_batches[level][batch_index].extend([dummy_child] * add)
+                elif level == 1:
+                    self.level_batches[level][batch_index].extend([dummy_parent] * add)
+                else:
+                    raise NotImplementedError
 
     def make_distinct_words(self):
         # the i-th element of distinct_word_embedding_tokens gets word tokens with full padding
@@ -135,10 +142,12 @@ class BatchTree:
         id_to_tokens = {node.distinct_lookup_id: node.get_padded_word_tokens() for node in self.level_nodes[0]}
 
         if Config.use_tpu:
-            self.num_dummy_distinct = Config.node_sizes[0] - max_distinct_id
+            self.num_dummy_distinct = Config.max_word_embedding_size - max_distinct_id - 1
+            # TODO - Maybe don't pad the word_embedding_matrix and instead add the pad_vector inside of the model
             for i in range(self.num_dummy_distinct):
                 # WTF is this line
                 id_to_tokens[i + max_distinct_id + 1] = [4] + ([Config.pad_token_id] * (Config.sequence_lengths[0] - 1))
+            assert self.num_dummy_distinct > 0
         else:
             self.num_dummy_distinct = 0
 

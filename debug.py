@@ -6,7 +6,7 @@ from src.debug.prompt import get_sentence
 from src.debug.profiler import Profiler as xp
 from src.model import AgentModel
 from src.storage import Storage
-from src.utils import seed_torch
+from src.utils import seed_torch, prepare_inputs
 from src.config import Config
 
 Commands.parse_arguments()
@@ -30,11 +30,8 @@ def debug():
     sentence = get_sentence()
 
     batch, inputs = TreeTokenizer.batch_texts_to_trees([sentence])
-    for parent_key, values in inputs.items():
-        for key, value in values.items():
-            # inputs[parent_key][key] = value.squeeze(0)
-            if Config.use_cuda:
-                inputs[parent_key][key] = inputs[parent_key][key].to(Config.device)
+
+    inputs = prepare_inputs(inputs, squeeze=False)
     g_loss, disc_loss, main_loss, loss_object, first_A1s, first_pndb_lookup_ids = model.forward(batch, inputs,
                                                                                                 debug=True, xm=None)
 

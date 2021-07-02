@@ -3,9 +3,8 @@ from src.utils import inverse_loss, cap_loss
 
 
 def loss_object_to_main_loss(obj):
-    loss = 0.0
+    loss = obj[0]['m'] * 0.0001 + obj[1]['m'] * 0.1
     for l in obj.keys():
-        loss += obj[l]['m'] * 0.1
         # loss += obj[l]['md'] * 0.1 #off from code
         loss += obj[l]['c'] * 2.0
         loss += obj[l]['r'] * 0.1

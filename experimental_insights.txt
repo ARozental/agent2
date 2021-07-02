@@ -136,3 +136,12 @@ in config the "batch_size" param comsumes CPU if it is too high we can't use the
 on wiki we have ~11.5 words per sentence on average
 remember to set use_tpu flag to false when on GPU probably won't need grad acc if done well
 without trim, for large batch_size and mini_batch_size the memory explodes even when batch_sizes is very small => fix
+
+
+potential reasons for bad sentence reconstruction:
+1. no noise => no generating good text from noisy vector at training
+2. mlm0 loss => bigger than all other lvl0 losses => prevents conversion
+3. level 0 always moves => need to freeze level 0 or make batch much much bigger
+4. needs bigger word vectors (to allow some fuckups to still be ok)
+5. needs bigger embedding matrix (can never harm...)
+6. needs more time...

@@ -57,7 +57,7 @@ def calc_reconstruction_loss(agent_level, matrices, decompressed, real_positions
     _=None #do these 2 lines save on memory? reencoded_matrices moved inside calc_rmlm_loss
     #reencoded_matrices = agent_level.encoder(post_decoder, real_positions_for_mask, eos_positions)
 
-    rm_loss, rm_diff_loss = calc_rmlm_loss(agent_level, post_decoder, real_positions_for_mask, eos_positions, real_positions, matrices, embeddings,labels)  # no mask keep the decoded vectors and predict originals by encoding
+    #rm_loss, rm_diff_loss = calc_rmlm_loss(agent_level, post_decoder, real_positions_for_mask, eos_positions, real_positions, matrices, embeddings,labels)  # no mask keep the decoded vectors and predict originals by encoding
 
     #rc_loss
     batch, seq_length, vec_size = post_decoder.shape

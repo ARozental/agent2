@@ -7,8 +7,12 @@ def loss_object_to_main_loss(obj):
     for l in obj.keys():
         if l==0:
             loss += obj[l]['m'] * 0.0001 #do we really need MLM0?
+            loss += obj[l]['rm'] * 0.0001
+
         else:
             loss += obj[l]['m'] * 0.1
+            loss += obj[l]['rm'] * 0.01
+
         # loss += obj[l]['md'] * 0.1 #off from code
         loss += obj[l]['c'] * 2.0
         loss += obj[l]['r'] * 0.1
@@ -23,7 +27,6 @@ def loss_object_to_main_loss(obj):
 
         # if l > 0:
         #     loss += - obj[l]['rcd'] * Config.main_rcd  # negative on the main weights
-        loss += obj[l]['rm'] * Config.main_rm
 
     return loss
 

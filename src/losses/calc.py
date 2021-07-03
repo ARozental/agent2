@@ -7,7 +7,7 @@ def loss_object_to_main_loss(obj):
     for l in obj.keys():
         if l==0:
             loss += obj[l]['m'] * 0.0001 #do we really need MLM0?
-            loss += obj[l]['rm'] * 0.0001
+            loss += obj[l]['rm'] * 0.00001
 
         else:
             loss += obj[l]['m'] * 0.1

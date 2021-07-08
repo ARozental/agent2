@@ -34,7 +34,7 @@ class Config:
 
     # PNDB - None is off; integer for number of questions
     use_pndb1 = None
-    use_pndb2 = None
+    use_pndb2 = None #doesn't work because we got lazy in text reconstruction stuff
 
     # smoothing
     # max_typo_loss = 10.0
@@ -66,6 +66,7 @@ class Config:
     profile_tpu = False
     gpu_num = 0
     device = None  # Will be set in setup()
+    freeze0 = False
 
     use_dummy_dataset = False
 

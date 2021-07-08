@@ -93,7 +93,7 @@ class AgentModel(nn.Module):
 
                 del inputs[str(level_num) + '-' + str(batch_index)]
 
-        return total_g_loss, total_disc_loss, total_loss, loss_object, first_A1s, first_pndb_lookup_ids
+        return total_g_loss, total_disc_loss, total_loss, loss_object,word_embedding_matrix, first_A1s, first_pndb_lookup_ids
 
     def forward_node_batch(self, level_num, batch_index, node_batch, inputs, word_embedding_matrix, debug,
                            num_dummy0_embed, first_A1s, first_pndb_lookup_ids, last_obj, num_real_nodes, xm, generate,
@@ -229,9 +229,9 @@ class AgentModel(nn.Module):
             g_loss, disc_loss = calc_generation_loss(self.agent_levels[level_num], vectors, matrices, real_positions)
             loss_object[level_num]["g"] = g_loss.detach()
             loss_object[level_num]["disc"] = disc_loss.detach()
+        # assert len(node_batch) == mlm_loss.size(0)
 
         # If the lengths are not equal then let's catch this
-        # assert len(node_batch) == mlm_loss.size(0)
         # assert len(node_batch) == reconstruction_loss.size(0)
 
         if debug:
@@ -280,7 +280,7 @@ class AgentModel(nn.Module):
         return output
 
     # todo: refactor it to not get embedding_matrices as a parameter (only the char matrix is needed and it belongs to self)
-    def full_decode(self, nodes, A1s, pndb_lookup_ids):
+    def full_decode(self, nodes, A1s, pndb_lookup_ids, embedding_matrix):
         assert len(set([node.level for node in nodes])) == 1  # All nodes must be on the same level
 
         agent_level = self.agent_levels[nodes[0].level]
@@ -288,7 +288,7 @@ class AgentModel(nn.Module):
         if len(node_vectors) == 0:  # If all of the nodes are joins
             return [(-1, True) for _ in nodes]
         node_vectors = torch.stack(node_vectors)
-        children_vectors, children_eos, _, _ = agent_level.vecs_to_children_vecs(node_vectors, A1s, pndb_lookup_ids)
+        children_vectors, children_eos, _, _ = agent_level.vecs_to_children_vecs(node_vectors, A1s, pndb_lookup_ids, embedding_matrix)
         children_eos = children_eos.tolist()
 
         if nodes[0].level == 0:
@@ -327,7 +327,7 @@ class AgentModel(nn.Module):
                 n.level = node.level - 1
                 n.parent = node
                 children_nodes.append(n)
-            results.append((self.full_decode(children_nodes, A1s, pndb_lookup_ids), children_eos[index]))
+            results.append((self.full_decode(children_nodes, A1s, pndb_lookup_ids, embedding_matrix), children_eos[index]))
             index += 1
 
         return results

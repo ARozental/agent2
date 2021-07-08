@@ -139,9 +139,10 @@ without trim, for large batch_size and mini_batch_size the memory explodes even 
 
 
 potential reasons for bad sentence reconstruction:
-1. no noise => no generating good text from noisy vector at training
-2. mlm0 loss => bigger than all other lvl0 losses => prevents conversion
+1. no noise0 => no generating good text from noisy vector at training
+2. mlm0 loss => bigger than all other lvl0 losses => prevents conversion => validated, it did prevent it to some extent
 3. level 0 always moves => need to freeze level 0 or make batch much much bigger
 4. needs bigger word vectors (to allow some fuckups to still be ok)
 5. needs bigger embedding matrix (can never harm...)
 6. needs more time...
+7. needs pndb

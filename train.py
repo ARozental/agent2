@@ -78,6 +78,12 @@ def train(index, flags, training_started):
     coherence_params = [param for name, param in model.named_parameters() if "coherence" in name]
     reconstruction_params = [param for name, param in model.named_parameters() if
                              (("decompressor" in name) or ("decoder" in name))]
+    level0_tree_params = [param for name, param in model.named_parameters() if
+                          ("discriminator" not in name) and
+                          ("generator" not in name) and
+                          ("decompressor" not in name) and
+                          ("decoder" not in name) and
+                          (("char_embedding_layer" in name) or ("agent_levels.0" in name))]
 
     if Config.optimizer == "Adam":
         main_optimizer = torch.optim.AdamW(main_params, Config.lr)
@@ -101,6 +107,9 @@ def train(index, flags, training_started):
     all_times = []
     all_model_times = []
     global_step = 0
+    if Config.freeze0:
+        print(Config.freeze0)
+        [setattr(p, "requires_grad", False) for p in level0_tree_params]
     if Config.skip_batches is not None:
         global_step = Config.skip_batches - 1
     for epoch in range(10001):
@@ -141,7 +150,7 @@ def train(index, flags, training_started):
             # print(len(batch.level_nodes[0]),len(batch.level_nodes[1]),len(batch.level_nodes[0])/ len(batch.level_nodes[1]))# todo: this is for debug => fix it
 
             with xp.StepTrace('train_loop', step_num=step):
-                g_loss, disc_loss, main_loss, loss_object, first_A1s, first_pndb_lookup_ids = model.forward(batch,
+                g_loss, disc_loss, main_loss, loss_object,word_embedding_matrix, first_A1s, first_pndb_lookup_ids = model.forward(batch,
                                                                                                             inputs,
                                                                                                             generate=GENERATE_TEXT,
                                                                                                             debug=will_reconstruct,
@@ -230,7 +239,7 @@ def train(index, flags, training_started):
                     Logger.log_text(generated, step=global_step)
 
                 if PRINT_RECONSTRUCTED_TEXT:
-                    reconstruct_text(batch, model, first_A1s, first_pndb_lookup_ids, global_step, exit_on_match=True)
+                    reconstruct_text(batch, model,word_embedding_matrix, first_A1s, first_pndb_lookup_ids, global_step, exit_on_match=True)
 
                 Checkpoints.save(epoch, global_step, model, main_optimizer, scheduler)
 

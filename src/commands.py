@@ -11,6 +11,9 @@ class Commands:
             description='Train agent model'
         )
 
+        parser.add_argument('--freeze0', default=False,
+                            help='bla')
+
         parser.add_argument('-c', '--config', type=str,
                             help='the name of the json file in `configs/` to load')
 
@@ -66,6 +69,7 @@ class Commands:
             Config.model_folder = args.model_folder
 
         Config.gpu_num = args.gpu
+        Config.freeze0 = args.freeze0
         Config.use_tpu = args.tpu or args.tpu_all
         Config.use_all_tpu_cores = args.tpu_all
         Config.debug_tpu = args.debug_tpu

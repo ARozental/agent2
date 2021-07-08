@@ -58,7 +58,7 @@ AgentModel:
 
 Tests:
 1. tensor board - reconstructed next to real text for TB print
-2. track memory usage
+2. tensor board - semi reconstructed text that uses the embedding matries, debug_decode?
 3. track model norm (maybe per component if it gets out of hand)
 4. make sandbox file to load and test existing models:
     gets model file and text return vector?

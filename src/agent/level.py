@@ -185,7 +185,8 @@ class AgentLevel(nn.Module):
                 [n.set_vector(v.detach()) for n, v in zip(node_batch, vectors)]
             return matrices, real_positions, eos_positions, join_positions, embedding, labels, vectors, num_dummy, None, None, None
 
-    def vecs_to_children_vecs(self, vecs, A1s, pndb_lookup_ids):
+    def vecs_to_children_vecs(self, vecs, A1s, pndb_lookup_ids,embedding_matrix):
+        "should have 2 modes, get reconstructed children_vecs and get selected children_vecs from embedding_matrix"
         decompressed = self.decompressor(vecs)
 
         # todo: use PNDB2 if exists

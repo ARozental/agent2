@@ -237,11 +237,10 @@ class AgentLevel(nn.Module):
         if embedding_matrix is not None:
           children_vectors_from_embedding = []
           logits = torch.matmul(post_decoder, torch.transpose(embedding_matrix, 0, 1))
-          all_lookup_ids = torch.argmax(logits, dim=2)#.squeeze(0)
+          all_lookup_ids = torch.argmax(logits, dim=2)
 
           all_word_vectors = [torch.index_select(embedding_matrix, 0,lookup_ids) for lookup_ids in all_lookup_ids]
-          #children_vectors_from_embedding = [[y for y in x] for x in all_word_vectors]
           for i in range(len(all_word_vectors)):
-            children_vectors_from_embedding.append([x for x in all_word_vectors[i][0:num_tokens]])
+            children_vectors_from_embedding.append([x for x in all_word_vectors[i][0:num_tokens[i]]])
 
         return children_vectors,children_vectors_from_embedding, is_eos, post_decoder, real_positions

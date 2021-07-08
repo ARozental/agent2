@@ -62,10 +62,12 @@ class Config:
     use_cuda = True
     use_tpu = False
     use_all_tpu_cores = False
+    use_accelerator = False
     debug_tpu = False
     profile_tpu = False
     gpu_num = 0
     device = None  # Will be set in setup()
+    accelerator = None
 
     use_dummy_dataset = False
 
@@ -73,6 +75,10 @@ class Config:
     def setup_device():
         if Config.use_tpu:
             return  # Don't do anything because needs to be done inline to support all cores
+        elif Config.use_accelerator:
+            from accelerate import Accelerator
+            Config.accelerator = Accelerator()
+            Config.device = Config.accelerator.device
         elif Config.use_cuda and torch.cuda.is_available():
             Config.device = torch.device('cuda', Config.gpu_num)
         else:

@@ -69,7 +69,8 @@ def train(index, flags, training_started):
     )
 
     model = AgentModel()
-    model.to(Config.device)
+    if not Config.use_accelerator:
+        model.to(Config.device)
 
     main_params = [param for name, param in model.named_parameters() if
                    ("discriminator" not in name) and ("generator" not in name)]
@@ -90,6 +91,11 @@ def train(index, flags, training_started):
 
     # generator_optimizer = torch.optim.AdamW(generator_params, 0.001)
     # discriminator_optimizer = torch.optim.AdamW(discriminator_params, 0.001)
+
+    if Config.use_accelerator:
+        model, main_optimizer, dataloader = Config.accelerator.prepare(
+            model, main_optimizer, dataloader
+        )
 
     if Config.profile_tpu:
         server = xp.start_server(9012)
@@ -182,7 +188,11 @@ def train(index, flags, training_started):
 
                 # TODO - I want to clip on every step, how?
                 if (step + 1) % grad_acc_steps == 0:  # (step + 1) so that don't break on step 0 when acc is > 1
-                    torch.nn.utils.clip_grad_norm_(main_params, Config.grad_clip_value)
+                    if Config.use_accelerator:
+                        Config.accelerator.clip_grad_norm_(main_params, Config.grad_clip_value)
+                    else:
+                        torch.nn.utils.clip_grad_norm_(main_params, Config.grad_clip_value)
+
                     if Config.use_tpu:
                         xm.optimizer_step(main_optimizer)
                     else:
@@ -207,7 +217,8 @@ def train(index, flags, training_started):
                     # total_loss = 0
             total_model_time += (time.time() - current_model_time)
 
-            if (epoch % (grad_acc_steps * Config.log_every) == 0 and step == 0) or \
+            if (not Config.use_accelerator or Config.accelerator.is_main_process) and \
+                (epoch % (grad_acc_steps * Config.log_every) == 0 and step == 0) or \
                 (step % (grad_acc_steps * Config.log_every) == 0 and step > 0):
                 print('Epoch', epoch, 'Batch', step)
                 if not Config.use_tpu:

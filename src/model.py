@@ -212,7 +212,10 @@ class AgentModel(nn.Module):
             main_loss = loss_object_to_main_loss({level_num: losses}) / num_real_nodes
 
             # after 20k batches this gave RuntimeError: cuDNN error: CUDNN_STATUS_EXECUTION_FAILED => WTF
-            main_loss.backward(retain_graph=True)
+            if Config.use_accelerator:
+                Config.accelerator.backward(main_loss, retain_graph=True)
+            else:
+                main_loss.backward(retain_graph=True)
 
             if Config.use_tpu and not Config.profile_tpu:
                 xm.mark_step()

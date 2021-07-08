@@ -7,14 +7,12 @@ import torch
 def worker_init_fn(worker_id):
     worker_info = torch.utils.data.get_worker_info()
     dataset = worker_info.dataset  # the dataset copy in this worker process
+    if Config.use_accelerator:
+        dataset = dataset.dataset
     num_workers = worker_info.num_workers
 
-    if Config.use_accelerator:
-        if dataset.dataset.divide_data:
-            dataset.dataset.data = dataset.dataset.data[worker_id::num_workers]
-    else:
-        if dataset.divide_data:
-            dataset.data = dataset.data[worker_id::num_workers]
+    if dataset.divide_data:
+        dataset.data = dataset.data[worker_id::num_workers]
 
     dataset.init_tree_tokenizer()
 

@@ -11,8 +11,7 @@ class Commands:
             description='Train agent model'
         )
 
-        parser.add_argument('--freeze0', default=False,
-                            help='bla')
+        parser.add_argument('--freeze0', action='store_true', default=False, help='freeze tree weights for level 0')
 
         parser.add_argument('-c', '--config', type=str,
                             help='the name of the json file in `configs/` to load')

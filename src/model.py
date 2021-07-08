@@ -283,7 +283,7 @@ class AgentModel(nn.Module):
         return output
 
     # todo: refactor it to not get embedding_matrices as a parameter (only the char matrix is needed and it belongs to self)
-    def full_decode(self, nodes, A1s, pndb_lookup_ids, embedding_matrix):
+    def full_decode(self, nodes, A1s, pndb_lookup_ids, embedding_matrix,from_embedding = False):
         assert len(set([node.level for node in nodes])) == 1  # All nodes must be on the same level
 
         agent_level = self.agent_levels[nodes[0].level]
@@ -291,7 +291,14 @@ class AgentModel(nn.Module):
         if len(node_vectors) == 0:  # If all of the nodes are joins
             return [(-1, True) for _ in nodes]
         node_vectors = torch.stack(node_vectors)
-        children_vectors, children_eos, _, _ = agent_level.vecs_to_children_vecs(node_vectors, A1s, pndb_lookup_ids, embedding_matrix)
+        if agent_level.level==1:
+            children_vectors,children_vectors_from_embedding, children_eos, _, _ = agent_level.vecs_to_children_vecs(node_vectors, A1s, pndb_lookup_ids, embedding_matrix)
+        else:
+          children_vectors,children_vectors_from_embedding, children_eos, _, _ = agent_level.vecs_to_children_vecs(node_vectors, A1s, pndb_lookup_ids, None)
+
+        if from_embedding==True:
+          children_vectors = children_vectors_from_embedding
+
         children_eos = children_eos.tolist()
 
         if nodes[0].level == 0:

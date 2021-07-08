@@ -115,8 +115,9 @@ def train(index, flags, training_started):
     all_times = []
     all_model_times = []
     global_step = 0
+
+    print("freeze tree 0: ", Config.freeze0)
     if Config.freeze0:
-        print(Config.freeze0)
         [setattr(p, "requires_grad", False) for p in level0_tree_params]
     if Config.skip_batches is not None:
         global_step = Config.skip_batches - 1

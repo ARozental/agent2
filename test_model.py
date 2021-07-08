@@ -39,7 +39,7 @@ def test_model():
     nodes = example.batch_root.children
     expected = [TreeTokenizer.deep_detokenize(node.build_struct(return_eos=True)[0], Config.agent_level)
                 for node in nodes]
-    reconstructed = [model.full_decode(example.level_nodes[i][:5]) for i in range(Config.agent_level + 1)]
+    reconstructed = [model.full_decode(example.level_nodes[i][:10]) for i in range(Config.agent_level + 1)]
 
     reconstructed = [[TreeTokenizer.deep_detokenize(node[0], i) for node in items] for i, items in enumerate(reconstructed)]
     for i, text in enumerate(reconstructed):

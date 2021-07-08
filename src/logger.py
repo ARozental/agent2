@@ -99,6 +99,13 @@ class Logger:
         cls.writer.add_text('reconstructed/' + str(level), '  \n'.join(text), step)
 
     @classmethod
+    def log_reconstructed_e(cls, text, level, step):
+        if cls.writer is None:
+            return
+
+        cls.writer.add_text('reconstructed_e/' + str(level), '  \n'.join(text), step)
+
+    @classmethod
     def log_viz(cls, node, text, level, step):
         if Config.viz_file is None:
             return

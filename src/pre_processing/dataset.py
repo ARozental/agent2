@@ -9,8 +9,12 @@ def worker_init_fn(worker_id):
     dataset = worker_info.dataset  # the dataset copy in this worker process
     num_workers = worker_info.num_workers
 
-    if (not Config.use_accelerator and dataset.divide_data) or (Config.use_accelerator and dataset.dataset.divide_data):
-        dataset.data = dataset.data[worker_id::num_workers]
+    if Config.use_accelerator:
+        if dataset.dataset.divide_data:
+            dataset.dataset.data = dataset.dataset.data[worker_id::num_workers]
+    else:
+        if dataset.divide_data:
+            dataset.data = dataset.data[worker_id::num_workers]
 
     dataset.init_tree_tokenizer()
 

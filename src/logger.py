@@ -76,6 +76,9 @@ class Logger:
         if cls.writer is None:
             return
 
+        if Config.use_accelerator:
+            model = Config.accelerator.unwrap_model(model)
+
         for i, level in enumerate(model.agent_levels):
             cls.writer.add_scalar('l2/weight/' + str(i), level.classifier1w, step)
             cls.writer.add_scalar('l2/bias/' + str(i), level.classifier1b, step)

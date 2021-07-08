@@ -44,6 +44,9 @@ class Commands:
         parser.add_argument('--profile-tpu', action='store_true', default=False,
                             help='Whether or not to profile the TPU')
 
+        parser.add_argument('--accelerator', action='store_true', default=False,
+                            help='whether to use the huggingface accelerate')
+
         parser.add_argument('--dummy', action='store_true', default=False,
                             help='Whether to use the dummy dataset')
 
@@ -71,6 +74,7 @@ class Commands:
         Config.gpu_num = args.gpu
         Config.freeze0 = args.freeze0
         Config.use_tpu = args.tpu or args.tpu_all
+        Config.use_accelerator = args.accelerator
         Config.use_all_tpu_cores = args.tpu_all
         Config.debug_tpu = args.debug_tpu
         Config.profile_tpu = args.profile_tpu

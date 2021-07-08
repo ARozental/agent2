@@ -36,7 +36,7 @@ class Checkpoints:
             if attr.startswith('__') or callable(getattr(Config, attr)):
                 continue
 
-            if attr == 'device':
+            if attr == 'device' or attr == 'accelerator':
                 continue
 
             config[attr] = getattr(Config, attr)
@@ -50,15 +50,23 @@ class Checkpoints:
             return
 
         if step > 0:  # and step % Config.save_every == 0:
+            if Config.use_accelerator:
+                Config.accelerator.wait_for_everyone()
+                model = Config.accelerator.unwrap_model(model)
+
             with Storage.fs.open(os.path.join(cls.MODEL_FOLDER, str(epoch) + '.' + str(step) + '.tar'), 'wb') as f:
-                torch.save({
+                data = {
                     'model': model.state_dict(),
                     'main_optimizer': main_optimizer.state_dict(),
                     'scheduler': scheduler.state_dict(),
                     'random.torch': torch.get_rng_state(),
                     'random.python': random.getstate(),
                     'random.numpy': np.random.get_state(),
-                }, f)
+                }
+                if Config.use_accelerator:
+                    Config.accelerator.save(data, f)
+                else:
+                    torch.save(data, f)
 
     @classmethod
     def find_existing_model(cls):
@@ -120,6 +128,10 @@ class Checkpoints:
         if file.endswith('.tar'):
             with Storage.fs.open(file, 'rb') as f:
                 checkpoint = torch.load(f)
+
+            if Config.use_accelerator:
+                model = Config.accelerator.unwrap_model(model)
+
             model.load_state_dict(checkpoint['model'])
             if main_optimizer is not None:
                 main_optimizer.load_state_dict(checkpoint['main_optimizer'])

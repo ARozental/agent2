@@ -77,6 +77,7 @@ class Logger:
             return
 
         if Config.use_accelerator:
+            Config.accelerator.wait_for_everyone()
             model = Config.accelerator.unwrap_model(model)
 
         for i, level in enumerate(model.agent_levels):

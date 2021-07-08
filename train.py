@@ -84,6 +84,8 @@ def train(index, flags, training_started):
                           ("generator" not in name) and
                           ("decompressor" not in name) and
                           ("decoder" not in name) and
+                          ("coherence_checker" not in name) and
+                          ("encoder_transform" not in name) and
                           (("char_embedding_layer" in name) or ("agent_levels.0" in name))]
 
     if Config.optimizer == "Adam":

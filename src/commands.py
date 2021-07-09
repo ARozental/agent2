@@ -70,8 +70,10 @@ class Commands:
         if debug and args.model_folder is not None:
             Config.model_folder = args.model_folder
 
+        if args.freeze0:  # Only set if it was passed
+            Config.freeze0 = args.freeze0
+
         Config.gpu_num = args.gpu
-        Config.freeze0 = args.freeze0
         Config.use_tpu = args.tpu or args.tpu_all
         Config.use_accelerator = args.accelerator
         Config.use_all_tpu_cores = args.tpu_all

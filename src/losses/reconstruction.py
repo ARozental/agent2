@@ -52,6 +52,8 @@ def calc_reconstruction_loss(agent_level, matrices, decompressed, real_positions
     reconstruction_losses = reconstruction_losses * (4.4 / math.log(embeddings.size(0) - num_dummy))
     # reconstruction_losses = torch.min(torch.stack([(reconstruction_losses / reconstruction_losses) * Config.max_typo_loss, reconstruction_losses], dim=0),dim=0)[0]  # can't explode on typo
     reconstruction_diff = (reconstruction_diff * (4.4 / math.log(embeddings.size(0) - num_dummy)))
+    #todo: add same size and same angle??? maybe only cosign similarity?
+
     re_loss, _ = calc_eos_loss(agent_level, post_decoder, eos_positions)
 
     _=None #do these 2 lines save on memory? reencoded_matrices moved inside calc_rmlm_loss

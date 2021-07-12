@@ -54,6 +54,9 @@ class Checkpoints:
                 Config.accelerator.wait_for_everyone()
                 model = Config.accelerator.unwrap_model(model)
 
+            if Config.multi_gpu:
+                model = model.module
+
             with Storage.fs.open(os.path.join(cls.MODEL_FOLDER, str(epoch) + '.' + str(step) + '.tar'), 'wb') as f:
                 data = {
                     'model': model.state_dict(),
@@ -131,6 +134,9 @@ class Checkpoints:
 
             if Config.use_accelerator:
                 model = Config.accelerator.unwrap_model(model)
+
+            if Config.multi_gpu:
+                model = model.module
 
             model.load_state_dict(checkpoint['model'])
             if main_optimizer is not None:

@@ -141,8 +141,14 @@ without trim, for large batch_size and mini_batch_size the memory explodes even 
 potential reasons for bad sentence reconstruction:
 1. no noise0 => no generating good text from noisy vector at training
 2. mlm0 loss => bigger than all other lvl0 losses => prevents conversion => validated, it did prevent it to some extent
-3. level 0 always moves => need to freeze level 0 or make batch much much bigger
+3. level 0 always moves => need to freeze level 0 or make batch much much bigger => freezing all tree0 weight seems to help (check lr there?)
 4. needs bigger word vectors (to allow some fuckups to still be ok)
 5. needs bigger embedding matrix (can never harm...)
 6. needs more time...
 7. needs pndb
+8. rc_loss SHOULDN'T affect CC weights if it does reconstruction will want to mark 1 bit with INF and CC will learn to look at it
+    currently rc_loss does get to 0 and it doesn't do us any good
+    kill it or replace with a real discriinator
+
+check if vector length explodes
+check for length, length diff and cosign similarity

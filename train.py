@@ -119,7 +119,6 @@ def train(index, flags, training_started):
     all_times = []
     all_model_times = []
     global_step = 0
-
     print("freeze tree 0: ", Config.freeze0)
     if Config.freeze0:
         [setattr(p, "requires_grad", False) for p in level0_tree_params]
@@ -174,6 +173,8 @@ def train(index, flags, training_started):
                     noise_levels=noise_levels,
                     global_step=global_step,
                     xm=None if not Config.use_tpu else xm)
+                if loss_object is None:
+                    continue
                 main_loss = loss_object_to_main_loss(loss_object) / grad_acc_steps
                 # r_loss = loss_object_to_reconstruction_weights_loss(loss_object) / grad_acc_steps
                 # c_loss = loss_object_to_extra_coherence_weights_loss(loss_object) / Config.grad_acc_steps

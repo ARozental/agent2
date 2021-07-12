@@ -25,6 +25,5 @@
   "momentum": 0.9,
   "gpu_num": 1,
   "noise": false,
-  "freeze0": true,
   "force_resume": "y"
 }

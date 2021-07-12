@@ -14,6 +14,9 @@ def reconstruct_text(batch_tree, model, embedding_matrix, first_A1s, first_pndb_
         Config.accelerator.wait_for_everyone()
         model = Config.accelerator.unwrap_model(model)
 
+    if Config.multi_gpu:
+        model = model.module
+
     with torch.no_grad():
         # todo: make more efficient, we don't need 2 runs here
         reconstructed = [

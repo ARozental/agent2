@@ -52,7 +52,7 @@ class AgentModel(nn.Module):
 
         return None, word_embedding_matrix, batch_tree.num_dummy_distinct
 
-    def forward(self, batch_tree, inputs, generate=False, debug=False, last_obj={}, global_step=0, xm=None):
+    def forward(self, batch_tree, inputs, generate=False, debug=False, noise_levels=None, global_step=0, xm=None):
         total_g_loss, total_disc_loss, total_loss = 0, 0, 0
         first_A1s, first_pndb_lookup_ids = [], []  # for when we want to debug just the first 5 texts, todo: remove after full_decode uses the reconstruction loss function
         # print("emb: ",len(batch_tree.distinct_word_embedding_tokens))
@@ -62,7 +62,7 @@ class AgentModel(nn.Module):
         if len(inputs['set_word_vectors']['local_char_embedding_tokens']) > Config.max_word_embedding_size:
             if global_step == 0:
                 print("First batch is too big for embedding")
-            return total_g_loss, total_disc_loss, total_loss,None, last_obj, first_A1s, first_pndb_lookup_ids  # todo: move to pre processing + pad embedding and batches for TPU here
+            return total_g_loss, total_disc_loss, total_loss, None, first_A1s, first_pndb_lookup_ids  # todo: move to pre processing + pad embedding and batches for TPU here
 
         loss_object = {}
         word_embedding_matrix = None
@@ -85,7 +85,7 @@ class AgentModel(nn.Module):
                                                                                                    num_dummy0_embed,
                                                                                                    first_A1s,
                                                                                                    first_pndb_lookup_ids,
-                                                                                                   last_obj,
+                                                                                                   noise_levels,
                                                                                                    num_real_nodes, xm,
                                                                                                    generate,
                                                                                                    loss_object)
@@ -93,10 +93,11 @@ class AgentModel(nn.Module):
 
                 del inputs[str(level_num) + '-' + str(batch_index)]
 
-        return total_g_loss, total_disc_loss, total_loss, loss_object,word_embedding_matrix, first_A1s, first_pndb_lookup_ids
+        return total_g_loss, total_disc_loss, total_loss, loss_object, word_embedding_matrix, first_A1s, first_pndb_lookup_ids
 
     def forward_node_batch(self, level_num, batch_index, node_batch, inputs, word_embedding_matrix, debug,
-                           num_dummy0_embed, first_A1s, first_pndb_lookup_ids, last_obj, num_real_nodes, xm, generate,
+                           num_dummy0_embed, first_A1s, first_pndb_lookup_ids, noise_levels, num_real_nodes, xm,
+                           generate,
                            loss_object):
         num_dummy_nodes = 0
         if Config.use_tpu:
@@ -165,7 +166,7 @@ class AgentModel(nn.Module):
                 decompressed = self.agent_levels[level_num].decompressor(vectors)
             else:
                 decompressed = self.agent_levels[level_num].decompressor(
-                    make_noise(vectors, last_obj[level_num + 1]["d"]))
+                    make_noise(vectors, noise_levels[level_num + 1]))
 
         with xp.Trace('ReconstructionLoss' + str(level_num)):
             reconstruction_diff_loss, reconstruction_loss, eos_loss, re_loss, rj_loss, rc_loss = \
@@ -282,7 +283,7 @@ class AgentModel(nn.Module):
         return output
 
     # todo: refactor it to not get embedding_matrices as a parameter (only the char matrix is needed and it belongs to self)
-    def full_decode(self, nodes, A1s, pndb_lookup_ids, embedding_matrix,from_embedding = False):
+    def full_decode(self, nodes, A1s, pndb_lookup_ids, embedding_matrix, from_embedding=False):
         assert len(set([node.level for node in nodes])) == 1  # All nodes must be on the same level
 
         agent_level = self.agent_levels[nodes[0].level]
@@ -290,13 +291,15 @@ class AgentModel(nn.Module):
         if len(node_vectors) == 0:  # If all of the nodes are joins
             return [(-1, True) for _ in nodes]
         node_vectors = torch.stack(node_vectors)
-        if agent_level.level==1:
-            children_vectors,children_vectors_from_embedding, children_eos, _, _ = agent_level.vecs_to_children_vecs(node_vectors, A1s, pndb_lookup_ids, embedding_matrix)
+        if agent_level.level == 1:
+            children_vectors, children_vectors_from_embedding, children_eos, _, _ = agent_level.vecs_to_children_vecs(
+                node_vectors, A1s, pndb_lookup_ids, embedding_matrix)
         else:
-          children_vectors,children_vectors_from_embedding, children_eos, _, _ = agent_level.vecs_to_children_vecs(node_vectors, A1s, pndb_lookup_ids, None)
+            children_vectors, children_vectors_from_embedding, children_eos, _, _ = agent_level.vecs_to_children_vecs(
+                node_vectors, A1s, pndb_lookup_ids, None)
 
-        if from_embedding==True:
-          children_vectors = children_vectors_from_embedding
+        if from_embedding:
+            children_vectors = children_vectors_from_embedding
 
         children_eos = children_eos.tolist()
 
@@ -336,7 +339,8 @@ class AgentModel(nn.Module):
                 n.level = node.level - 1
                 n.parent = node
                 children_nodes.append(n)
-            results.append((self.full_decode(children_nodes, A1s, pndb_lookup_ids, embedding_matrix), children_eos[index]))
+            results.append(
+                (self.full_decode(children_nodes, A1s, pndb_lookup_ids, embedding_matrix), children_eos[index]))
             index += 1
 
         return results

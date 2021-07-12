@@ -17,6 +17,7 @@ import madgrad  # is it any good?
 import torch.optim.lr_scheduler
 import os
 import torch
+import torch.nn as nn
 
 Commands.parse_arguments()
 xp.setup()
@@ -69,6 +70,9 @@ def train(index, flags, training_started):
     )
 
     model = AgentModel()
+    if Config.multi_gpu:
+        model = nn.DataParallel(model, device_ids=[0, 1])
+
     if not Config.use_accelerator:
         model.to(Config.device)
 
@@ -129,7 +133,9 @@ def train(index, flags, training_started):
             parallel_loader = dataloader
 
         total_loss = 0
-        total_loss_object = {1: {"d": 0.0}}
+        total_loss_object = {
+            level: {'d': torch.tensor(0.0, device=Config.device)} for level in range(Config.agent_level + 1)
+        }
         total_model_time = 0
         start_time = time.time()
         for step, (batch, inputs) in enumerate(parallel_loader):
@@ -158,15 +164,17 @@ def train(index, flags, training_started):
             # print(len(batch.level_nodes[0]),len(batch.level_nodes[1]),len(batch.level_nodes[0])/ len(batch.level_nodes[1]))# todo: this is for debug => fix it
 
             with xp.StepTrace('train_loop', step_num=step):
-                g_loss, disc_loss, main_loss, loss_object,word_embedding_matrix, first_A1s, first_pndb_lookup_ids = model.forward(batch,
-                                                                                                            inputs,
-                                                                                                            generate=GENERATE_TEXT,
-                                                                                                            debug=will_reconstruct,
-                                                                                                            last_obj=total_loss_object,
-                                                                                                            global_step=global_step,
-                                                                                                            xm=None if not Config.use_tpu else xm, )
+                noise_levels = torch.stack([total_loss_object[level]['d'] for level in range(Config.agent_level + 1)])
+                g_loss, disc_loss, main_loss, loss_object, word_embedding_matrix, first_A1s, first_pndb_lookup_ids = model.forward(
+                    batch,
+                    inputs,
+                    generate=GENERATE_TEXT,
+                    debug=will_reconstruct,
+                    noise_levels=noise_levels,
+                    global_step=global_step,
+                    xm=None if not Config.use_tpu else xm)
                 if loss_object is None:
-                  continue
+                    continue
                 main_loss = loss_object_to_main_loss(loss_object) / grad_acc_steps
                 # r_loss = loss_object_to_reconstruction_weights_loss(loss_object) / grad_acc_steps
                 # c_loss = loss_object_to_extra_coherence_weights_loss(loss_object) / Config.grad_acc_steps
@@ -254,7 +262,8 @@ def train(index, flags, training_started):
                     Logger.log_text(generated, step=global_step)
 
                 if PRINT_RECONSTRUCTED_TEXT:
-                    reconstruct_text(batch, model,word_embedding_matrix, first_A1s, first_pndb_lookup_ids, global_step, exit_on_match=True)
+                    reconstruct_text(batch, model, word_embedding_matrix, first_A1s, first_pndb_lookup_ids, global_step,
+                                     exit_on_match=True)
 
                 Checkpoints.save(epoch, global_step, model, main_optimizer, scheduler)
 

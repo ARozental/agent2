@@ -31,6 +31,9 @@ class Commands:
         parser.add_argument('--gpu', type=int, default=0,
                             help='the CUDA GPU to place the model on')
 
+        parser.add_argument('--multi-gpu', action='store_true', default=False,
+                            help='Whether to use multiple GPUs or not')
+
         parser.add_argument('--tpu', action='store_true', default=False,
                             help='Whether to use a single TPU core')
 
@@ -72,6 +75,9 @@ class Commands:
 
         if args.freeze0:  # Only set if it was passed
             Config.freeze0 = args.freeze0
+
+        if args.multi_gpu:
+            Config.multi_gpu = args.multi_gpu
 
         Config.gpu_num = args.gpu
         Config.use_tpu = args.tpu or args.tpu_all

@@ -63,6 +63,7 @@ class Config:
     use_tpu = False
     use_all_tpu_cores = False
     use_accelerator = False
+    multi_gpu = False
     debug_tpu = False
     profile_tpu = False
     gpu_num = 0

@@ -6,8 +6,8 @@ def loss_object_to_main_loss(obj):
     loss = 0.0
     for l in obj.keys():
         if l==0:
-            loss += obj[l]['m'] * 0.0001 #do we really need MLM0?
-            loss += obj[l]['rm'] * 0.00001
+            loss += obj[l]['m'] * 0.00001 #do we really need MLM0?
+            loss += obj[l]['rm'] * 0.000001
 
         else:
             loss += obj[l]['m'] * 0.1
@@ -16,13 +16,13 @@ def loss_object_to_main_loss(obj):
         # loss += obj[l]['md'] * 0.1 #off from code
         loss += obj[l]['c'] * 2.0
         loss += obj[l]['r'] * 0.1
-        loss += obj[l]['e'] * 0.1
+        loss += obj[l]['e'] * 0.005
         loss += obj[l]['j'] * 0.001  # do we even need it??
         loss += obj[l]['d'] * Config.main_d  # moved here as a test
 
-        loss += obj[l]['rc'] * 0.01
+        loss += obj[l]['rc'] * 0.0
         loss += obj[l]['re'] * 0.1
-        loss += obj[l]['rj'] * 0.01
+        loss += obj[l]['rj'] * 0.001
         #loss += obj[l]['rmd'] * Config.main_rmd
 
         # if l > 0:

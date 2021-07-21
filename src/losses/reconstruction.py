@@ -2,7 +2,7 @@ from src.config import Config
 import torch.nn.functional as F
 import torch
 import math
-from src.losses.eos import calc_eos_loss,calc_eos_emd_loss
+from src.losses.eos import calc_eos_loss
 from src.losses.join import calc_join_loss
 from src.losses.mlm import calc_rmlm_loss
 from src.losses.coherence import calc_rc_loss, calc_lower_rc_loss, make_fake_normal_vectors
@@ -16,7 +16,7 @@ def calc_reconstruction_loss(agent_level, matrices, decompressed, real_positions
         decompressed = pndb.old_get_data_from_A_matrix(pndb.create_A_matrix(matrices, real_positions), decompressed)
 
     # overrides real_positions with the best the decompressor can do
-    eos_loss, projected_eos_positions = calc_eos_emd_loss(agent_level, decompressed, eos_positions)
+    eos_loss, projected_eos_positions = calc_eos_loss(agent_level, decompressed, eos_positions)
     real_positions_for_mask = (1 - torch.cumsum(projected_eos_positions, dim=1))
 
     # [batch,seq_length,vec_size]
@@ -31,7 +31,9 @@ def calc_reconstruction_loss(agent_level, matrices, decompressed, real_positions
 
     # norm(p=1) is not supported on the TPU
     #reconstruction_diff = ((matrices - post_decoder) * real_positions.unsqueeze(-1)).norm(dim=[1, 2])
-    reconstruction_diff = ((matrices - post_decoder) * real_positions.unsqueeze(-1)).norm(dim=[2]).mean(dim=1)
+    reconstruction_diff = matrices - post_decoder
+    reconstruction_diff = reconstruction_diff * (eos_positions.unsqueeze(-1)*2+1)
+    reconstruction_diff = (reconstruction_diff * real_positions.unsqueeze(-1)).norm(dim=[2]).mean(dim=1)
     reconstruction_diff = reconstruction_diff / ((matrices * real_positions.unsqueeze(-1)).norm(dim=[2]).mean(dim=1))
 
     if agent_level.level == 0:
@@ -46,6 +48,7 @@ def calc_reconstruction_loss(agent_level, matrices, decompressed, real_positions
         ignore_index=Config.pad_token_id,
         reduction='none'  # Gives mlm loss from each of [batch, words]
     )  # .mean(-1) => this was a bug
+    reconstruction_losses = reconstruction_losses * (eos_positions*2+1)
     reconstruction_losses = reconstruction_losses.sum(-1) / real_positions.sum(-1)
 
     # 4.4 is ln(len(char_embedding)) == ln(81)

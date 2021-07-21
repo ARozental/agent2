@@ -1,6 +1,6 @@
 from . import Compressor, Decompressor, Encoder, Decoder, CoherenceChecker, Generator, Discriminator, CnnDiscriminator, \
     Pndb
-from src.losses.eos import decompressed_to_cdot, cdot_to_probs, calc_eos_loss,calc_eos_emd_loss
+from src.losses.eos import decompressed_to_cdot, cdot_to_probs, calc_eos_loss
 from src.config import Config
 from src.utils import group_by_root, distinct
 import torch.nn.functional as F
@@ -194,7 +194,7 @@ class AgentLevel(nn.Module):
         #  decompressed = self.pndb.old_get_data_from_A_matrix(pndb2, decompressed)
 
         batch, seq_length, _ = decompressed.shape
-        _, projected_eos_positions = calc_eos_emd_loss(self, decompressed,
+        _, projected_eos_positions = calc_eos_loss(self, decompressed,
                                                    torch.zeros(batch, seq_length, device=Config.device))
         real_positions_for_mask = (1 - torch.cumsum(projected_eos_positions, dim=1))
         post_decoder = self.decoder(decompressed, real_positions_for_mask, None)

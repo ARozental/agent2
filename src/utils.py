@@ -102,6 +102,16 @@ def earth_movers_distance(l, p):
     return (v * torch.sign(v)).sum(-1)
 
 
+def earth_sizes(l, p):
+    #loss per position
+    sizes = torch.arange(l.size()[-1]).unsqueeze(0) - torch.argmax(l)
+    sizes = sizes * torch.sign(sizes)
+    dist = l - p
+    dist = dist * torch.sign(dist)
+    res = (sizes * dist)#.sum(-1)
+    return res
+
+
 def inverse_loss(loss):
     "0.6931471805599453 is loss for 50:50 => this function is not doing what it should, probably"
     return -torch.max(loss - 0.6931471805599453, loss * 0)

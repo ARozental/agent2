@@ -30,7 +30,7 @@ def calc_eos_loss(agent_level, decompressed, eos_positions):
     eos_mask = cdot_to_probs(cdot)
 
     #loss_mul = earth_sizes(eos_positions, eos_mask) #/ decompressed.shape[-1]
-    sizes = torch.arange(eos_positions.size()[-1],device=Config.device).unsqueeze(0) - torch.argmax(eos_positions)
+    sizes = torch.arange(eos_positions.size()[-1],device=decompressed.device).unsqueeze(0) - torch.argmax(eos_positions)
     sizes = sizes * torch.sign(sizes) / decompressed.shape[1] * 4
     cdot = cdot+sizes #we make cdot (the logits) worse here the further away from the label they are to force the network to give really low probabilities to everything too far from the label
 

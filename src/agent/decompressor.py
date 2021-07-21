@@ -22,8 +22,8 @@ class Decompressor(nn.Module):
 
         with xp.Trace('Decompressor'):
             # todo: state_h, state_c should probably be trainable params
-            state_h = torch.zeros(1, x.size(0), Config.vector_sizes[self.level + 1], device=Config.device)
-            state_c = torch.zeros(1, x.size(0), Config.vector_sizes[self.level + 1], device=Config.device)
+            state_h = torch.zeros(1, x.size(0), Config.vector_sizes[self.level + 1], device=x.device)
+            state_c = torch.zeros(1, x.size(0), Config.vector_sizes[self.level + 1], device=x.device)
 
             seq = []
             last_input = x.unsqueeze(0)

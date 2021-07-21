@@ -146,7 +146,7 @@ class AgentModel(nn.Module):
             with xp.Trace('DummyLogitBias' + str(level_num)):
                 dummy_logit_bias = np.zeros(embedding_matrix.size(0))
                 dummy_logit_bias[-1 * num_dummy:] = 999999999999
-                dummy_logit_bias = torch.tensor(dummy_logit_bias, device=Config.device)
+                dummy_logit_bias = torch.tensor(dummy_logit_bias, device=matrices.device)
         else:
             dummy_logit_bias = None
 
@@ -187,13 +187,13 @@ class AgentModel(nn.Module):
             if Config.join_texts and level_num >= 1:
                 join_loss = calc_join_loss(self.agent_levels[level_num], decompressed, join_positions)
             else:
-                join_loss = torch.tensor([0.0] * matrices.size(0), device=Config.device)
+                join_loss = torch.tensor([0.0] * matrices.size(0), device=matrices.device)
 
         with xp.Trace('LossKeeper' + str(level_num)):
             loss_keeper = np.ones(matrices.size(0))
             if num_dummy_nodes > 0:
                 loss_keeper[-1 * num_dummy_nodes:] = 0
-            loss_keeper = torch.tensor(loss_keeper, device=Config.device)
+            loss_keeper = torch.tensor(loss_keeper, device=matrices.device)
 
         with xp.Trace('CalculateLosses' + str(level_num)):
             losses = {

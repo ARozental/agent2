@@ -140,7 +140,7 @@ class AgentLevel(nn.Module):
                 A1s.append(
                     self.pndb.create_A_matrix(matrices[start_index:end_index], real_positions[start_index:end_index]))
                 A1s = torch.stack(A1s)
-                pndb_lookup_ids = torch.tensor(pndb_lookup_ids, device=Config.device)
+                pndb_lookup_ids = torch.tensor(pndb_lookup_ids, device=matrices.device)
 
             return matrices, real_positions, eos_positions, join_positions, embedding, labels, vectors, num_dummy, A1s, pndb_lookup_ids, random_matrices
         else:
@@ -195,21 +195,21 @@ class AgentLevel(nn.Module):
 
         batch, seq_length, _ = decompressed.shape
         _, projected_eos_positions = calc_eos_loss(self, decompressed,
-                                                   torch.zeros(batch, seq_length, device=Config.device))
+                                                   torch.zeros(batch, seq_length, device=decompressed.device))
         real_positions_for_mask = (1 - torch.cumsum(projected_eos_positions, dim=1))
         post_decoder = self.decoder(decompressed, real_positions_for_mask, None)
         if Config.use_pndb1 is not None and self.level == 1:
             # post_decoder = pndb.old_get_data_from_A_matrix(pndb.create_A_matrix(matrices, real_positions), post_decoder)
             post_decoder = self.pndb.get_data_from_A_matrix(A1s, pndb_lookup_ids, post_decoder)
 
-        _, eos_mask = calc_eos_loss(self, post_decoder, torch.zeros(batch, seq_length, device=Config.device))
+        _, eos_mask = calc_eos_loss(self, post_decoder, torch.zeros(batch, seq_length, device=decompressed.device))
 
         eos_mask_max = eos_mask.max(dim=-1).values
         is_eos = eos_mask_max > 0.3
         num_tokens = torch.where(eos_mask_max > 0.4, torch.argmax(eos_mask, dim=-1),
                                  eos_mask.size(1))  # todo fix fails to decode when torch.argmax(eos_mask, dim=-1) is 0
 
-        range_matrix = torch.arange(eos_mask.size(1), device=Config.device).repeat(eos_mask.size(0), 1)
+        range_matrix = torch.arange(eos_mask.size(1), device=decompressed.device).repeat(eos_mask.size(0), 1)
 
         mask = range_matrix > num_tokens.unsqueeze(-1)
         real_positions = (1 - mask.float())

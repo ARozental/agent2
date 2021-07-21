@@ -14,9 +14,9 @@ def calc_mlm_loss(agent_level, matrices, real_positions, eos_positions, embeddin
     batch, seq_length, vec_size = matrices.shape
 
     # Choose 1 to mask MLM
-    mlm_indices = torch.max(torch.rand((batch, seq_length), device=Config.device) * real_positions, dim=-1).indices
-    mlm_positions = torch.zeros((batch, seq_length), device=Config.device)
-    mlm_positions[torch.arange(batch, device=Config.device), mlm_indices] = 1
+    mlm_indices = torch.max(torch.rand((batch, seq_length), device=matrices.device) * real_positions, dim=-1).indices
+    mlm_positions = torch.zeros((batch, seq_length), device=matrices.device)
+    mlm_positions[torch.arange(batch, device=matrices.device), mlm_indices] = 1
     mlm_positions = mlm_positions.unsqueeze(-1)
     keep_positions = 1 - mlm_positions
 
@@ -25,7 +25,7 @@ def calc_mlm_loss(agent_level, matrices, real_positions, eos_positions, embeddin
     # mlm_positions = 1 - keep_positions
 
     # 1 => replace with <mask>
-    mask_positions = (torch.rand(batch, seq_length, 1, device=Config.device) + 0.9).floor() * mlm_positions
+    mask_positions = (torch.rand(batch, seq_length, 1, device=matrices.device) + 0.9).floor() * mlm_positions
 
     # 1 => replace with original, 0 replace with random   #valid when there is no calc_clear_mlm_loss active
     random_replace_positions = mlm_positions * (1 - mask_positions)
@@ -35,7 +35,7 @@ def calc_mlm_loss(agent_level, matrices, real_positions, eos_positions, embeddin
     # todo: make sure the pad token is not here, also no join for levels 0 and 1
     # random_indexes = torch.fmod(torch.randperm(batch * seq_length).to(Config.device), embeddings.shape[0])
     num_indices = (embeddings.size(0) - num_dummy)  # Number of real indices to use
-    random_indexes = (torch.rand(batch * seq_length, device=Config.device) * num_indices).floor().long()
+    random_indexes = (torch.rand(batch * seq_length, device=matrices.device) * num_indices).floor().long()
     random_vec_replacements = torch.index_select(embeddings, 0, random_indexes).view(batch, seq_length, vec_size)
 
     pre_encoder = keep_positions * matrices + mask_positions * mask_vec_replacements
@@ -123,6 +123,6 @@ def calc_rmlm_loss(agent_level, post_decoder, real_positions_for_mask, eos_posit
     # mlm_diff = mlm_diff / ((matrices * real_positions).norm(dim=[1, 2]))
 
     # no mmlm_diff
-    mlm_diff = torch.zeros(batch, device=Config.device)
+    mlm_diff = torch.zeros(batch, device=reencoded_matrices.device)
 
     return mlm_losses, mlm_diff

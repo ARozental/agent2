@@ -1,6 +1,6 @@
 from . import Compressor, Decompressor, Encoder, Decoder, CoherenceChecker, Generator, Discriminator, CnnDiscriminator, \
     Pndb
-from src.losses.eos import decompressed_to_cdot, cdot_to_probs, calc_eos_loss
+from src.losses.eos import decompressed_to_cdot, cdot_to_probs, calc_eos_loss,calc_eos_emd_loss
 from src.config import Config
 from src.utils import group_by_root, distinct
 import torch.nn.functional as F
@@ -194,7 +194,7 @@ class AgentLevel(nn.Module):
         #  decompressed = self.pndb.old_get_data_from_A_matrix(pndb2, decompressed)
 
         batch, seq_length, _ = decompressed.shape
-        _, projected_eos_positions = calc_eos_loss(self, decompressed,
+        _, projected_eos_positions = calc_eos_emd_loss(self, decompressed,
                                                    torch.zeros(batch, seq_length, device=Config.device))
         real_positions_for_mask = (1 - torch.cumsum(projected_eos_positions, dim=1))
         post_decoder = self.decoder(decompressed, real_positions_for_mask, None)
@@ -206,7 +206,7 @@ class AgentLevel(nn.Module):
 
         eos_mask_max = eos_mask.max(dim=-1).values
         is_eos = eos_mask_max > 0.3
-        num_tokens = torch.where(eos_mask_max > 0.3, torch.argmax(eos_mask, dim=-1),
+        num_tokens = torch.where(eos_mask_max > 0.4, torch.argmax(eos_mask, dim=-1),
                                  eos_mask.size(1))  # todo fix fails to decode when torch.argmax(eos_mask, dim=-1) is 0
 
         range_matrix = torch.arange(eos_mask.size(1), device=Config.device).repeat(eos_mask.size(0), 1)

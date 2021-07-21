@@ -98,6 +98,11 @@ class AgentModel(nn.Module):
 
                 del inputs[str(level_num) + '-' + str(batch_index)]
 
+        # If don't do this then get an "int object is not iterable" error
+        if Config.multi_gpu:
+            total_g_loss = None
+            total_disc_loss = None
+
         return total_g_loss, total_disc_loss, total_loss, loss_object, word_embedding_matrix, first_A1s, first_pndb_lookup_ids
 
     def forward_node_batch(self, level_num, batch_index, node_batch, inputs, word_embedding_matrix, debug,

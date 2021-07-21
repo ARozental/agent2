@@ -6,6 +6,8 @@ import torch
 
 def reconstruct_text(batch_tree, model, embedding_matrix, first_A1s, first_pndb_lookup_ids, global_step=None,
                      exit_on_match=False):
+    if Config.multi_gpu:
+        batch_tree = batch_tree[0]
     nodes = batch_tree.batch_root.children
     expected = [TreeTokenizer.deep_detokenize(node.build_struct(return_eos=True)[0], Config.agent_level)
                 for node in nodes]

@@ -190,11 +190,11 @@ def apply_recursive(func, obj):
         return func(obj)
 
 
-def prepare_inputs(inputs, squeeze=False):
+def prepare_inputs(inputs, squeeze=False, to_device=True):
     for parent_key, values in inputs.items():
         for key, value in values.items():
             if squeeze:
                 inputs[parent_key][key] = value.squeeze(0)
-            if Config.use_cuda:
+            if Config.use_cuda and to_device:
                 inputs[parent_key][key] = inputs[parent_key][key].to(Config.device)
     return inputs

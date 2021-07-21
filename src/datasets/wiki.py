@@ -84,7 +84,6 @@ class WikiDataset(Dataset):
                     tensors[parent_key] = {}
                     for key, value in values.items():
                         tensors[parent_key][key] = torch.stack([value, value])
-                        print(parent_key, key, tensors[parent_key][key].shape)
                 yield batch_roots, tensors
             else:
                 yield TreeTokenizer.batch_texts_to_trees(articles)

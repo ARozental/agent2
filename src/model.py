@@ -6,7 +6,7 @@ from src.losses.coherence import calc_coherence_loss
 from src.losses.reconstruction import calc_reconstruction_loss
 from src.losses.generation import calc_generation_loss
 from src.pre_processing import Node, TreeTokenizer
-from src.utils import make_noise
+from src.utils import make_noise, prepare_inputs
 from src.debug.profiler import Profiler as xp
 import torch.nn as nn
 import torch
@@ -53,6 +53,11 @@ class AgentModel(nn.Module):
         return None, word_embedding_matrix, batch_tree.num_dummy_distinct
 
     def forward(self, batch_tree, inputs, generate=False, debug=False, noise_levels=None, global_step=0, xm=None):
+        if Config.multi_gpu:
+            inputs = prepare_inputs(inputs, squeeze=True, to_device=False)
+            gpu_index = int(str(inputs['set_word_vectors']['lookup_ids'].device).replace('cuda:', ''))
+            batch_tree = batch_tree[gpu_index]
+
         total_g_loss, total_disc_loss, total_loss = 0, 0, 0
         first_A1s, first_pndb_lookup_ids = [], []  # for when we want to debug just the first 5 texts, todo: remove after full_decode uses the reconstruction loss function
         # print("emb: ",len(batch_tree.distinct_word_embedding_tokens))
@@ -62,7 +67,7 @@ class AgentModel(nn.Module):
         if len(inputs['set_word_vectors']['local_char_embedding_tokens']) > Config.max_word_embedding_size:
             if global_step == 0:
                 print("First batch is too big for embedding")
-            return total_g_loss, total_disc_loss, total_loss, None, None, first_A1s, first_pndb_lookup_ids # todo: move to pre processing + pad embedding and batches for TPU here
+            return total_g_loss, total_disc_loss, total_loss, None, None, first_A1s, first_pndb_lookup_ids  # todo: move to pre processing + pad embedding and batches for TPU here
 
         loss_object = {}
         word_embedding_matrix = None

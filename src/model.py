@@ -300,7 +300,10 @@ class AgentModel(nn.Module):
         node_vectors = [node.vector for node in nodes if not node.is_join()]
         if len(node_vectors) == 0:  # If all of the nodes are joins
             return [(-1, True) for _ in nodes]
-        node_vectors = torch.stack(node_vectors)
+        if Config.multi_gpu:
+            node_vectors = torch.stack(node_vectors).to(torch.device('cuda:0'))
+        else:
+            node_vectors = torch.stack(node_vectors)
         if agent_level.level == 1:
             children_vectors, children_vectors_from_embedding, children_eos, _, _ = agent_level.vecs_to_children_vecs(
                 node_vectors, A1s, pndb_lookup_ids, embedding_matrix)

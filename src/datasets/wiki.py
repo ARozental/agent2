@@ -56,8 +56,8 @@ class WikiDataset(Dataset):
             article_to_sections,
         ]
 
-    def valid_text(self,text):
-      return True
+    def valid_text(self, text):
+        return True
 
     @staticmethod
     def _parse_article(article):
@@ -74,4 +74,17 @@ class WikiDataset(Dataset):
         for batch in range(len(self.data) // Config.batch_size):
             begin = batch * Config.batch_size
             articles = [self._parse_article(self.dataset['train'][begin + num]) for num in range(Config.batch_size)]
-            yield TreeTokenizer.batch_texts_to_trees(articles)
+
+            if Config.multi_gpu:
+                data = TreeTokenizer.batch_texts_to_trees(articles)
+                batch_roots = [data[0], data[0]]
+                tensors = {}
+                import torch
+                for parent_key, values in data[1].items():
+                    tensors[parent_key] = {}
+                    for key, value in values.items():
+                        tensors[parent_key][key] = torch.stack([value, value])
+                        print(parent_key, key, tensors[parent_key][key].shape)
+                yield batch_roots, tensors
+            else:
+                yield TreeTokenizer.batch_texts_to_trees(articles)

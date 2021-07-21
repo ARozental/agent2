@@ -206,7 +206,7 @@ class AgentLevel(nn.Module):
 
         eos_mask_max = eos_mask.max(dim=-1).values
         is_eos = eos_mask_max > 0.3
-        num_tokens = torch.where(eos_mask_max > 0.3, torch.argmax(eos_mask, dim=-1),
+        num_tokens = torch.where(eos_mask_max > 0.4, torch.argmax(eos_mask, dim=-1),
                                  eos_mask.size(1))  # todo fix fails to decode when torch.argmax(eos_mask, dim=-1) is 0
 
         range_matrix = torch.arange(eos_mask.size(1), device=Config.device).repeat(eos_mask.size(0), 1)

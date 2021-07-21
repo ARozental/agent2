@@ -56,7 +56,7 @@ AgentModel:
 6. write level 0 coherence/mlm that accounts for generated real words?
 7. add noise (instead of dropout) for X% of word vectors, add noise before reconstructing  => learn how to push close vectors to the right place in reconstruxtion
 8. save lr with the model?
-9. multiply r_loss and r_diff by 3 when on eos token
+9. add earch dist to e_mse loss
 Tests:
 1. tensor board - reconstructed next to real text for TB print
 2. tensor board - semi reconstructed text that uses the embedding matries, debug_decode?

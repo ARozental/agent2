@@ -175,6 +175,10 @@ def train(index, flags, training_started):
                     xm=None if not Config.use_tpu else xm)
                 if loss_object is None:
                     continue
+
+                if Config.multi_gpu:
+                    g_loss = 0
+                    disc_loss = 0
                 main_loss = loss_object_to_main_loss(loss_object) / grad_acc_steps
                 # r_loss = loss_object_to_reconstruction_weights_loss(loss_object) / grad_acc_steps
                 # c_loss = loss_object_to_extra_coherence_weights_loss(loss_object) / Config.grad_acc_steps

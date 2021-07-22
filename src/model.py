@@ -53,12 +53,16 @@ class AgentModel(nn.Module):
         return None, word_embedding_matrix, batch_tree.num_dummy_distinct
 
     def forward(self, batch_tree, inputs, generate=False, debug=False, noise_levels=None, global_step=0, xm=None):
+        device = inputs['set_word_vectors']['lookup_ids'].device
         if Config.multi_gpu:
             inputs = prepare_inputs(inputs, squeeze=True, to_device=False)
-            gpu_index = int(str(inputs['set_word_vectors']['lookup_ids'].device).replace('cuda:', ''))
+            gpu_index = int(str(device).replace('cuda:', ''))
             batch_tree = batch_tree[gpu_index]
 
-        total_g_loss, total_disc_loss, total_loss = 0, 0, 0
+        # If don't do this then get an "int object is not iterable" error when Config.multi_gpu
+        total_g_loss = torch.tensor(0, device=device)
+        total_disc_loss = torch.tensor(0, device=device)
+        total_loss = torch.tensor(0, device=device)
         first_A1s, first_pndb_lookup_ids = [], []  # for when we want to debug just the first 5 texts, todo: remove after full_decode uses the reconstruction loss function
         # print("emb: ",len(batch_tree.distinct_word_embedding_tokens))
         # print("level 0: ",len(batch_tree.level_nodes[0]))
@@ -97,11 +101,6 @@ class AgentModel(nn.Module):
                 total_loss += main_loss
 
                 del inputs[str(level_num) + '-' + str(batch_index)]
-
-        # If don't do this then get an "int object is not iterable" error
-        if Config.multi_gpu:
-            total_g_loss = None
-            total_disc_loss = None
 
         return total_g_loss, total_disc_loss, total_loss, loss_object, word_embedding_matrix, first_A1s, first_pndb_lookup_ids
 

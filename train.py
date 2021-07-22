@@ -176,9 +176,15 @@ def train(index, flags, training_started):
                 if loss_object is None:
                     continue
 
+                # TODO: Is this ok? Or do something else?
                 if Config.multi_gpu:
-                    g_loss = 0
-                    disc_loss = 0
+                    g_loss = g_loss.mean()
+                    disc_loss = disc_loss.mean()
+                    main_loss = main_loss.mean()
+                    for level in range(Config.agent_level + 1):
+                        for key, value in loss_object[level].items():
+                            loss_object[level][key] = value.mean()
+
                 main_loss = loss_object_to_main_loss(loss_object) / grad_acc_steps
                 # r_loss = loss_object_to_reconstruction_weights_loss(loss_object) / grad_acc_steps
                 # c_loss = loss_object_to_extra_coherence_weights_loss(loss_object) / Config.grad_acc_steps

@@ -80,6 +80,9 @@ class Logger:
             Config.accelerator.wait_for_everyone()
             model = Config.accelerator.unwrap_model(model)
 
+        if Config.multi_gpu:
+            model = model.module
+
         for i, level in enumerate(model.agent_levels):
             cls.writer.add_scalar('l2/weight/' + str(i), level.classifier1w, step)
             cls.writer.add_scalar('l2/bias/' + str(i), level.classifier1b, step)

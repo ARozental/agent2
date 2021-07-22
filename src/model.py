@@ -60,9 +60,9 @@ class AgentModel(nn.Module):
             batch_tree = batch_tree[gpu_index]
 
         # If don't do this then get an "int object is not iterable" error when Config.multi_gpu
-        total_g_loss = torch.tensor(0, device=device)
-        total_disc_loss = torch.tensor(0, device=device)
-        total_loss = torch.tensor(0, device=device)
+        total_g_loss = torch.tensor(0, dtype=torch.float32, device=device)
+        total_disc_loss = torch.tensor(0, dtype=torch.float32, device=device)
+        total_loss = torch.tensor(0, dtype=torch.float32, device=device)
         first_A1s, first_pndb_lookup_ids = [], []  # for when we want to debug just the first 5 texts, todo: remove after full_decode uses the reconstruction loss function
         # print("emb: ",len(batch_tree.distinct_word_embedding_tokens))
         # print("level 0: ",len(batch_tree.level_nodes[0]))

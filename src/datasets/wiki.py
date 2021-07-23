@@ -71,19 +71,38 @@ class WikiDataset(Dataset):
         return self._parse_article(article)
 
     def __iter__(self):
+        last_articles = None
         for batch in range(len(self.data) // Config.batch_size):
             begin = batch * Config.batch_size
             articles = [self._parse_article(self.dataset['train'][begin + num]) for num in range(Config.batch_size)]
 
             if Config.multi_gpu:
-                data = TreeTokenizer.batch_texts_to_trees(articles)
-                batch_roots = [data[0], data[0]]
-                tensors = {}
+                if batch % 2 == 0:
+                    last_articles = articles
+                    continue
+
+                data1 = TreeTokenizer.batch_texts_to_trees(last_articles)
+                data2 = TreeTokenizer.batch_texts_to_trees(articles)
+                batch_roots = [data1[0], data2[0]]
+                tensors = {
+                    'lengths': {},
+                }
                 import torch
-                for parent_key, values in data[1].items():
+                for parent_key, values in data1[1].items():
                     tensors[parent_key] = {}
                     for key, value in values.items():
-                        tensors[parent_key][key] = torch.stack([value, value])
+                        a = data1[1][parent_key][key]
+                        b = data2[1][parent_key][key]
+                        tensors['lengths'][parent_key + '-' + key] = torch.tensor([a.shape[0], b.shape[0]])
+                        if a.shape[0] < b.shape[0]:
+                            new_shape = list(a.shape)
+                            new_shape[0] = b.shape[0] - a.shape[0]
+                            a = torch.cat([a, torch.zeros(new_shape)], dim=0)
+                        else:
+                            new_shape = list(b.shape)
+                            new_shape[0] = a.shape[0] - b.shape[0]
+                            b = torch.cat([b, torch.zeros(new_shape)], dim=0)
+                        tensors[parent_key][key] = torch.stack([a, b])
                 yield batch_roots, tensors
             else:
                 yield TreeTokenizer.batch_texts_to_trees(articles)

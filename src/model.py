@@ -59,6 +59,11 @@ class AgentModel(nn.Module):
             gpu_index = int(str(device).replace('cuda:', ''))
             batch_tree = batch_tree[gpu_index]
 
+            for parent_key, values in inputs.items():
+                for key, value in values.items():
+                    current_length = inputs['lengths'][parent_key + '-' + key]
+                    inputs[parent_key][key] = value[:current_length]
+
         # If don't do this then get an "int object is not iterable" error when Config.multi_gpu
         total_g_loss = torch.tensor(0, dtype=torch.float32, device=device)
         total_disc_loss = torch.tensor(0, dtype=torch.float32, device=device)

@@ -97,11 +97,11 @@ class WikiDataset(Dataset):
                         if a.shape[0] < b.shape[0]:
                             new_shape = list(a.shape)
                             new_shape[0] = b.shape[0] - a.shape[0]
-                            a = torch.cat([a, torch.zeros(new_shape)], dim=0)
+                            a = torch.cat([a, torch.zeros(new_shape, dtype=a.dtype)], dim=0)
                         else:
                             new_shape = list(b.shape)
                             new_shape[0] = a.shape[0] - b.shape[0]
-                            b = torch.cat([b, torch.zeros(new_shape)], dim=0)
+                            b = torch.cat([b, torch.zeros(new_shape, dtype=a.dtype)], dim=0)
                         tensors[parent_key][key] = torch.stack([a, b])
                 yield batch_roots, tensors
             else:

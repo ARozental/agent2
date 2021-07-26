@@ -17,6 +17,7 @@ class Compressor(nn.Module):
         self.LayerNorm = nn.LayerNorm(Config.vector_sizes[level + 1])
 
     def forward(self, x, real_positions):
+        self.recurrent.flatten_parameters()  # Suppresses RNN weights single contiguous chunk of memory warning
         with xp.Trace('Compressor'):
             lengths = real_positions.sum(-1).long()
             places = (lengths - 1)

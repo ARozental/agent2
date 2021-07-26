@@ -20,6 +20,8 @@ class Decompressor(nn.Module):
         # Source: https://pytorch.org/docs/stable/generated/torch.nn.LSTM.html
         # h0.size=c0.size = (num_layers * num_directions, batch, hidden_size)        #x: seq_len, batch, input_size
 
+        self.recurrent.flatten_parameters()  # Suppresses RNN weights single contiguous chunk of memory warning
+
         with xp.Trace('Decompressor'):
             # todo: state_h, state_c should probably be trainable params
             state_h = torch.zeros(1, x.size(0), Config.vector_sizes[self.level + 1], device=x.device)

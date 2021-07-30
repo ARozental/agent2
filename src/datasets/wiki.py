@@ -70,6 +70,41 @@ class WikiDataset(Dataset):
         article = self.dataset['train'][index]
         return self._parse_article(article)
 
+    @staticmethod
+    def build_tensors(d1, d2):
+        import torch
+        tensors = {
+            'lengths': {},
+        }
+
+        for parent_key in set(d1.keys()) | set(d2.keys()):  # All keys
+            tensors[parent_key] = {}
+            sub_keys = set(d1.get(parent_key, {}).keys()) | set(d2.get(parent_key, {}).keys())
+            for key in sub_keys:
+                if parent_key not in d1:
+                    b = d2[parent_key][key]
+                    a = torch.zeros(b.shape, dtype=b.dtype)
+                    tensors['lengths'][parent_key + '-' + key] = torch.tensor([0, b.shape[0]])
+                elif parent_key not in d2:
+                    a = d1[parent_key][key]
+                    b = torch.zeros(a.shape, dtype=a.dtype)
+                    tensors['lengths'][parent_key + '-' + key] = torch.tensor([a.shape[0], 0])
+                else:
+                    a = d1[parent_key][key]
+                    b = d2[parent_key][key]
+                    tensors['lengths'][parent_key + '-' + key] = torch.tensor([a.shape[0], b.shape[0]])
+                    if a.shape[0] < b.shape[0]:
+                        new_shape = list(a.shape)
+                        new_shape[0] = b.shape[0] - a.shape[0]
+                        a = torch.cat([a, torch.zeros(new_shape, dtype=a.dtype)], dim=0)
+                    else:
+                        new_shape = list(b.shape)
+                        new_shape[0] = a.shape[0] - b.shape[0]
+                        b = torch.cat([b, torch.zeros(new_shape, dtype=a.dtype)], dim=0)
+                tensors[parent_key][key] = torch.stack([a, b])
+
+        return tensors
+
     def __iter__(self):
         last_articles = None
         for batch in range(len(self.data) // Config.batch_size):
@@ -83,26 +118,10 @@ class WikiDataset(Dataset):
 
                 data1 = TreeTokenizer.batch_texts_to_trees(last_articles)
                 data2 = TreeTokenizer.batch_texts_to_trees(articles)
+
                 batch_roots = [data1[0], data2[0]]
-                tensors = {
-                    'lengths': {},
-                }
-                import torch
-                for parent_key, values in data1[1].items():
-                    tensors[parent_key] = {}
-                    for key, value in values.items():
-                        a = data1[1][parent_key][key]
-                        b = data2[1][parent_key][key]
-                        tensors['lengths'][parent_key + '-' + key] = torch.tensor([a.shape[0], b.shape[0]])
-                        if a.shape[0] < b.shape[0]:
-                            new_shape = list(a.shape)
-                            new_shape[0] = b.shape[0] - a.shape[0]
-                            a = torch.cat([a, torch.zeros(new_shape, dtype=a.dtype)], dim=0)
-                        else:
-                            new_shape = list(b.shape)
-                            new_shape[0] = a.shape[0] - b.shape[0]
-                            b = torch.cat([b, torch.zeros(new_shape, dtype=a.dtype)], dim=0)
-                        tensors[parent_key][key] = torch.stack([a, b])
+                tensors = self.build_tensors(data1[1], data2[1])
+
                 yield batch_roots, tensors
             else:
                 yield TreeTokenizer.batch_texts_to_trees(articles)

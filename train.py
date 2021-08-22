@@ -65,7 +65,7 @@ def train(index, flags, training_started):
         collate_fn=custom_collate_fn,
         worker_init_fn=worker_init_fn,
         num_workers=4,
-        prefetch_factor=10,
+        prefetch_factor=5,
         persistent_workers=True  # This is helpful when num_workers > 0
     )
 

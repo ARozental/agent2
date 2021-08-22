@@ -128,8 +128,10 @@ def train(index, flags, training_started):
         # print('Epoch', epoch + 1)
 
         if Config.use_tpu and Config.use_all_tpu_cores:
+            print("Parallel")
             parallel_loader = pl.ParallelLoader(dataloader, [Config.device]).per_device_loader(Config.device)
         else:
+            print("not Parallel")
             parallel_loader = dataloader
 
         total_loss = 0

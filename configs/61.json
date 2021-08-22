@@ -9,7 +9,7 @@
   "num_transformer_layers":  [12, 12, 2, 2, 2, 2],
   "batch_size": 130,
   "max_word_embedding_size": 10800,
-  "node_sizes": [4096, 512, 4096, 1000, 1000],
+  "node_sizes": [1024, 300, 4096, 1000, 1000],
   "mini_batch_size": 1500,
   "drop_rate": 0.0,
   "join_texts": true,

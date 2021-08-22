@@ -10,7 +10,7 @@
   "batch_size": 70,
   "max_word_embedding_size": 7000,
   "node_sizes": [256, 128, 1000, 1000, 1000],
-  "mini_batch_size":1000,
+  "mini_batch_size":800,
   "drop_rate": 0.0,
   "join_texts": true,
   "use_pndb1": null,

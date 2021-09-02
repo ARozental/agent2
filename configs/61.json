@@ -1,6 +1,6 @@
 {
-  "model_folder": "c62w128s256_l12",
-  "exp_folder": "runs/c62w128s256_l12",
+  "model_folder": "c64w128s256_l12",
+  "exp_folder": "runs/c64w128s256_l12",
   "viz_file": "../viz/models/c62w128s256_l12.csv",
   "sequence_lengths": [16, 16, 6, 3, 4],
   "vector_sizes": [64, 128, 256, 96, 128, 156],

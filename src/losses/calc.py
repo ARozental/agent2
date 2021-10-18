@@ -6,22 +6,22 @@ def loss_object_to_main_loss(obj):
     loss = 0.0
     for l in obj.keys():
         if l==0:
-            loss += obj[l]['m'] * 0.01 #do we really need MLM0?
-            loss += obj[l]['rm'] * 0.001
+            loss += obj[l]['m'] * 0.01 * 0.1 #step2   #do we really need MLM0?
+            loss += obj[l]['rm'] * 0.001 * 0.1 #step2
 
         else:
-            loss += obj[l]['m'] * 0.1
-            loss += obj[l]['rm'] * 0.01
+            loss += obj[l]['m'] * 0.1 * 0.1 #step2
+            loss += obj[l]['rm'] * 0.01 * 0.1 #step2
 
         # loss += obj[l]['md'] * 0.1 #off from code
         loss += obj[l]['c'] * 2.0
-        loss += obj[l]['r'] * 0.1
+        loss += obj[l]['r'] * 0.1 * 10 #step2
         loss += obj[l]['e'] * 0.1
         loss += obj[l]['j'] * 0.001  # do we even need it??
-        loss += obj[l]['d'] * Config.main_d  # moved here as a test
+        loss += obj[l]['d'] * Config.main_d * 20 #step2 # moved here as a test
 
         loss += obj[l]['rc'] * 0.01
-        loss += obj[l]['re'] * 0.2
+        loss += obj[l]['re'] * 0.2  * 10 #step2
         loss += obj[l]['rj'] * 0.01
         #loss += obj[l]['rmd'] * Config.main_rmd
 

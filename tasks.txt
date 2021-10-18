@@ -68,3 +68,6 @@ Tests:
     kings-king+queen
     see how much each word is effected by pndb
 
+5. track all losses after the applied fsctor and their gradient sizes => mlm1 totally takes over at 88k
+5a??. math.sin(x*N/1000)+1 for all losses, maybe after some training one of the losses (MLM?) takes over everything we might need to kill it periodically or rebalance losses
+

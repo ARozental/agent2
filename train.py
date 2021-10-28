@@ -1,3 +1,4 @@
+from src.debug.param_count import count_parameters
 from src.checkpoints import Checkpoints
 from src.commands import Commands
 from src.config import Config
@@ -124,6 +125,7 @@ def train(index, flags, training_started):
         [setattr(p, "requires_grad", False) for p in level0_tree_params]
     if Config.skip_batches is not None:
         global_step = Config.skip_batches - 1
+    count_parameters(model, trainable=True)
     for epoch in range(10001):
         # print('Epoch', epoch + 1)
 

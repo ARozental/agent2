@@ -15,6 +15,7 @@ nltk = "^3.6.5"
 gcsfs = "^2021.10.1"
 tensorboard = "^2.7.0"
 madgrad = "^1.1"
+prettytable = "^2.2.1"
 
 [tool.poetry.dev-dependencies]
 

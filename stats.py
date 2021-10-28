@@ -1,5 +1,5 @@
 from src.config import Config
-from src.datasets import BookDataset, DummyDataset, WikiDataset
+from src.dataset import BookDataset, DummyDataset, WikiDataset
 from src.pre_processing import TreeTokenizer, worker_init_fn
 from src.utils import seed_torch
 from torch.utils.data.dataloader import DataLoader

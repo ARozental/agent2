@@ -3,7 +3,7 @@ from src.commands import Commands
 from src.config import Config
 from src.debug.reconstruct import reconstruct_text
 from src.losses.calc import loss_object_to_main_loss
-from src.datasets import DummyDataset, WikiDataset
+from src.dataset import DummyDataset, WikiDataset
 from src.logger import Logger
 from src.pre_processing import worker_init_fn
 from src.storage import Storage

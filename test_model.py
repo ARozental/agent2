@@ -1,6 +1,6 @@
 from src.commands import Commands
 from src.config import Config
-from src.datasets import TestExample
+from src.dataset import TestExample
 from src.pre_processing import TreeTokenizer, worker_init_fn
 from src.storage import Storage
 from src.model import AgentModel

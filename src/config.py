@@ -52,6 +52,7 @@ class Config:
     main_rm = 0.1
     main_rmd = 0.03
 
+    # These are the loss weights for the main_loss.  Either per level (nested) or all levels (global)
     loss_weights = {
         0: {
             'm': 0.01 * 0.1,  # do we really need MLM0?

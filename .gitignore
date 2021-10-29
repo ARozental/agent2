@@ -3,11 +3,17 @@
 /src/agent/__pycache__
 /src/losses/__pycache__
 
+# Keep the gitkeep
 models/*
-!models/.gitkeep # Keep the gitkeep
+!models/.gitkeep
 
+# Keep the gitkeep
 runs/*
-!runs/.gitkeep # Keep the gitkeep
+!runs/.gitkeep
 
+# Keep the gitkeep
 tmp/*
-!tmp/.gitkeep # Keep the gitkeep
+!tmp/.gitkeep
+
+# Default config
+/.env.json

@@ -1,6 +1,7 @@
 from src.config import Config
 import argparse
 import json
+import os
 
 
 class Commands:
@@ -61,6 +62,9 @@ class Commands:
 
         args = parser.parse_args()
 
+        if os.path.exists('.env.json'):
+            Commands.load_config('.env.json', is_full_path=True)
+
         if args.config is not None:
             Commands.load_config(args.config)
 
@@ -99,8 +103,11 @@ class Commands:
             Config.storage_location = 'gs://agent_output/'
 
     @staticmethod
-    def load_config(filename):
-        with open('configs/' + filename + '.json') as f:
+    def load_config(filename, is_full_path=False):
+        if not is_full_path:
+            filename = 'configs/' + filename + '.json'
+
+        with open(filename) as f:
             data = json.load(f)
 
         for key, value in data.items():

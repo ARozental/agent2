@@ -75,7 +75,9 @@ class Config:
         'rj': 0.01,
         # 'rmd': main_rmd,
     }
-    rebalance_losses = 2  # At what epoch to rebalance
+
+    rebalance_losses_step = 5000  # How often to rebalance; None to disable
+    rebalance_losses_aggregate = 4000  # How many steps to use to compute the loss rebalance
     rebalance_percentages = {  # These are the weights of individual losses.  Everything else gets spread out
         0: {
             'e': 0.01,

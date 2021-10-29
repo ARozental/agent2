@@ -6,6 +6,7 @@ from src.debug.reconstruct import reconstruct_text
 from src.losses.calc import loss_object_to_main_loss
 from src.dataset import DummyDataset, WikiDataset
 from src.logger import Logger
+from src.losses.rebalance import Rebalance
 from src.pre_processing import worker_init_fn
 from src.storage import Storage
 from src.utils import seed_torch, metsumm, prepare_inputs
@@ -116,6 +117,7 @@ def train(index, flags, training_started):
     Storage.setup()
     Logger.setup()
     Checkpoints.setup()
+    Rebalance.setup()
     Checkpoints.load(model, main_optimizer, scheduler)
     all_times = []
     all_model_times = []
@@ -248,6 +250,13 @@ def train(index, flags, training_started):
 
                     # total_loss_object = None
                     # total_loss = 0
+
+                Rebalance.add_loss_object(step, total_loss_object)
+                if Config.rebalance_losses_step is not None and (step + 1) % Config.rebalance_losses_step == 0:
+                    print('Rebalancing losses at step', step)  # This goes into effect on the next step
+                    Rebalance.rebalance()
+                    main_optimizer.__setstate__({'state': {}})  # Clear the optimizer state
+
             total_model_time += (time.time() - current_model_time)
 
             if (not Config.use_accelerator or Config.accelerator.is_main_process) and \

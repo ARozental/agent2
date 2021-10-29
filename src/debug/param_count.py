@@ -28,8 +28,6 @@ def count_parameters(model, trainable=True):
 
     print_parameters(params)
 
-    exit()
-
 
 def print_parameters(params):
     # Sort the dictionary based on key

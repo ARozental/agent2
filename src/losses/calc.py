@@ -2,37 +2,22 @@ from src.config import Config
 from src.utils import inverse_loss, cap_loss
 
 
-def loss_object_to_main_loss(obj):
+def loss_object_to_main_loss(loss_object):
     loss = 0.0
-    for l in obj.keys():
-        if l==0:
-            loss += obj[l]['m'] * 0.01 * 0.1 #step2   #do we really need MLM0?
-            loss += obj[l]['rm'] * 0.001 * 0.1 #step2
-
-        else:
-            loss += obj[l]['m'] * 0.1 * 0.1 #step2
-            loss += obj[l]['rm'] * 0.01 * 0.1 #step2
-
-        # loss += obj[l]['md'] * 0.1 #off from code
-        loss += obj[l]['c'] * 2.0
-        loss += obj[l]['r'] * 0.1 * 10 #step2
-        loss += obj[l]['e'] * 0.1
-        loss += obj[l]['j'] * 0.001  # do we even need it??
-        loss += obj[l]['d'] * Config.main_d * 20 #step2 # moved here as a test
-
-        loss += obj[l]['rc'] * 0.01
-        loss += obj[l]['re'] * 0.2  * 10 #step2
-        loss += obj[l]['rj'] * 0.01
-        #loss += obj[l]['rmd'] * Config.main_rmd
-
-        # if l > 0:
-        #     loss += - obj[l]['rcd'] * Config.main_rcd  # negative on the main weights
+    for i, level in loss_object.items():
+        for name, value in level.items():
+            if i in Config.loss_weights and name in Config.loss_weights[i]:
+                loss += value * Config.loss_weights[i][name]
+            elif name in Config.loss_weights:
+                loss += value * Config.loss_weights[name]
+            else:
+                raise ValueError(f'A loss weight for "{name}" needs to be defined in Config.loss_weights')
 
     return loss
 
 
 def loss_object_to_reconstruction_weights_loss(obj):
-    loss =  0.0
+    loss = 0.0
     for l in obj.keys():
         loss += obj[l]['rm'] * (-Config.main_rm)
         loss += obj[l]['rmd'] * (-Config.main_rmd)

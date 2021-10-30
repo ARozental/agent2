@@ -132,7 +132,7 @@ def train(index, flags, training_started):
         [setattr(p, "requires_grad", False) for p in level0_tree_params]
     if Config.skip_batches is not None:
         global_step = Config.skip_batches - 1
-    count_parameters(model, trainable=True)
+    print_params = True
     for epoch in range(10001):
         # print('Epoch', epoch + 1)
 
@@ -184,6 +184,9 @@ def train(index, flags, training_started):
                     xm=None if not Config.use_tpu else xm)
                 if loss_object is None:
                     continue
+                if print_params:
+                    count_parameters(model, trainable=True)
+                    print_params = False
 
                 # TODO: Is this ok? Or do something else?
                 if Config.multi_gpu:

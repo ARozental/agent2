@@ -3,7 +3,7 @@
   "exp_folder": "runs/rebalance_8bits_pndb128",
   "viz_file": "../viz/models/rebalance_8bits_pndb128.csv",
   "cc_width": 2,
-  "use_8bit":true,
+  "use_8bit":false,
   "sequence_lengths": [16, 16, 6, 3, 4],
   "vector_sizes": [64, 128, 256, 96, 128, 156],
   "num_heads": [4, 4, 2, 2, 2, 2],

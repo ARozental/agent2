@@ -8,6 +8,7 @@ from src.losses.generation import calc_generation_loss
 from src.pre_processing import Node, TreeTokenizer
 from src.utils import make_noise, prepare_inputs
 from src.debug.profiler import Profiler as xp
+import bitsandbytes as bnb
 import torch.nn as nn
 import torch
 import numpy as np
@@ -18,7 +19,10 @@ class AgentModel(nn.Module):
     def __init__(self):
         super().__init__()
         num_letters = len(TreeTokenizer.letter_tokenizer.keys())
-        self.char_embedding_layer = nn.Embedding(num_letters, Config.vector_sizes[0])
+        if Config.use_8bit:
+            self.char_embedding_layer = bnb.nn.StableEmbedding(num_letters, Config.vector_sizes[0])
+        else:
+            self.char_embedding_layer = nn.Embedding(num_letters, Config.vector_sizes[0])
 
         self.agent_levels = nn.ModuleList([AgentLevel(i, num_letters) for i in range(Config.agent_level + 1)])
         for i in range(1, Config.agent_level + 1):

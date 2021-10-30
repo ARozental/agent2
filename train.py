@@ -16,6 +16,7 @@ from torch.utils.data.dataloader import DataLoader, default_collate
 import numpy as np
 import time
 import madgrad  # is it any good?
+import bitsandbytes as bnb  # 8 bit optimizers
 import torch.optim.lr_scheduler
 import os
 import torch
@@ -95,7 +96,10 @@ def train(index, flags, training_started):
                           (("char_embedding_layer" in name) or ("agent_levels.0" in name))]
 
     if Config.optimizer == "Adam":
-        main_optimizer = torch.optim.AdamW(main_params, Config.lr)
+        if Config.use_8bit:
+            main_optimizer = bnb.optim.Adam(main_params, Config.lr)
+        else:
+            main_optimizer = torch.optim.AdamW(main_params, Config.lr)
     else:
         main_optimizer = madgrad.MADGRAD(main_params, lr=Config.lr, momentum=Config.momentum)  # 0.01,0.9 is the default
     # main_optimizer = torch.optim.AdamW(main_params, 0.001) #todo: for dummy only

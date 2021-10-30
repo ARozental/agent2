@@ -9,17 +9,17 @@ class CoherenceChecker(nn.Module):
     def __init__(self, level):
         super().__init__()
         embed_size = Config.vector_sizes[level + 1]
-        self.d1 = nn.Linear(embed_size, 4 * embed_size)
-        self.d2 = nn.Linear(4 * embed_size, 4 * embed_size)
-        self.out = nn.Linear(4 * embed_size, 1)
-        self.out_prob = nn.Linear(4 * embed_size, 1)
+        self.d1 = nn.Linear(embed_size, Config.cc_width * embed_size)
+        self.d2 = nn.Linear(Config.cc_width * embed_size, Config.cc_width * embed_size)
+        self.out = nn.Linear(Config.cc_width * embed_size, 1)
+        self.out_prob = nn.Linear(Config.cc_width * embed_size, 1)
         self.out.bias.data.fill_(-2.2)  # better than random init
         self.out_prob.bias.data.fill_(-0.5)  # better than random init
         # self.LayerNorm = nn.LayerNorm(4*embed_size)
 
         # for cnn forward
         # self.out_classifier = nn.Linear(4 * embed_size, 3) #noise, encoded, reconstructed
-        self.out_classifier = nn.Linear(4 * embed_size, 2)  # encoded, reconstructed
+        self.out_classifier = nn.Linear(Config.cc_width * embed_size, 2)  # encoded, reconstructed
 
         # for cnn forward
         self.num_filters = 32

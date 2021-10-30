@@ -8,7 +8,8 @@ from src.losses.generation import calc_generation_loss
 from src.pre_processing import Node, TreeTokenizer
 from src.utils import make_noise, prepare_inputs
 from src.debug.profiler import Profiler as xp
-import bitsandbytes as bnb
+if Config.use_8bit:
+    import bitsandbytes as bnb
 import torch.nn as nn
 import torch
 import numpy as np

@@ -7,6 +7,7 @@ class Config:
     levels = {'WORD': 0, 'SENTENCE': 1, 'PARAGRAPH': 2, 'CHAPTER': 3, 'BOOK': 4, }
     agent_level = levels['SENTENCE']  # most complex vector agent can create 2=paragraph
 
+    cc_width = 4
     sequence_lengths = [16, 16, 6, 3, 4]  # [10,12,6,20,20]
     # vector_sizes = [8, 10, 12, 14, 16, 18]  # [4,6,8,10] #letters,words,sentences,paragraphs,chapters,book
     vector_sizes = [32, 64, 128, 96, 128, 156]  # [4,6,8,10] #letters,words,sentences,paragraphs,chapters,book
@@ -56,17 +57,17 @@ class Config:
     # These are the loss weights for the main_loss.  Either per level (nested) or all levels (global)
     loss_weights = {
         0: {
-            'm': 0.01 * 0.1,  # do we really need MLM0?
-            'rm': 0.001 * 0.1,
+            'm': 0.01,# * 0.1,  # do we really need MLM0?
+            'rm': 0.001,# * 0.1,
         },
         1: {
-            'm': 0.1 * 0.1,
-            'rm': 0.01 * 0.1,
+            'm': 0.1,# * 0.1,
+            'rm': 0.01,# * 0.1,
             # 'rcd': -1 * main_rcd,
         },
         # 'md': 0.1,  # Off from code
         'c': 2.0,
-        'r': 0.1 * 10,
+        'r': 0.1,# * 10,
         'e': 0.1,
         'j': 0.001,
         'd': main_d * 20,
@@ -81,10 +82,19 @@ class Config:
     rebalance_losses_aggregate = 4000  # How many steps to use to compute the loss rebalance
     rebalance_percentages = {  # These are the weights of individual losses.  Everything else gets spread out
         0: {
+            'rm': 0.0001,
             'e': 0.01,
+            'j': 0.001,
+            'rc': 0.0, #because of using only 1 optimizer
+            'rj': 0.0,
         },
         1: {
+            'rm': 0.001,
             'e': 0.01,
+            'j': 0.001,
+            'rc': 0.0, #because of using only 1 optimizer
+            'rj': 0.0,
+
         },
     }
 

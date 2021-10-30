@@ -16,7 +16,8 @@ from torch.utils.data.dataloader import DataLoader, default_collate
 import numpy as np
 import time
 import madgrad  # is it any good?
-import bitsandbytes as bnb  # 8 bit optimizers
+if Config.use_8bit:
+    import bitsandbytes as bnb  # 8 bit optimizers
 import torch.optim.lr_scheduler
 import os
 import torch

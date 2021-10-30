@@ -13,8 +13,7 @@ class Pndb(nn.Module):
         self.pos_encoder = PositionalEncoding(Config.vector_sizes[level], Config.drop_rate)
         encoder_layers = EncoderLayer(Config.vector_sizes[level], Config.num_heads[level], Config.vector_sizes[level],
                                       Config.drop_rate, activation="gelu")  # change to swiglu
-        self.pndb_transformer_encoder = TransformerEncoder(encoder_layers, Config.num_transformer_layers[
-            level])  # not sure we need it...
+        #self.pndb_transformer_encoder = TransformerEncoder(encoder_layers, Config.num_transformer_layers[level])  # not sure we need it...
 
         if Config.use_pndb1 is not None:
             self.questions = nn.Parameter(

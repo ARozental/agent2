@@ -41,7 +41,7 @@ class Config:
     # max_typo_loss = 10.0
     grad_clip_value = 0.99
     optimizer = "Adam"
-    use_8bit = False
+    use_8bit = True
     lr = 0.0001
     momentum = 0.9
     half_life_steps = 150000

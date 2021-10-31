@@ -11,9 +11,9 @@ class Pndb(nn.Module):
     def __init__(self, level=1):
         super().__init__()
         self.pos_encoder = PositionalEncoding(Config.vector_sizes[level], Config.drop_rate)
-        encoder_layers = EncoderLayer(Config.vector_sizes[level], Config.num_heads[level], Config.vector_sizes[level],
+        encoder_layers = EncoderLayer(Config.vector_sizes[level], 1, Config.vector_sizes[level],
                                       Config.drop_rate, activation="gelu")  # change to swiglu
-        #self.pndb_transformer_encoder = TransformerEncoder(encoder_layers, Config.num_transformer_layers[level])  # not sure we need it...
+        self.pndb_transformer_encoder_write = TransformerEncoder(encoder_layers, 2)  # not sure we need it...
 
         if Config.use_pndb1 is not None:
             self.questions = nn.Parameter(
@@ -35,7 +35,9 @@ class Pndb(nn.Module):
     def create_A_matrix(self, raw_embedding_matrices, real_positions):
         # input is the matrices from a single book only! each node should have a root_id so we can make sure of that
         k = self.to_k(raw_embedding_matrices)
-        v = raw_embedding_matrices * self.ignore_gate(raw_embedding_matrices, self.ignore1)
+
+        for_ignore = self.pndb_transformer_encoder_write(raw_embedding_matrices.transpose(0, 1), src_key_padding_mask=torch.log(real_positions)).transpose(0, 1)
+        v = raw_embedding_matrices * self.ignore_gate(for_ignore, self.ignore1)
         A = attention(self.questions, k, v, Config.vector_sizes[1], real_positions=real_positions)  # [batch,num_questions,hidden]
         A = A.mean(0)  # we can have a sum here and subtract later
         return A

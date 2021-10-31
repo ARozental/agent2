@@ -57,24 +57,24 @@ class Config:
     # These are the loss weights for the main_loss.  Either per level (nested) or all levels (global)
     loss_weights = {
         0: {
-            'm': 0.01,# * 0.1,  # do we really need MLM0?
-            'rm': 0.001,# * 0.1,
+            'm': 0.01 * 0.1,  # do we really need MLM0?
+            'rm': 0.001 * 0.1,
         },
         1: {
-            'm': 0.1,# * 0.1,
-            'rm': 0.01,# * 0.1,
+            'm': 0.1 * 0.1,
+            'rm': 0.01 * 0.1,
             # 'rcd': -1 * main_rcd,
         },
         # 'md': 0.1,  # Off from code
-        'c': 2.0,
-        'r': 0.1,# * 10,
-        'e': 0.1,
-        'j': 0.001,
+        'c': 2.0* 0.1,
+        'r': 0.1* 0.1,# * 10,
+        'e': 0.1* 0.1,
+        'j': 0.001* 0.1,
         'd': main_d ,#* 20,
 
-        'rc': 0.01,
-        're': 0.2,# * 10,
-        'rj': 0.01,
+        'rc': 0.01* 0.1,
+        're': 0.2* 0.1,# * 10,
+        'rj': 0.01* 0.1,
         # 'rmd': main_rmd,
     }
 

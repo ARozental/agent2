@@ -23,7 +23,7 @@ def calc_reconstruction_loss(agent_level, matrices, decompressed, real_positions
     post_decoder = agent_level.decoder(decompressed, real_positions_for_mask, eos_positions)
     if Config.use_pndb1 is not None and agent_level.level == 1:
         #post_decoder = pndb.old_get_data_from_A_matrix(pndb.create_A_matrix(matrices, real_positions), post_decoder)
-        post_decoder = pndb.get_data_from_A_matrix(A1s, pndb_lookup_ids, post_decoder)
+        post_decoder = pndb.get_data_from_A_matrix(A1s, pndb_lookup_ids, post_decoder,real_positions_for_mask)
 
     logits = torch.matmul(post_decoder, torch.transpose(embeddings, 0, 1))  # [batch, max_length, embedding_size)
 

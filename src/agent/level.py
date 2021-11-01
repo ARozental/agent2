@@ -200,7 +200,7 @@ class AgentLevel(nn.Module):
         post_decoder = self.decoder(decompressed, real_positions_for_mask, None)
         if Config.use_pndb1 is not None and self.level == 1:
             # post_decoder = pndb.old_get_data_from_A_matrix(pndb.create_A_matrix(matrices, real_positions), post_decoder)
-            post_decoder = self.pndb.get_data_from_A_matrix(A1s, pndb_lookup_ids, post_decoder)
+            post_decoder = self.pndb.get_data_from_A_matrix(A1s, pndb_lookup_ids, post_decoder,real_positions_for_mask)
 
         _, eos_mask = calc_eos_loss(self, post_decoder, torch.zeros(batch, seq_length, device=decompressed.device))
 

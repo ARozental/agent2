@@ -14,6 +14,7 @@ class Pndb(nn.Module):
         encoder_layers = EncoderLayer(Config.vector_sizes[level], 1, Config.vector_sizes[level],
                                       Config.drop_rate, activation="gelu")  # change to swiglu
         self.pndb_transformer_encoder_write = TransformerEncoder(encoder_layers, 2)  # not sure we need it...
+        self.pndb_transformer_encoder_read = TransformerEncoder(encoder_layers, 2)  # not sure we need it...
 
         if Config.use_pndb1 is not None:
             self.questions = nn.Parameter(
@@ -48,11 +49,13 @@ class Pndb(nn.Module):
         gate_values = self.update_gate(post_decoder_matrices, A2, self.update11, self.update12, self.b1)
         return post_decoder_matrices + A2 * gate_values
 
-    def get_data_from_A_matrix(self, A1s,pndb_lookup_ids, post_decoder_matrices):
+    def get_data_from_A_matrix(self, A1s,pndb_lookup_ids, post_decoder_matrices,real_positions_for_mask):
+        for_update = self.pndb_transformer_encoder_read(post_decoder_matrices.transpose(0, 1), src_key_padding_mask=torch.log(real_positions_for_mask)).transpose(0, 1)
+
         k = self.to_output_k(post_decoder_matrices)
         selected_A1s = torch.index_select(A1s, 0, pndb_lookup_ids) #todo: is this a horrible place where the memory explodes?
         A2 = attention(k, self.questions, selected_A1s, Config.use_pndb1)  # [batch,seq_length,hidden]
-        gate_values = self.update_gate(post_decoder_matrices, A2, self.update11, self.update12, self.b1)
+        gate_values = self.update_gate(for_update, A2, self.update11, self.update12, self.b1)
         return post_decoder_matrices + A2 * gate_values
 
 

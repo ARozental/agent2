@@ -31,7 +31,12 @@ class Rebalance:
         for i in range(Config.agent_level + 1):
             level_weights = cls.get_level_weights(i)
             for name, value in level_weights.items():
-                Config.loss_weights[i][name] = value / (cls.losses[i][name] / Config.rebalance_losses_aggregate)
+                if value == 0 or cls.losses[i][name] == 0:
+                    weight = 0.
+                else:
+                    weight = value / (cls.losses[i][name] / Config.rebalance_losses_aggregate)
+                    weight = weight.detach().cpu().numpy().item()
+                Config.loss_weights[i][name] = weight
 
         cls.losses = None  # Reset the aggregation
 

@@ -28,11 +28,10 @@ class Rebalance:
 
     @classmethod
     def rebalance(cls):
-        cls.losses /= Config.rebalance_losses_aggregate
         for i in range(Config.agent_level + 1):
             level_weights = cls.get_level_weights(i)
             for name, value in level_weights.items():
-                Config.loss_weights[i][name] = value / cls.losses[i][name]
+                Config.loss_weights[i][name] = value / (cls.losses[i][name] / Config.rebalance_losses_aggregate)
 
         cls.losses = None  # Reset the aggregation
 

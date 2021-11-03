@@ -108,9 +108,11 @@ class SimpleWikiDataset(Dataset):
                     continue
 
                 with open(filename) as f:
-                    data = []
                     for line in f:
                         article = json.loads(line)
+                        if article['text'].strip() == '':
+                            continue
+
                         del article['url']
                         sections = article_mapping[article['id']]
                         for section in sections:

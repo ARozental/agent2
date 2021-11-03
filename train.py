@@ -4,7 +4,7 @@ from src.commands import Commands
 from src.config import Config
 from src.debug.reconstruct import reconstruct_text
 from src.losses.calc import loss_object_to_main_loss
-from src.dataset import DummyDataset, WikiDataset
+from src.dataset import DummyDataset, WikiDataset, SimpleWikiDataset
 from src.logger import Logger
 from src.losses.rebalance import Rebalance
 from src.pre_processing import worker_init_fn
@@ -57,6 +57,8 @@ def train(index, flags, training_started):
 
     if Config.use_dummy_dataset:
         dataset = DummyDataset(max_num=None)
+    elif Config.dataset == 'simple_wiki':
+        dataset = SimpleWikiDataset(max_num=None)
     else:
         # dataset = BookDataset(no_stats=True, max_num=2)
         dataset = WikiDataset(max_num=None)

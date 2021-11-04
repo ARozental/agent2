@@ -56,12 +56,12 @@ def train(index, flags, training_started):
         xm.rendezvous('download_only_once')
 
     if Config.use_dummy_dataset:
-        dataset = DummyDataset(max_num=None)
+        dataset = DummyDataset(max_num=Config.max_dataset_len)
     elif Config.dataset == 'simple_wiki':
-        dataset = SimpleWikiDataset(max_num=None)
+        dataset = SimpleWikiDataset(max_num=Config.max_dataset_len)
     else:
         # dataset = BookDataset(no_stats=True, max_num=2)
-        dataset = WikiDataset(max_num=None)
+        dataset = WikiDataset(max_num=Config.max_dataset_len)
 
     if Config.use_tpu and xm.is_master_ordinal():
         xm.rendezvous('download_only_once')

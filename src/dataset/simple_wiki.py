@@ -45,6 +45,8 @@ class SimpleWikiDataset(Dataset):
         if os.path.exists(data_file):
             with open(data_file) as f:
                 self.dataset = [json.loads(line)['text'] for line in f]
+        else:
+            raise ValueError('Data file for Simple Wiki does not exist.')
 
         self.max_num = max_num
         if self.max_num is None:

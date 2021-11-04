@@ -8,6 +8,7 @@ from src.losses.generation import calc_generation_loss
 from src.pre_processing import Node, TreeTokenizer
 from src.utils import make_noise, prepare_inputs
 from src.debug.profiler import Profiler as xp
+
 if Config.use_8bit:
     import bitsandbytes as bnb
 import torch.nn as nn
@@ -77,7 +78,7 @@ class AgentModel(nn.Module):
         total_g_loss = torch.tensor(0, dtype=torch.float32, device=device)
         total_disc_loss = torch.tensor(0, dtype=torch.float32, device=device)
         total_loss = torch.tensor(0, dtype=torch.float32, device=device)
-        first_A1s, first_pndb_lookup_ids = [], []  # for when we want to debug just the first 5 texts, todo: remove after full_decode uses the reconstruction loss function
+        first_A1s, first_pndb_lookup_ids = torch.tensor([], device=device), torch.tensor([], dtype=torch.int, device=device)  # for when we want to debug just the first 5 texts, todo: remove after full_decode uses the reconstruction loss function
         # print("emb: ",len(batch_tree.distinct_word_embedding_tokens))
         # print("level 0: ",len(batch_tree.level_nodes[0]))
         # print("level 1: ",len(batch_tree.level_nodes[1]))
@@ -147,9 +148,13 @@ class AgentModel(nn.Module):
                         batch_index=batch_index,
                         debug=debug)
                 num_dummy += num_dummy0_embed
-                if debug and first_A1s == [] and (
-                    Config.use_pndb1 or Config.use_pndb2):  # todo: cancat and have it working on all batch nodes later
-                    first_A1s, first_pndb_lookup_ids = A1s.detach(), pndb_lookup_ids.detach()
+                if debug and (Config.use_pndb1 or Config.use_pndb2):
+                    first_A1s = torch.concat([first_A1s, A1s.detach()])
+                    first_pndb_lookup_ids = torch.concat([first_pndb_lookup_ids, pndb_lookup_ids.detach()])
+
+                    # Reconstruct only uses first 10 for now so save memory
+                    first_A1s = first_A1s[:5]  # This is number of batches which 10 nodes should be contained within 5
+                    first_pndb_lookup_ids = first_pndb_lookup_ids[:10]
             else:
                 matrices, real_positions, eos_positions, join_positions, embedding_matrix, labels, vectors, num_dummy, A1s, pndb_lookup_ids, random_matrices = \
                     self.agent_levels[

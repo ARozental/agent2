@@ -124,6 +124,7 @@ class Config:
     freeze0 = False
     accelerator = None
 
+    dataset = 'wiki'  # wiki, simple_wiki
     use_dummy_dataset = False
 
     @staticmethod

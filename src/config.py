@@ -58,11 +58,11 @@ class Config:
     loss_weights = {
         0: {
             'm': 0.01 * 0.1,  # do we really need MLM0?
-            'rm': 0.001 * 0.1,
+            'rm': 0.0, #because of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
         },
         1: {
             'm': 0.1 * 0.1,
-            'rm': 0.01 * 0.1,
+            'rm': 0.0, #because of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
             # 'rcd': -1 * main_rcd,
         },
         # 'md': 0.1,  # Off from code
@@ -72,7 +72,7 @@ class Config:
         'j': 0.001* 0.1 * 0.0001, #last * for recycle
         'd': main_d ,#* 20,
 
-        'rc': 0.01* 0.1,
+        'rc': 0.0, #should be 0 if of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
         're': 0.2* 0.1,# * 10,
         'rj': 0.01* 0.1 * 0.0001, #last * for recycle
         # 'rmd': main_rmd,
@@ -82,17 +82,18 @@ class Config:
     rebalance_losses_aggregate = 2000  # How many steps to use to compute the loss rebalance
     rebalance_percentages = {  # These are the weights of individual losses.  Everything else gets spread out
         0: {
-            'rm': 0.0001,
+            'rm': 0.0, #should be 0 if of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
             'e': 0.01,
-            'j': 0.001 * 0.0001, #last * for recycle
-            'rc': 0.0, #because of using only 1 optimizer
+            'm': 0.0001,
+            'j': 0.0001,
+            'rc': 0.00, #should be 0 if of using only 1 optimizer (should only affect encoder weights or decoder will cheat by all reconstructed words so CC will only need to count them)
             'rj': 0.0,
         },
         1: {
-            'rm': 0.001,
+            'rm': 0.0, #should be 0 if of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
             'e': 0.01,
-            'j': 0.001 * 0.0001, #last * for recycle
-            'rc': 0.0, #because of using only 1 optimizer
+            'j': 0.0001,
+            'rc': 0.00, #should be 0 if of using only 1 optimizer (should only affect encoder weights or decoder will cheat by all reconstructed words so CC will only need to count them)
             'rj': 0.0,
 
         },

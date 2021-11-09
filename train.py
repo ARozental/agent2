@@ -128,14 +128,14 @@ def train(index, flags, training_started):
     Rebalance.setup()
 
     #steal some old weights from trained models
-    # with Storage.fs.open("models/trained_old.tar", 'rb') as f:
-    #   trained_old = torch.load(f, map_location=torch.device('cpu'))
-    # with Storage.fs.open("models/untrained_new.tar", 'rb') as f:
-    #   untrained_new = torch.load(f, map_location=torch.device('cpu'))
-    # recycle_weights(untrained_new, trained_old)
-    # print(trained_old['model'].keys())
-    # torch.save(untrained_new, "models/recycled4")
+    with Storage.fs.open("models/trained_old.tar", 'rb') as f:
+      trained_old = torch.load(f, map_location=torch.device('cpu'))
+    with Storage.fs.open("models/no8.tar", 'rb') as f:
+      untrained_new = torch.load(f, map_location=torch.device('cpu'))
+    recycle_weights(untrained_new, trained_old)
 
+    torch.save(untrained_new['model'], "recycled4")
+    1+None
     Checkpoints.load(model, main_optimizer, scheduler)
     all_times = []
     all_model_times = []

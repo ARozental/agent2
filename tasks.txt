@@ -39,6 +39,7 @@ kill mlm0+r_diff0????
 dummy is broken :(
 replace full_decode, use the actual reconstruction_loss function to avoide code duplication/mismatch
 can't load gpu trained model on cpu => also when loading model that was trained on GPU0 to GPU1 it takes space on GPU0
+add initial biases for chars to save a few days of running!
 
 
 

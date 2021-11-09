@@ -69,12 +69,12 @@ class Config:
         'c': 2.0* 0.1,
         'r': 0.1* 0.1,# * 10,
         'e': 0.1* 0.1,
-        'j': 0.001* 0.1,
+        'j': 0.001* 0.1 * 0.0001, #last * for recycle
         'd': main_d ,#* 20,
 
         'rc': 0.01* 0.1,
         're': 0.2* 0.1,# * 10,
-        'rj': 0.01* 0.1,
+        'rj': 0.01* 0.1 * 0.0001, #last * for recycle
         # 'rmd': main_rmd,
     }
 
@@ -84,14 +84,14 @@ class Config:
         0: {
             'rm': 0.0001,
             'e': 0.01,
-            'j': 0.001,
+            'j': 0.001 * 0.0001, #last * for recycle
             'rc': 0.0, #because of using only 1 optimizer
             'rj': 0.0,
         },
         1: {
             'rm': 0.001,
             'e': 0.01,
-            'j': 0.001,
+            'j': 0.001 * 0.0001, #last * for recycle
             'rc': 0.0, #because of using only 1 optimizer
             'rj': 0.0,
 

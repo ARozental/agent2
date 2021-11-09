@@ -60,6 +60,7 @@ class Checkpoints:
             with Storage.fs.open(os.path.join(cls.MODEL_FOLDER, str(epoch) + '.' + str(step) + '.tar'), 'wb') as f:
                 data = {
                     'model': model.state_dict(),
+                    'loss_weights': json.dumps(Config.loss_weights),
                     'main_optimizer': main_optimizer.state_dict(),
                     'scheduler': scheduler.state_dict(),
                     'random.torch': torch.get_rng_state(),
@@ -146,6 +147,13 @@ class Checkpoints:
             torch.set_rng_state(checkpoint['random.torch'])
             random.setstate(checkpoint['random.python'])
             np.random.set_state(checkpoint['random.numpy'])
+
+            if 'loss_weights' in checkpoint:
+                Config.loss_weights = json.loads(checkpoint['loss_weights'])
+                # For some reason the keys are strings and not integers as expected when loading
+                for i in range(Config.agent_level + 1):
+                    Config.loss_weights[i] = Config.loss_weights[str(i)]
+                    del Config.loss_weights[str(i)]
         else:  # Old resume
             with Storage.fs.open(file, 'rb') as f:
                 model.load_state_dict(torch.load(f))  # Load model weights

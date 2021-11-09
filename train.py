@@ -4,7 +4,7 @@ from src.commands import Commands
 from src.config import Config
 from src.debug.reconstruct import reconstruct_text
 from src.losses.calc import loss_object_to_main_loss
-from src.dataset import DummyDataset, WikiDataset
+from src.dataset import DummyDataset, WikiDataset, SimpleWikiDataset
 from src.logger import Logger
 from src.losses.rebalance import Rebalance
 from src.pre_processing import worker_init_fn
@@ -20,6 +20,7 @@ if Config.use_8bit:
     import bitsandbytes as bnb  # 8 bit optimizers
 import torch.optim.lr_scheduler
 import os
+import collections
 import torch
 import torch.nn as nn
 
@@ -55,10 +56,12 @@ def train(index, flags, training_started):
         xm.rendezvous('download_only_once')
 
     if Config.use_dummy_dataset:
-        dataset = DummyDataset(max_num=None)
+        dataset = DummyDataset(max_num=Config.max_dataset_len)
+    elif Config.dataset == 'simple_wiki':
+        dataset = SimpleWikiDataset(max_num=Config.max_dataset_len)
     else:
         # dataset = BookDataset(no_stats=True, max_num=2)
-        dataset = WikiDataset(max_num=None)
+        dataset = WikiDataset(max_num=Config.max_dataset_len)
 
     if Config.use_tpu and xm.is_master_ordinal():
         xm.rendezvous('download_only_once')
@@ -256,11 +259,11 @@ def train(index, flags, training_started):
                     # total_loss_object = None
                     # total_loss = 0
 
-                Rebalance.add_loss_object(step, total_loss_object)
-                if Config.rebalance_losses_step is not None and (step + 1) % Config.rebalance_losses_step == 0:
-                    print('Rebalancing losses at step', step)  # This goes into effect on the next step
+                Rebalance.add_loss_object(global_step, total_loss_object)
+                if Config.rebalance_losses_step is not None and (global_step + 1) % Config.rebalance_losses_step == 0:
+                    print('Rebalancing losses at step', global_step)  # This goes into effect on the next step
                     Rebalance.rebalance()
-                    main_optimizer.__setstate__({'state': {}})  # Clear the optimizer state
+                    main_optimizer.__setstate__({'state': collections.defaultdict(dict)})  # Clear the optimizer state
 
             total_model_time += (time.time() - current_model_time)
 

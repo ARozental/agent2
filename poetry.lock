@@ -815,6 +815,14 @@ python-versions = ">=3.6"
 watchdog = ["watchdog"]
 
 [[package]]
+name = "wikiextractor"
+version = "3.0.6"
+description = "A tool for extracting plain text from Wikipedia dumps"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[[package]]
 name = "xxhash"
 version = "2.0.2"
 description = "Python binding for xxHash"
@@ -837,7 +845,7 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<3.11"
-content-hash = "3b3c902e22bf75db5ede3a6bd0e24a172e9387e12c67bf4557880cf735499fb1"
+content-hash = "1be287c16dbf622dac44629b59d4c01dfb70c98f24106230407c8aff85432372"
 
 [metadata.files]
 absl-py = [
@@ -1571,6 +1579,10 @@ wcwidth = [
 werkzeug = [
     {file = "Werkzeug-2.0.2-py3-none-any.whl", hash = "sha256:63d3dc1cf60e7b7e35e97fa9861f7397283b75d765afcaefd993d6046899de8f"},
     {file = "Werkzeug-2.0.2.tar.gz", hash = "sha256:aa2bb6fc8dee8d6c504c0ac1e7f5f7dc5810a9903e793b6f715a9f015bdadb9a"},
+]
+wikiextractor = [
+    {file = "wikiextractor-3.0.6-py3-none-any.whl", hash = "sha256:f4506990bf9c14e3cc92dc85a0a89554fef975cc1b28dcb9a4d31c73a8ef2133"},
+    {file = "wikiextractor-3.0.6.tar.gz", hash = "sha256:7041ff57884c16409e9b911ccd0106c218b88cbceabb86dd1443637afa8284de"},
 ]
 xxhash = [
     {file = "xxhash-2.0.2-cp27-cp27m-macosx_10_9_x86_64.whl", hash = "sha256:dac3b94881b943bbe418f5829128b9c48f69a66f816ef8b72ee0129d676dbd7c"},

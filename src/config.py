@@ -124,6 +124,8 @@ class Config:
     freeze0 = False
     accelerator = None
 
+    dataset = 'wiki'  # wiki, simple_wiki
+    max_dataset_len = None  # If want to use a smaller portion of the dataset
     use_dummy_dataset = False
 
     @staticmethod

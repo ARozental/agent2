@@ -92,7 +92,7 @@ def calc_mlm_loss(agent_level, matrices, real_positions, eos_positions, embeddin
     #mlm_diff = torch.zeros(batch, device=Config.device)
     #rmlm_diff = mlm_diff
 
-    return mlm_losses, rmlm_losses
+    return mlm_losses, rmlm_losses #rmlm is now the keep same part!!!
 
 
 def calc_rmlm_loss(agent_level, post_decoder, real_positions_for_mask, eos_positions, real_positions, matrices, embeddings, labels):

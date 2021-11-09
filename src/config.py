@@ -55,14 +55,15 @@ class Config:
     main_rmd = 0.03
 
     # These are the loss weights for the main_loss.  Either per level (nested) or all levels (global)
+    #rm here is not really rm it is the non masked part of the mlm
     loss_weights = {
         0: {
             'm': 0.01 * 0.1,  # do we really need MLM0?
-            'rm': 0.0, #because of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
+            'rm': 0.001 * 0.1, #this comment refers to the real rm, because of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
         },
         1: {
             'm': 0.1 * 0.1,
-            'rm': 0.0, #because of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
+            'rm': 0.01 * 0.1, #this comment refers to the real rm, because of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
             # 'rcd': -1 * main_rcd,
         },
         # 'md': 0.1,  # Off from code
@@ -72,7 +73,7 @@ class Config:
         'j': 0.001* 0.1 * 0.0001, #last * for recycle
         'd': main_d ,#* 20,
 
-        'rc': 0.0, #should be 0 if of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
+        'rc': 0.0, #should be 0 as the random words matrix only has encoded words
         're': 0.2* 0.1,# * 10,
         'rj': 0.01* 0.1 * 0.0001, #last * for recycle
         # 'rmd': main_rmd,
@@ -82,18 +83,18 @@ class Config:
     rebalance_losses_aggregate = 2000  # How many steps to use to compute the loss rebalance
     rebalance_percentages = {  # These are the weights of individual losses.  Everything else gets spread out
         0: {
-            'rm': 0.0, #should be 0 if of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
+            'rm': 0.0001, #should be 0 if of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
             'e': 0.01,
-            'm': 0.0001,
+            'm': 0.001,
             'j': 0.0001,
-            'rc': 0.00, #should be 0 if of using only 1 optimizer (should only affect encoder weights or decoder will cheat by all reconstructed words so CC will only need to count them)
+            'rc': 0.00, #should be 0 as the random words matrix only has encoded words
             'rj': 0.0,
         },
         1: {
-            'rm': 0.0, #should be 0 if of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
+            'rm': 0.007, #should be 0 if of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
             'e': 0.01,
             'j': 0.0001,
-            'rc': 0.00, #should be 0 if of using only 1 optimizer (should only affect encoder weights or decoder will cheat by all reconstructed words so CC will only need to count them)
+            'rc': 0.00, #should be 0 as the random words matrix only has encoded words
             'rj': 0.0,
 
         },

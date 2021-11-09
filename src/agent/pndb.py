@@ -24,7 +24,7 @@ class Pndb(nn.Module):
             self.ignore1 = nn.Linear(Config.vector_sizes[level], 1)
             self.update11 = nn.Linear(Config.vector_sizes[level], 1)
             self.update12 = nn.Linear(Config.vector_sizes[level], 1)
-            self.b1 = nn.Parameter(torch.rand(1, requires_grad=True)) - 1.23456 #better init??
+            self.b1 = nn.Parameter(torch.rand(1, requires_grad=True))
             self.to_output_k = nn.Linear(Config.vector_sizes[level], Config.vector_sizes[level])
 
     def ignore_gate(self, x, g):

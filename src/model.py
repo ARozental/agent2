@@ -149,8 +149,8 @@ class AgentModel(nn.Module):
                         debug=debug)
                 num_dummy += num_dummy0_embed
                 if debug and (Config.use_pndb1 or Config.use_pndb2):
-                    first_A1s = torch.concat([first_A1s, A1s.detach()])
-                    first_pndb_lookup_ids = torch.concat([first_pndb_lookup_ids, pndb_lookup_ids.detach()])
+                    first_A1s = torch.cat([first_A1s, A1s.detach()])
+                    first_pndb_lookup_ids = torch.cat([first_pndb_lookup_ids, pndb_lookup_ids.detach()])
 
                     # Reconstruct only uses first 10 for now so save memory
                     first_A1s = first_A1s[:5]  # This is number of batches which 10 nodes should be contained within 5

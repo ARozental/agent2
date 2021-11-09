@@ -126,6 +126,7 @@ def train(index, flags, training_started):
     Logger.setup()
     Checkpoints.setup()
     Rebalance.setup()
+    print("FFFFFFFFF")
     Checkpoints.load(model, main_optimizer, scheduler)
     all_times = []
     all_model_times = []

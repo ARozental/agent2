@@ -198,3 +198,38 @@ def prepare_inputs(inputs, squeeze=False, to_device=True):
             if Config.use_cuda and to_device:
                 inputs[parent_key][key] = inputs[parent_key][key].to(Config.device)
     return inputs
+
+
+def recycle_weights(new_untrained_model, old_trained_model):
+  # input keys => ['model', 'main_optimizer', 'scheduler', 'random.torch', 'random.python', 'random.numpy']
+  for k in new_untrained_model['model'].keys():
+    if k in old_trained_model['model'].keys():
+      if old_trained_model['model'][k].shape == new_untrained_model['model'][k].shape:
+        new_untrained_model['model'][k] = old_trained_model['model'][k]
+      else:
+        # print(k,old_trained_model['model'][k].shape,new_untrained_model['model'][k].shape)
+        if len(new_untrained_model['model'][k].shape) == 1:
+          good_weights = old_trained_model['model'][k][
+                         :(min(old_trained_model['model'][k].shape[0], new_untrained_model['model'][k].shape[0]))]
+          other_weights = new_untrained_model['model'][k] / 10  # make the random weights small but not 0
+          new_weights = torch.cat([good_weights, other_weights])[:new_untrained_model['model'][k].shape[0]]
+          new_untrained_model['model'][k] = new_weights
+        elif len(new_untrained_model['model'][k].shape) == 2:
+          s0 = (min(old_trained_model['model'][k].shape[0], new_untrained_model['model'][k].shape[0]))
+          s1 = (min(old_trained_model['model'][k].shape[1], new_untrained_model['model'][k].shape[1]))
+          good_weights = old_trained_model['model'][k][:s0, :s1]
+          other_weights = new_untrained_model['model'][k] / 10  # make the random weights small but not 0
+          new_weights = torch.cat([good_weights, other_weights[:, :s1]])[:new_untrained_model['model'][k].shape[0]]
+          if new_weights.shape != new_untrained_model['model'][k].shape:
+            raise "2 different shapes bigger and smaller"
+
+          new_untrained_model['model'][k] = new_weights
+        else:
+          raise "Y U 3d"
+    else:
+      if "bias" in k:
+        new_untrained_model['model'][k] = new_untrained_model['model'][k] - 1
+      elif "norm" in k:
+        pass
+      else:
+        new_untrained_model['model'][k] = new_untrained_model['model'][k] / 10

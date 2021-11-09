@@ -9,7 +9,7 @@ from src.logger import Logger
 from src.losses.rebalance import Rebalance
 from src.pre_processing import worker_init_fn
 from src.storage import Storage
-from src.utils import seed_torch, metsumm, prepare_inputs
+from src.utils import seed_torch, metsumm, prepare_inputs, recycle_weights
 from src.model import AgentModel
 from src.debug.profiler import Profiler as xp
 from torch.utils.data.dataloader import DataLoader, default_collate
@@ -126,6 +126,15 @@ def train(index, flags, training_started):
     Logger.setup()
     Checkpoints.setup()
     Rebalance.setup()
+
+    #steal some old weights from trained models
+    # with Storage.fs.open("models/trained_old.tar", 'rb') as f:
+    #   trained_old = torch.load(f, map_location=torch.device('cpu'))
+    # with Storage.fs.open("models/untrained_new.tar", 'rb') as f:
+    #   untrained_new = torch.load(f, map_location=torch.device('cpu'))
+    # recycle_weights(untrained_new, trained_old)
+    # torch.save(untrained_new, "models/recycled")
+
     Checkpoints.load(model, main_optimizer, scheduler)
     all_times = []
     all_model_times = []
@@ -137,7 +146,6 @@ def train(index, flags, training_started):
         global_step = Config.skip_batches - 1
     count_parameters(model, trainable=True)
     for epoch in range(10001):
-        # print('Epoch', epoch + 1)
 
         if Config.use_tpu and Config.use_all_tpu_cores:
             parallel_loader = pl.ParallelLoader(dataloader, [Config.device]).per_device_loader(Config.device)
@@ -164,7 +172,6 @@ def train(index, flags, training_started):
 
             current_model_time = time.time()
             model.train()
-
             will_reconstruct = PRINT_RECONSTRUCTED_TEXT and (
                 (epoch % (grad_acc_steps * Config.log_every) == 0 and step == 0) or
                 (step % (grad_acc_steps * Config.log_every) == 0 and step > 0)

@@ -58,24 +58,24 @@ class Config:
     #rm here is not really rm it is the non masked part of the mlm
     loss_weights = {
         0: {
-            'm': 0.01 * 0.1,  # do we really need MLM0?
-            'rm': 0.001 * 0.1, #this comment refers to the real rm, because of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
+            'm': 0.01 * 0.1 * 0,  # do we really need MLM0?
+            'rm': 0.001 * 0.1 * 0, #this comment refers to the real rm, because of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
         },
         1: {
-            'm': 0.1 * 0.1,
-            'rm': 0.01 * 0.1, #this comment refers to the real rm, because of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
+            'm': 0.1 * 0.1* 0,
+            'rm': 0.01 * 0.1* 0, #this comment refers to the real rm, because of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
             # 'rcd': -1 * main_rcd,
         },
         # 'md': 0.1,  # Off from code
-        'c': 2.0* 0.1,
-        'r': 0.1* 0.1,# * 10,
+        'c': 2.0* 0.1* 0,
+        'r': 0.1* 0.1* 0,# * 10,
         'e': 5.3* 0.1, #huge for recycle was 0.1*0.1
-        'j': 0.001* 0.1 * 0.0001, #last * for recycle
-        'd': main_d ,#* 20,
+        'j': 0.001* 0.1 * 0.0001* 0, #last * for recycle
+        'd': main_d* 0 ,#* 20,
 
         'rc': 0.0, #should be 0 as the random words matrix only has encoded words
         're': 9.6* 0.1,# * 10, #huge for recycle was 0.2*0.1
-        'rj': 0.01* 0.1 * 0.0001, #last * for recycle
+        'rj': 0.01* 0.1 * 0.0001* 0, #last * for recycle
         # 'rmd': main_rmd,
     }
 

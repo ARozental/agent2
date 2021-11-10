@@ -69,12 +69,12 @@ class Config:
         # 'md': 0.1,  # Off from code
         'c': 2.0* 0.1,
         'r': 0.1* 0.1,# * 10,
-        'e': 0.1* 0.1,
+        'e': 0.3* 0.1,
         'j': 0.001* 0.1 * 0.0001, #last * for recycle
         'd': main_d ,#* 20,
 
         'rc': 0.0, #should be 0 as the random words matrix only has encoded words
-        're': 0.2* 0.1,# * 10,
+        're': 0.6* 0.1,# * 10,
         'rj': 0.01* 0.1 * 0.0001, #last * for recycle
         # 'rmd': main_rmd,
     }

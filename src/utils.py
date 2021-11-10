@@ -203,7 +203,11 @@ def prepare_inputs(inputs, squeeze=False, to_device=True):
 def recycle_weights(new_untrained_model, old_trained_model):
   # input keys => ['model', 'main_optimizer', 'scheduler', 'random.torch', 'random.python', 'random.numpy']
   for k in new_untrained_model['model'].keys():
-    if k in old_trained_model['model'].keys():
+    if k == "agent_levels.1.classifier1w" or k == "agent_levels.1.join_classifier_w":
+      new_untrained_model['model'][k] = (new_untrained_model['model'][k] * 0) + 2.2
+    elif k == "agent_levels.1.classifier1b" or k == "agent_levels.1.join_classifier_b":
+      new_untrained_model['model'][k] = (new_untrained_model['model'][k] * 0) - 1.1
+    elif k in old_trained_model['model'].keys():
       if old_trained_model['model'][k].shape == new_untrained_model['model'][k].shape:
         new_untrained_model['model'][k] = old_trained_model['model'][k]
       else:
@@ -230,6 +234,6 @@ def recycle_weights(new_untrained_model, old_trained_model):
       if "bias" in k:
         new_untrained_model['model'][k] = new_untrained_model['model'][k] - 1
       elif "norm" in k:
-        new_untrained_model['model'][k] = new_untrained_model['model'][k] / 100
+        pass
       else:
         new_untrained_model['model'][k] = new_untrained_model['model'][k] / 10

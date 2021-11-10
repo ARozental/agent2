@@ -133,9 +133,8 @@ def train(index, flags, training_started):
     # with Storage.fs.open("models/no8.tar", 'rb') as f:
     #   untrained_new = torch.load(f, map_location=torch.device('cpu'))
     # recycle_weights(untrained_new, trained_old)
-    # torch.save(untrained_new['model'], "recycled4")
+    # torch.save(untrained_new, "recycled5.tar")
     # 1+None
-    
     Checkpoints.load(model, main_optimizer, scheduler)
     all_times = []
     all_model_times = []

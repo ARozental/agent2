@@ -71,11 +71,11 @@ class Config:
         'r': 0.1* 0.1* 0,# * 10,
         'e': 5.3* 0.1, #huge for recycle was 0.1*0.1
         'j': 0.001* 0.1 * 0.0001* 0, #last * for recycle
-        'd': main_d* 0 ,#* 20,
+        'd': 0,#main_d* 0 ,#* 20,
 
         'rc': 0.0, #should be 0 as the random words matrix only has encoded words
         're': 9.6* 0.1,# * 10, #huge for recycle was 0.2*0.1
-        'rj': 0.01* 0.1 * 0.0001* 0, #last * for recycle
+        'rj': 0.01* 0.1 * 0.0001, #last * for recycle
         # 'rmd': main_rmd,
     }
 

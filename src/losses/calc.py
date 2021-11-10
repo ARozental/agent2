@@ -8,10 +8,8 @@ def loss_object_to_main_loss(loss_object):
         for name, value in level.items():
             if i in Config.loss_weights and name in Config.loss_weights[i]:
                 loss += value * Config.loss_weights[i][name]
-                print(name, Config.loss_weights[i][name])
             elif name in Config.loss_weights:
                 loss += value * Config.loss_weights[name]
-                print(name, Config.loss_weights[name])
             else:
                 raise ValueError(f'A loss weight for "{name}" needs to be defined in Config.loss_weights')
 

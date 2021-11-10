@@ -201,7 +201,7 @@ def prepare_inputs(inputs, squeeze=False, to_device=True):
 
 
 def recycle_weights(new_untrained_model, old_trained_model):
-  # input keys => ['model', 'main_optimizer', 'scheduler', 'random.torch', 'random.python', 'random.numpy']
+  new_untrained_model['loss_weights'] = '{"0": {"m": 0.001, "rm": 0.0001}, "1": {"m": 0.01, "rm": 0.001, "e": 0.3, "re":0.6}, "c": 0.2, "r": 0.01, "e": 0.01, "j": 1e-08, "d": 0.03, "rc": 0.0, "re": 0.02, "rj": 1.001e-07}'
   for k in new_untrained_model['model'].keys():
     if k == "agent_levels.1.classifier1w" or k == "agent_levels.1.join_classifier_w":
       new_untrained_model['model'][k] = (new_untrained_model['model'][k] * 0) + 2.2

@@ -79,23 +79,23 @@ class Config:
         # 'rmd': main_rmd,
     }
 
-    rebalance_losses_step = 5000  # How often to rebalance; None to disable
-    rebalance_losses_aggregate = 2000  # How many steps to use to compute the loss rebalance
+    rebalance_losses_step = 1000  # How often to rebalance; None to disable
+    rebalance_losses_aggregate = 500  # How many steps to use to compute the loss rebalance
     rebalance_percentages = {  # These are the weights of individual losses.  Everything else gets spread out
         0: {
             'rm': 0.0001, #should be 0 if of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
             'e': 0.01,
             'm': 0.001,
-            'j': 0.0001,
+            'j': 0.00001,
             'rc': 0.00, #should be 0 as the random words matrix only has encoded words
-            'rj': 0.0,
+            'rj': 0.0001,
         },
         1: {
             'rm': 0.007, #should be 0 if of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
             'e': 0.01,
-            'j': 0.0001,
+            'j': 0.00001,
             'rc': 0.00, #should be 0 as the random words matrix only has encoded words
-            'rj': 0.0,
+            'rj': 0.0001,
 
         },
     }

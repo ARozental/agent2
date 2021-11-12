@@ -1,5 +1,5 @@
 from src.config import Config
-
+import torch
 
 class Rebalance:
     losses = None
@@ -34,7 +34,7 @@ class Rebalance:
                 if value == 0 or cls.losses[i][name] == 0:
                     weight = 0.
                 else:
-                    weight = value / (cls.losses[i][name] / Config.rebalance_losses_aggregate)
+                    weight = value / (torch.sqrt(cls.losses[i][name]) / Config.rebalance_losses_aggregate)
                     weight = weight.detach().cpu().numpy().item()
                 Config.loss_weights[i][name] = weight
 

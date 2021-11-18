@@ -55,12 +55,12 @@ class Config:
     loss_weights = {
         0: {
             'm': 0.01 * 0.1,  # do we really need MLM0?
-            'rm': 0.001 * 0.1, #this comment refers to the real rm, because of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
+            'rm': 0.000 * 0.1, #this comment refers to the real rm, because of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
             'd': 0.01
         },
         1: {
             'm': 0.1 * 0.1,
-            'rm': 0.01 * 0.1, #this comment refers to the real rm, because of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
+            'rm': 0.01 * 0.0, #this comment refers to the real rm, because of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
             # 'rcd': -1 * main_rcd,
         },
         # 'md': 0.1,  # Off from code
@@ -125,7 +125,7 @@ class Config:
     freeze0 = False
     accelerator = None
 
-    dataset = 'wiki'  # wiki, simple_wiki
+    dataset = 'simple_wiki'  # wiki, simple_wiki
     max_dataset_len = None  # If want to use a smaller portion of the dataset
     use_dummy_dataset = False
 

@@ -223,7 +223,7 @@ class SimpleWikiDataset(Dataset):
         last_articles = None
         for batch in range(len(self.data) // Config.batch_size):
             begin = batch * Config.batch_size
-            articles = [self.dataset[begin + num] for num in range(Config.batch_size)]
+            articles = [self.__getitem__(index) for index in self.data[begin:begin + Config.batch_size]]
 
             if Config.multi_gpu:
                 if batch % 2 == 0:

@@ -1,7 +1,9 @@
 from src.config import Config
 from src.pre_processing import Splitters, TreeTokenizer
 from src.pre_processing.dataset import Dataset
-from wikiextractor import WikiExtractor
+from wikiextractor import WikiExtractor, extract
+from wikiextractor.extract import Extractor
+from urllib.parse import quote as urlencode
 from xml.etree import ElementTree
 import urllib.request
 import shutil
@@ -58,8 +60,24 @@ class SimpleWikiDataset(Dataset):
         # if Config.use_tpu:
         #     assert Config.dynamic_node_sizes is True
 
+    # This is used to overwrite the internal method of the WikiExtractor
+    # noinspection PyPep8Naming
     @staticmethod
-    def download_extract(output_folder):
+    def makeInternalLink(title, label):
+        colon = title.find(':')
+        if colon > 0 and title[:colon].lower() in ['category', 'file', 'image']:
+            return ''
+        if colon == 0:
+            # drop also :File:
+            colon2 = title.find(':', colon + 1)
+            if colon2 > 1 and title[colon + 1:colon2].lower() in ['category', 'file', 'image']:
+                return ''
+        if Extractor.keepLinks:
+            return '<a href="%s">%s</a>' % (urlencode(title), label)
+        else:
+            return label
+
+    def download_extract(self, output_folder):
         if not os.path.exists(output_folder):
             os.mkdir(output_folder)
 
@@ -99,6 +117,7 @@ class SimpleWikiDataset(Dataset):
 
         print('Parsing article content')
         old_argv = sys.argv
+        extract.makeInternalLink = self.makeInternalLink
         sys.argv = ['', '-o', os.path.join(output_folder, 'extract'), xml_file, '--json']
         WikiExtractor.main()
         sys.argv = old_argv

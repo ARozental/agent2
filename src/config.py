@@ -61,7 +61,6 @@ class Config:
             'r': 0.003,
             'e': 0.0007,
             'j': 0.0,
-            're': 0.003,
             'rj': 0.0000001
 
         },
@@ -76,6 +75,8 @@ class Config:
             're': 0.05,
             'rj': 0.0000001
         },
+      'rc': 0.0,  # should be 0 as the random words matrix only has encoded words
+
     }
 
     rebalance_losses_step = 1000  # How often to rebalance; None to disable

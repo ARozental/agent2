@@ -85,20 +85,23 @@ class Config:
     rebalance_percentages = {  # These are the weights of individual losses.  Everything else gets spread out
         0: {
             'rm': 0.0, #should be 0 if of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
-            'e': 0.01,
-            'd': 0.01,
+            'e': 0.001,
+            're': 0.01,
+            'd': 0.00,
             'm': 0.001,
-            'j': 0.00001,
+            'j': 0.00000,
             'rc': 0.00, #should be 0 as the random words matrix only has encoded words
-            'rj': 0.0001,
+            'rj': 0.0000,
+            'r': 0.05,
+            'c': 0.03
         },
         1: {
             'rm': 0.0, #should be 0 if of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
             'e': 0.01,
-            'j': 0.00001,
+            'j': 0.00000,
             'rc': 0.00, #should be 0 as the random words matrix only has encoded words
-            'rj': 0.0001,
-            'm': 0.1, #smaller than its fair part because of sqrt in rebalance
+            'rj': 0.00000,
+            #'m': 0.1, #smaller than its fair part because of sqrt in rebalance
 
         },
     }

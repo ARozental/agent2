@@ -54,14 +54,14 @@ class Config:
     #rm here is not really rm it is the non masked part of the mlm
     loss_weights = {
         0: {
-            'm': 0.0001,  # do we really need MLM0?
+            'm': 0.00005,  # do we really need MLM0?
             'rm': 0.000, #this comment refers to the real rm, because of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
             'd': 0.00,
-            'c': 0.2,
-            'r': 0.005,
-            'e': 0.002,
+            'c': 0.05,
+            'r': 0.003,
+            'e': 0.0007,
             'j': 0.0,
-            're': 0.02,
+            're': 0.003,
             'rj': 0.0000001
 
         },

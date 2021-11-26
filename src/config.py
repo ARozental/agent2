@@ -66,14 +66,14 @@ class Config:
 
         },
         1: {
-            'm': 0.01,
+            'm': 0.02,
             'rm': 0.0, #this comment refers to the real rm, because of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
-            'd': 0.05,
+            'd': 0.03,
             'c': 0.2,
             'r': 0.03,
             'e': 0.004,
             'j': 0.0,
-            're': 0.04,
+            're': 0.05,
             'rj': 0.0000001
         },
     }

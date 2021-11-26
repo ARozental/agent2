@@ -54,26 +54,28 @@ class Config:
     #rm here is not really rm it is the non masked part of the mlm
     loss_weights = {
         0: {
-            'm': 0.01 * 0.1,  # do we really need MLM0?
-            'rm': 0.000 * 0.1, #this comment refers to the real rm, because of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
-            'd': 0.01
+            'm': 0.0001,  # do we really need MLM0?
+            'rm': 0.000, #this comment refers to the real rm, because of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
+            'd': 0.00,
+            'c': 0.2,
+            'r': 0.005,
+            'e': 0.002,
+            'j': 0.0,
+            're': 0.02,
+            'rj': 0.0000001
+
         },
         1: {
-            'm': 0.1 * 0.1,
-            'rm': 0.01 * 0.0, #this comment refers to the real rm, because of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
-            # 'rcd': -1 * main_rcd,
+            'm': 0.01,
+            'rm': 0.0, #this comment refers to the real rm, because of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
+            'd': 0.05,
+            'c': 0.2,
+            'r': 0.03,
+            'e': 0.004,
+            'j': 0.0,
+            're': 0.04,
+            'rj': 0.0000001
         },
-        # 'md': 0.1,  # Off from code
-        'c': 2.0* 0.1,
-        'r': 0.1* 0.1,# * 10,
-        'e': 0.1* 0.1,
-        'j': 0.0001* 0.1 * 0.0001, #last * for recycle
-        'd': 0.03 ,#* 20,
-
-        'rc': 0.0, #should be 0 as the random words matrix only has encoded words
-        're': 0.2* 0.1,# * 10,
-        'rj': 0.01* 0.1 * 0.0001, #last * for recycle
-        # 'rmd': main_rmd,
     }
 
     rebalance_losses_step = 1000  # How often to rebalance; None to disable

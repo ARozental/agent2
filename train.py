@@ -270,7 +270,7 @@ def train(index, flags, training_started):
                 if Config.rebalance_losses_step is not None and (global_step + 1) % Config.rebalance_losses_step == 0:
                     print('Rebalancing losses at step', global_step)  # This goes into effect on the next step
                     Rebalance.rebalance()
-                    main_optimizer.__setstate__({'state': collections.defaultdict(dict)})  # Clear the optimizer state
+                    #main_optimizer.__setstate__({'state': collections.defaultdict(dict)})  # Clear the optimizer state
 
             total_model_time += (time.time() - current_model_time)
 

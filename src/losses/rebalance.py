@@ -47,6 +47,6 @@ class Rebalance:
         num_empty_weights = len(loss_names - set(Config.rebalance_percentages[i].keys()))
         total_weights = [val for key, val in Config.rebalance_percentages[i].items() if val > 0 and key in loss_names]
         leftover_weight = 1.0 - sum(total_weights)
-        weight_per = leftover_weight / num_empty_weights
+        weight_per = leftover_weight / (num_empty_weights+0.0000000001)
 
         return {name: Config.rebalance_percentages[i].get(name, weight_per) for name in loss_names}

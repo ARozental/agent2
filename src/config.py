@@ -68,10 +68,10 @@ class Config:
         1: {
             'm': 0.02,
             'rm': 0.0, #this comment refers to the real rm, because of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
-            'd': 0.03,
-            'c': 0.2,
-            'r': 0.03,
-            'e': 0.004,
+            'd': 0.3,
+            'c': 0.1,
+            'r': 0.05,
+            'e': 0.002,
             'j': 0.0,
             're': 0.05,
             'rj': 0.0000001
@@ -80,8 +80,8 @@ class Config:
 
     }
 
-    rebalance_losses_step = 1000  # How often to rebalance; None to disable
-    rebalance_losses_aggregate = 500  # How many steps to use to compute the loss rebalance
+    rebalance_losses_step = None  # How often to rebalance; None to disable
+    rebalance_losses_aggregate = 0  # How many steps to use to compute the loss rebalance
     rebalance_percentages = {  # These are the weights of individual losses.  Everything else gets spread out
         0: {
             'rm': 0.0, #should be 0 if of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)

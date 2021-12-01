@@ -104,7 +104,7 @@ def earth_movers_distance(l, p):
 
 def earth_movers_distance2(l, p):
     #loss per position
-    sizes = torch.arange(l.size()[-1], device=Config.device).unsqueeze(0) - torch.argmax(l)
+    sizes = torch.arange(l.size()[-1], device=l.device).unsqueeze(0) - torch.argmax(l)
     sizes = sizes * torch.sign(sizes)
     dist = l - p
     dist = dist * torch.sign(dist)

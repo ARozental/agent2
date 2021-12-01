@@ -58,20 +58,20 @@ class Config:
             'rm': 0.000, #this comment refers to the real rm, because of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
             'd': 0.00,
             'c': 0.05,
-            'r': 0.003,
-            'e': 0.0007,
+            'r': 0.03,
+            'e': 0.001,
             'j': 0.0,
-            're': 0.005,
+            're': 0.01,
             'rj': 0.0000001
 
         },
         1: {
             'm': 0.02,
             'rm': 0.0, #this comment refers to the real rm, because of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
-            'd': 0.3,
-            'c': 0.1,
+            'd': 0.05,
+            'c': 0.05,
             'r': 0.05,
-            'e': 0.002,
+            'e': 0.005,
             'j': 0.0,
             're': 0.05,
             'rj': 0.0000001

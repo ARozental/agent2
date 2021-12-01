@@ -1,4 +1,4 @@
-#from src.utils import earth_movers_distance
+from src.utils import earth_movers_distance2
 import torch.nn as nn
 import torch
 #import torch.nn.functional as F
@@ -39,7 +39,9 @@ def calc_eos_loss(agent_level, decompressed, eos_positions):
 
     # multiply losses where no eos exist by 0 otherwise by 1 because argmax for all zeroes is 0
     loss2 = mce_loss(cdot, eos_labels) * torch.clamp(torch.sum(eos_positions, dim=1), 0, 1) #clamp for 0 loss on 0 EoSs
-    total_loss = loss1 + loss2 #+ loss3
+    loss3 = earth_movers_distance2(eos_positions, eos_mask) / decompressed.shape[-1]
+    #total_loss = loss1 + loss2 #+ loss3
+    total_loss = (loss1 + loss2)/10 + loss3
     # total_loss = torch.min(torch.stack([(total_loss/total_loss)*Config.max_typo_loss,total_loss],dim=0),dim=0)[0] #can't explode on typo
 
     return total_loss, eos_mask

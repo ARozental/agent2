@@ -97,19 +97,19 @@ def md5(s):
 
 
 # WTF no one on stack overflow knows how to do it?
-# def earth_movers_distance(l, p):
-#     v = torch.cumsum(l - p, -1) - (l - p)
-#     return (v * torch.sign(v)).sum(-1)
+def earth_movers_distance(l, p):
+    v = torch.cumsum(l - p, -1) - (l - p)
+    return (v * torch.sign(v)).sum(-1)
 
 
-# def earth_movers_distance2(l, p):
-#     #loss per position
-#     sizes = torch.arange(l.size()[-1], device=Config.device).unsqueeze(0) - torch.argmax(l)
-#     sizes = sizes * torch.sign(sizes)
-#     dist = l - p
-#     dist = dist * torch.sign(dist)
-#     res = (sizes * dist).sum(-1)
-#     return res
+def earth_movers_distance2(l, p):
+    #loss per position
+    sizes = torch.arange(l.size()[-1], device=Config.device).unsqueeze(0) - torch.argmax(l)
+    sizes = sizes * torch.sign(sizes)
+    dist = l - p
+    dist = dist * torch.sign(dist)
+    res = (sizes * dist).sum(-1)
+    return res
 
 
 def inverse_loss(loss):

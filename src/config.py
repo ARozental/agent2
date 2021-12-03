@@ -39,7 +39,7 @@ class Config:
 
     # smoothing
     # max_typo_loss = 10.0
-    grad_clip_value = None
+    grad_clip_value = 0.99
     optimizer = "Adam"
     use_8bit = False
     lr = 0.0001
@@ -80,15 +80,15 @@ class Config:
 
     }
 
-    rebalance_losses_step = None  # How often to rebalance; None to disable
-    rebalance_losses_aggregate = 0  # How many steps to use to compute the loss rebalance
+    rebalance_losses_step = 1000  # How often to rebalance; None to disable
+    rebalance_losses_aggregate = 500  # How many steps to use to compute the loss rebalance
     rebalance_percentages = {  # These are the weights of individual losses.  Everything else gets spread out
         0: {
             'rm': 0.0, #should be 0 if of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
             'e': 0.001,
             're': 0.01,
             'd': 0.00,
-            'm': 0.001,
+            'm': 0.0001,
             'j': 0.00000,
             'rc': 0.00, #should be 0 as the random words matrix only has encoded words
             'rj': 0.0000,

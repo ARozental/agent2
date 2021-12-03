@@ -29,6 +29,6 @@
   "dataset":"simple_wiki",
   "noise": false,
   "freeze0": false,
-  "rebalance_losses_step": null,
+  "rebalance_losses_step": 1000,
   "force_resume": "y"
 }

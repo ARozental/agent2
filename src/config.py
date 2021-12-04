@@ -68,7 +68,7 @@ class Config:
         1: {
             'm': 0.02,
             'rm': 0.0, #this comment refers to the real rm, because of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
-            'd': 0.05,
+            'd': 0.002, #so d won't learn before r
             'c': 0.05,
             'r': 0.05,
             'e': 0.005,
@@ -98,6 +98,7 @@ class Config:
         1: {
             'rm': 0.0, #should be 0 if of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
             'e': 0.01,
+            'd': 0.03,
             'j': 0.00000,
             'rc': 0.00, #should be 0 as the random words matrix only has encoded words
             'rj': 0.00000,

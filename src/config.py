@@ -69,7 +69,7 @@ class Config:
             'm': 0.02,
             'rm': 0.0, #this comment refers to the real rm, because of using only 1 optimizer (should only affect encoder weights or decoder will cheat by leaking information to other words in the sentence)
             'd': 0.002, #so d won't learn before r
-            'c': 0.05,
+            'c': 0.001, #do we need it unless we go up? not at the start for sure
             'r': 0.05,
             'e': 0.005,
             'j': 0.0,

@@ -15,7 +15,7 @@
   "mini_batch_size":700,
   "drop_rate": 0.0,
   "join_texts": true,
-  "use_pndb1": 32,
+  "use_pndb1": 128,
   "use_pndb2": null,
   "agent_level": 1,
   "log_experiment": true,

@@ -112,8 +112,8 @@ class Commands:
 
         for key, value in data.items():
           if key =="loss_weights":
-            for k in key.keys():
+            for k in value.keys():
               if k in [str(x) for x in range(7)]:
-                key[int(k)]=key[k]
-                del key[k]
+                value[int(k)]=value[k]
+                del value[k]
           setattr(Config, key, value)

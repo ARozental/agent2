@@ -202,8 +202,8 @@ def prepare_inputs(inputs, squeeze=False, to_device=True):
 
 def recycle_weights(new_untrained_model, old_trained_model):
   new_untrained_model['loss_weights'] = '{"0": {"m": 0.001, "rm": 0.0001}, "1": {"m": 0.01, "rm": 0.001, "e": 0.3, "re":0.6}, "c": 0.2, "r": 0.01, "e": 0.01, "j": 1e-08, "d": 0.03, "rc": 0.0, "re": 0.02, "rj": 1.001e-07}'
-  new_untrained_model['loss_weights'] = '{"0": {"m": 0.0005, "d": 0.0, "c": 0.5, "r": 0.3, "e": 0.005, "re": 0.05},' \
-                                        ' "1": {"m": 0.2, "d": 0.8, "c": 0.02, "r": 0.5, "e": 0.005, "re": 0.05},' \
+  new_untrained_model['loss_weights'] = '{"0": {"m": 0.00005, "d": 0.0, "c": 0.05, "r": 0.03, "e": 0.0005, "re": 0.005},' \
+                                        ' "1": {"m": 0.02, "d": 0.08, "c": 0.002, "r": 0.05, "e": 0.0005, "re": 0.005},' \
                                         ' "rj": 0.0,"j": 0.0,"rm": 0.0,"rc": 0.0}'
   for k in new_untrained_model['model'].keys():
     if k in old_trained_model['model'].keys():

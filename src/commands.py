@@ -111,6 +111,9 @@ class Commands:
             data = json.load(f)
 
         for key, value in data.items():
-          if key in [str(x) for x in range(7)]:
-            key=int(key)
-            setattr(Config, key, value)
+          if key =="loss_weights":
+            for k in key.keys():
+              if k in [str(x) for x in range(7)]:
+                key[int(k)]=key[k]
+                del key[k]
+          setattr(Config, key, value)

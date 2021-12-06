@@ -21,9 +21,9 @@
   "log_experiment": true,
   "log_every": 500,
   "save_every": 500,
-  "grad_clip_value":false,
+  "grad_clip_value":0.99,
   "grad_acc_steps": 1,
-  "lr": 0.0001,
+  "lr": 0.00005,
   "momentum": 0.9,
   "gpu_num": 0,
   "dataset":"simple_wiki",
@@ -32,20 +32,20 @@
   "rebalance_losses_step": null,
   "force_resume": "y",
   "loss_weights" : {"0": {
-            "m": 0.00005,
+            "m": 0.0005,
             "d": 0.0,
-            "c": 0.05,
-            "r": 0.03,
-            "e": 0.0005,
-            "re": 0.005
+            "c": 0.5,
+            "r": 0.3,
+            "e": 0.005,
+            "re": 0.05
         },
         "1": {
-            "m": 0.02,
-            "d": 0.08,
-            "c": 0.002,
-            "r": 0.05,
-            "e": 0.0005,
-            "re": 0.005
+            "m": 0.2,
+            "d": 0.8,
+            "c": 0.02,
+            "r": 0.5,
+            "e": 0.005,
+            "re": 0.05
         },
       "rj": 0.0,
       "j": 0.0,

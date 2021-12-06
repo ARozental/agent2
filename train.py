@@ -127,7 +127,13 @@ def train(index, flags, training_started):
     Checkpoints.setup()
     Rebalance.setup()
 
-    #steal some old weights from trained models
+    # print([name for name, param in model.named_parameters() if param.requires_grad])
+    # for n,p in model.named_parameters():
+    #   if "agent_levels.01" in n and p in main_params:
+    #     p.requires_grad = False
+    # print([name for name, param in model.named_parameters() if param.requires_grad])
+    # 1+None
+    # #steal some old weights from trained models
     # with Storage.fs.open("models/trained_old.tar", 'rb') as f:
     #   trained_old = torch.load(f, map_location=torch.device('cpu'))
     # with Storage.fs.open("models/new_model.tar", 'rb') as f:

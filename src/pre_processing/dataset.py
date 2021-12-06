@@ -11,7 +11,8 @@ def worker_init_fn(worker_id):
         dataset = dataset.dataset
     num_workers = worker_info.num_workers
 
-    if dataset.divide_data:
+    if dataset.divide_data and (Config.max_dataset_len is None or (
+            Config.max_dataset_len > (Config.batch_size * Config.num_dataset_workers))):
         dataset.data = dataset.data[worker_id::num_workers]
 
     dataset.init_tree_tokenizer()

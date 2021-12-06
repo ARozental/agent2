@@ -13,6 +13,8 @@ def calc_mlm_loss(agent_level, matrices, real_positions, eos_positions, embeddin
 
     batch, seq_length, vec_size = matrices.shape
 
+    #todo???: add mlm read after encoder? or Alice and Bob won't have the same vector though according to r_loss they should??
+
     # Choose 1 to mask MLM
     mlm_indices = torch.max(torch.rand((batch, seq_length), device=matrices.device) * real_positions, dim=-1).indices
     mlm_positions = torch.zeros((batch, seq_length), device=matrices.device)

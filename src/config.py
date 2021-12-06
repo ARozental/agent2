@@ -134,6 +134,7 @@ class Config:
 
     dataset = 'simple_wiki'  # wiki, simple_wiki
     max_dataset_len = None  # If want to use a smaller portion of the dataset
+    num_dataset_workers = 4
     use_dummy_dataset = False
 
     @staticmethod

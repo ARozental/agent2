@@ -71,7 +71,7 @@ def train(index, flags, training_started):
         batch_size=1,
         collate_fn=custom_collate_fn,
         worker_init_fn=worker_init_fn,
-        num_workers=4,
+        num_workers=Config.num_dataset_workers,
         prefetch_factor=8,
         persistent_workers=True  # This is helpful when num_workers > 0
     )

@@ -116,4 +116,6 @@ class Commands:
                     if k in [str(x) for x in range(7)]:
                         value[int(k)] = value[k]
                         del value[k]
+            elif key == 'config':
+                Commands.load_config(value)
             setattr(Config, key, value)

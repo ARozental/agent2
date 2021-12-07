@@ -32,7 +32,7 @@ def calc_reconstruction_loss(agent_level, matrices, decompressed, real_positions
     # norm(p=1) is not supported on the TPU
     #reconstruction_diff = ((matrices - post_decoder) * real_positions.unsqueeze(-1)).norm(dim=[1, 2])
     reconstruction_diff = matrices - post_decoder
-    reconstruction_diff = reconstruction_diff * (eos_positions.unsqueeze(-1)*2+1)
+    reconstruction_diff = reconstruction_diff #* (eos_positions.unsqueeze(-1)*2+1) #bug because eos is doubly counted in numerator but not denominator
     reconstruction_diff = (reconstruction_diff * real_positions.unsqueeze(-1)).norm(dim=[2]).mean(dim=1)
     reconstruction_diff = reconstruction_diff / ((matrices * real_positions.unsqueeze(-1)).norm(dim=[2]).mean(dim=1))
 

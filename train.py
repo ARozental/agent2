@@ -16,8 +16,6 @@ from torch.utils.data.dataloader import DataLoader, default_collate
 import numpy as np
 import time
 import madgrad  # is it any good?
-if Config.use_8bit:
-    import bitsandbytes as bnb  # 8 bit optimizers
 import torch.optim.lr_scheduler
 import os
 import collections
@@ -101,6 +99,7 @@ def train(index, flags, training_started):
 
     if Config.optimizer == "Adam":
         if Config.use_8bit:
+            import bitsandbytes as bnb
             main_optimizer = bnb.optim.Adam(main_params, Config.lr)
         else:
             main_optimizer = torch.optim.AdamW(main_params, Config.lr)

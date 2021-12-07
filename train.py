@@ -151,7 +151,7 @@ def train(index, flags, training_started):
     if Config.skip_batches is not None:
         global_step = Config.skip_batches - 1
     count_parameters(model, trainable=True)
-    for epoch in range(10001):
+    for epoch in range(1000001):
 
         if Config.use_tpu and Config.use_all_tpu_cores:
             parallel_loader = pl.ParallelLoader(dataloader, [Config.device]).per_device_loader(Config.device)

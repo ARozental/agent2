@@ -111,9 +111,11 @@ class Commands:
             data = json.load(f)
 
         for key, value in data.items():
-            if key == "loss_weights":
-                for k in value.keys():
-                    if k in [str(x) for x in range(7)]:
-                        value[int(k)] = value[k]
-                        del value[k]
+            if key == 'loss_weights':
+                for i in range(len(Config.levels)):
+                    if str(i) in value:
+                        value[i] = value[str(i)]
+                        del value[str(i)]
+            elif key == 'config':
+                Commands.load_config(value)
             setattr(Config, key, value)

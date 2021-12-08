@@ -103,7 +103,7 @@ def train(index, flags, training_started):
         if Config.use_8bit:
             main_optimizer = bnb.optim.Adam(main_params, Config.lr)
         else:
-            main_optimizer = torch.optim.AdamW(main_params, Config.lr)
+            main_optimizer = torch.optim.AdamW(main_params, Config.lr,amsgrad=True)
     else:
         main_optimizer = madgrad.MADGRAD(main_params, lr=Config.lr, momentum=Config.momentum)  # 0.01,0.9 is the default
     # main_optimizer = torch.optim.AdamW(main_params, 0.001) #todo: for dummy only

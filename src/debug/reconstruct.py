@@ -1,4 +1,5 @@
 from src.config import Config
+from src.debug.pndb import log_pndb
 from src.logger import Logger
 from src.pre_processing import TreeTokenizer
 import torch
@@ -30,6 +31,10 @@ def reconstruct_text(batch_tree, model, embedding_matrix, first_A1s, first_pndb_
             model.full_decode(batch_tree.level_nodes[i][:10], first_A1s, first_pndb_lookup_ids[0:10], embedding_matrix,
                               from_embedding=True) for i in range(Config.agent_level + 1)
         ]
+
+    # Log PNDB results
+    if Config.use_pndb1 is not None:
+        log_pndb(expected[0], reconstructed[1][0][-1], global_step)
 
     reconstructed = [[TreeTokenizer.deep_detokenize(node[0], i) for node in items] for i, items in
                      enumerate(reconstructed)]

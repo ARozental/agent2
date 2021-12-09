@@ -200,7 +200,10 @@ class AgentLevel(nn.Module):
         post_decoder = self.decoder(decompressed, real_positions_for_mask, None)
         if Config.use_pndb1 is not None and self.level == 1:
             # post_decoder = pndb.old_get_data_from_A_matrix(pndb.create_A_matrix(matrices, real_positions), post_decoder)
-            post_decoder = self.pndb.get_data_from_A_matrix(A1s, pndb_lookup_ids, post_decoder,real_positions_for_mask)
+            post_decoder, pndb_activations = self.pndb.get_data_from_A_matrix(A1s, pndb_lookup_ids, post_decoder,
+                                                                              real_positions_for_mask)
+        else:
+            pndb_activations = None
 
         _, eos_mask = calc_eos_loss(self, post_decoder, torch.zeros(batch, seq_length, device=decompressed.device))
 
@@ -235,12 +238,12 @@ class AgentLevel(nn.Module):
 
         children_vectors_from_embedding = children_vectors
         if embedding_matrix is not None:
-          children_vectors_from_embedding = []
-          logits = torch.matmul(post_decoder, torch.transpose(embedding_matrix, 0, 1))
-          all_lookup_ids = torch.argmax(logits, dim=2)
+            children_vectors_from_embedding = []
+            logits = torch.matmul(post_decoder, torch.transpose(embedding_matrix, 0, 1))
+            all_lookup_ids = torch.argmax(logits, dim=2)
 
-          all_word_vectors = [torch.index_select(embedding_matrix, 0,lookup_ids) for lookup_ids in all_lookup_ids]
-          for i in range(len(all_word_vectors)):
-            children_vectors_from_embedding.append([x for x in all_word_vectors[i][0:num_tokens[i]]])
+            all_word_vectors = [torch.index_select(embedding_matrix, 0, lookup_ids) for lookup_ids in all_lookup_ids]
+            for i in range(len(all_word_vectors)):
+                children_vectors_from_embedding.append([x for x in all_word_vectors[i][0:num_tokens[i]]])
 
-        return children_vectors,children_vectors_from_embedding, is_eos, post_decoder, real_positions
+        return children_vectors, children_vectors_from_embedding, is_eos, post_decoder, pndb_activations, real_positions

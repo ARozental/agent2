@@ -113,6 +113,15 @@ class Logger:
         cls.writer.add_text('reconstructed_e/' + str(level), '  \n'.join(text), step)
 
     @classmethod
+    def log_pndb(cls, averages, step):
+        if cls.writer is None:
+            return
+
+        cls.writer.add_scalar('pndb/avg_all_act', averages['all'], step)
+        cls.writer.add_scalar('pndb/avg_proper_act', averages['proper'], step)
+        cls.writer.add_scalar('pndb/avg_non_act', averages['non'], step)
+
+    @classmethod
     def log_viz(cls, node, text, level, step):
         if Config.viz_file is None:
             return

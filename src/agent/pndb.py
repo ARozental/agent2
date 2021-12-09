@@ -56,6 +56,6 @@ class Pndb(nn.Module):
         selected_A1s = torch.index_select(A1s, 0, pndb_lookup_ids) #todo: is this a horrible place where the memory explodes?
         A2 = attention(k, self.questions, selected_A1s, Config.use_pndb1)  # [batch,seq_length,hidden]
         gate_values = self.update_gate(for_update, A2, self.update11, self.update12, self.b1)
-        return post_decoder_matrices + A2 * gate_values
+        return post_decoder_matrices + A2 * gate_values, gate_values
 
 

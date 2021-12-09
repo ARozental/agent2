@@ -321,11 +321,12 @@ class AgentModel(nn.Module):
         else:
             node_vectors = torch.stack(node_vectors)
         if agent_level.level == 1:
-            children_vectors, children_vectors_from_embedding, children_eos, _, _ = agent_level.vecs_to_children_vecs(
+            children_vectors, children_vectors_from_embedding, children_eos, _, pndb_activations, _ = agent_level.vecs_to_children_vecs(
                 node_vectors, A1s, pndb_lookup_ids, embedding_matrix)
         else:
-            children_vectors, children_vectors_from_embedding, children_eos, _, _ = agent_level.vecs_to_children_vecs(
+            children_vectors, children_vectors_from_embedding, children_eos, _, _, _ = agent_level.vecs_to_children_vecs(
                 node_vectors, A1s, pndb_lookup_ids, None)
+            pndb_activations = None
 
         if from_embedding:
             children_vectors = children_vectors_from_embedding
@@ -350,15 +351,13 @@ class AgentModel(nn.Module):
 
         # TODO - use numpy.split here for even faster batching
         results = []
-        index = 0
-
-        for node in nodes:
+        for i, node in enumerate(nodes):
             if node.is_join():
                 results.append((-1, True))
                 continue
 
             children_nodes = []
-            for v in children_vectors[index]:
+            for v in children_vectors[i]:
                 n = Node()
                 if v is None:
                     n.tokens = -1
@@ -368,9 +367,12 @@ class AgentModel(nn.Module):
                 n.level = node.level - 1
                 n.parent = node
                 children_nodes.append(n)
-            results.append(
-                (self.full_decode(children_nodes, A1s, pndb_lookup_ids, embedding_matrix), children_eos[index]))
-            index += 1
+
+            results.append((
+                self.full_decode(children_nodes, A1s, pndb_lookup_ids, embedding_matrix),
+                children_eos[i],
+                pndb_activations,
+            ))
 
         return results
 

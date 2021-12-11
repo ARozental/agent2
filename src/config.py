@@ -46,6 +46,7 @@ class Config:
     momentum = 0.9
     half_life_steps = 150000
     grad_acc_steps = 1
+    mlm_pndb = False
 
     cnn_padding = 2  # kernel = (2 * padding) + 1
     reconstruction_d = 0.0

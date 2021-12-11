@@ -185,7 +185,8 @@ class AgentModel(nn.Module):
                                               eos_positions,
                                               embedding_matrix,
                                               labels, num_dummy=num_dummy,
-                                              dummy_logit_bias=dummy_logit_bias)
+                                              dummy_logit_bias=dummy_logit_bias,
+                                              pndb=self.agent_levels[1].pndb, A1s=A1s, pndb_lookup_ids=pndb_lookup_ids)
 
         with xp.Trace('CallingDecompressor' + str(level_num)):
             if not Config.noise or debug or level_num == Config.agent_level:

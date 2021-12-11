@@ -102,7 +102,7 @@ def train(index, flags, training_started):
             import bitsandbytes as bnb
             main_optimizer = bnb.optim.Adam(main_params, Config.lr)
         else:
-            main_optimizer = torch.optim.AdamW(main_params, Config.lr,amsgrad=True)
+            main_optimizer = torch.optim.AdamW(main_params, Config.lr,amsgrad=True) #there are still some explosions with amsgrad but no drop before them....
     else:
         main_optimizer = madgrad.MADGRAD(main_params, lr=Config.lr, momentum=Config.momentum)  # 0.01,0.9 is the default
     # main_optimizer = torch.optim.AdamW(main_params, 0.001) #todo: for dummy only
@@ -132,13 +132,13 @@ def train(index, flags, training_started):
     #     p.requires_grad = False
     # print([name for name, param in model.named_parameters() if param.requires_grad])
     # 1+None
-    # #steal some old weights from trained models
+    #steal some old weights from trained models
     # with Storage.fs.open("models/trained_old.tar", 'rb') as f:
     #   trained_old = torch.load(f, map_location=torch.device('cpu'))
     # with Storage.fs.open("models/new_model.tar", 'rb') as f:
     #   untrained_new = torch.load(f, map_location=torch.device('cpu'))
     # recycle_weights(untrained_new, trained_old)
-    # torch.save(untrained_new, "recycled7.tar")
+    # torch.save(untrained_new, "recycled8.tar")
     # 1+None
     Checkpoints.load(model, main_optimizer, scheduler)
     all_times = []

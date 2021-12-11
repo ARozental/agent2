@@ -46,7 +46,7 @@ def calc_mlm_loss(agent_level, matrices, real_positions, eos_positions, embeddin
     post_encoder = agent_level.encoder(pre_encoder, real_positions, eos_positions)
     transformed = agent_level.encoder_transform(post_encoder)
     if Config.mlm_pndb and Config.use_pndb1 is not None and agent_level.level == 1:
-      transformed = pndb.get_data_from_A_matrix(A1s, pndb_lookup_ids, transformed,real_positions)
+      transformed,_ = pndb.get_data_from_A_matrix(A1s, pndb_lookup_ids, transformed,real_positions)
 
 
     logits = torch.matmul(transformed, torch.transpose(embeddings, 0, 1))  # [batch,max_length,embedding_size)
@@ -76,7 +76,7 @@ def calc_mlm_loss(agent_level, matrices, real_positions, eos_positions, embeddin
     reencoded_matrices = agent_level.encoder(matrices, real_positions, eos_positions)
     transformed = agent_level.encoder_transform(reencoded_matrices)
     if Config.mlm_pndb and Config.use_pndb1 is not None and agent_level.level == 1:
-      transformed = pndb.get_data_from_A_matrix(A1s, pndb_lookup_ids, transformed,real_positions)
+      transformed,_ = pndb.get_data_from_A_matrix(A1s, pndb_lookup_ids, transformed,real_positions)
     logits = torch.matmul(transformed, torch.transpose(embeddings, 0, 1))
     if agent_level.level == 0:
         logits = logits + agent_level.token_bias

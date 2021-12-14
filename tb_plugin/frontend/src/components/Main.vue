@@ -6,13 +6,13 @@
           <h6>Run</h6>
           <b-select v-model="selected_run" size="sm">
             <b-select-option :value="null">Select One</b-select-option>
-            <b-select-option v-for="run in runs" :value="run">{{ run }}</b-select-option>
+            <b-select-option v-for="run in runs" :key="run" :value="run">{{ run }}</b-select-option>
           </b-select>
 
           <h6 class="mt-4">Tag</h6>
           <b-select v-model="selected_tag" size="sm">
             <b-select-option :value="null">Select One</b-select-option>
-            <b-select-option v-for="tag in tags" :value="tag">{{ tag }}</b-select-option>
+            <b-select-option v-for="tag in tags" :key="tag" :value="tag">{{ tag }}</b-select-option>
           </b-select>
         </b-card>
       </b-col>

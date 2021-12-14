@@ -16,8 +16,8 @@ gcsfs = "^2021.10.1"
 tensorboard = "^2.7.0"
 madgrad = "^1.1"
 prettytable = "^2.2.1"
-bitsandbytes-cuda102 = "^0.25.0"
 wikiextractor = "^3.0.6"
+bitsandbytes-cuda102 = "^0.26.0"
 
 [tool.poetry.dev-dependencies]
 

@@ -16,7 +16,22 @@ export default {
   mounted() {
     axios
         .get('./runs')
-        .then(response => console.log(response));
+        .then(r => r.data)
+        .then(response => {
+          console.log('runs', response)
+
+          let name = Object.keys(response)[0];
+
+          axios
+              .get('./data', {
+                params: {
+                  run_id: name,
+                  tag: response[name][0],
+                }
+              })
+              .then(r => r.data)
+              .then(response => console.log('data', response));
+        });
   }
 }
 </script>

@@ -44,7 +44,7 @@ class AgentPlugin(base_plugin.TBPlugin):
         return {
             '/index.js': self.static_file_route,
             '/index.html': self.static_file_route,
-            '/scalars': self.scalars_route,
+            '/data': self.data_route,
             '/runs': self.runs_route,
         }
 
@@ -107,24 +107,7 @@ class AgentPlugin(base_plugin.TBPlugin):
         experiment = plugin_util.experiment_id(request.environ)
         return self.respond_as_json(self._get_runs(ctx, experiment))
 
-    def scalars_impl(self, ctx, experiment, tag, run):
-        """Returns scalar data for the specified tag and run.
-
-        For details on how to use tags and runs, see
-        https://github.com/tensorflow/tensorboard#tags-giving-names-to-data
-
-        Args:
-          tag: string
-          run: string
-
-        Returns:
-          A list of ScalarEvents - tuples containing 3 numbers describing entries in
-          the data series.
-
-        Raises:
-          NotFoundError if there are no scalars data for provided `run` and
-          `tag`.
-        """
+    def _get_data(self, ctx, experiment, tag, run):
         all_text = self._data_provider.read_tensors(
             ctx,
             experiment_id=experiment,
@@ -142,11 +125,9 @@ class AgentPlugin(base_plugin.TBPlugin):
         ]
 
     @wrappers.Request.application
-    def scalars_route(self, request):
-        """Given a tag and single run, return array of ScalarEvents."""
-        tag = request.args.get("tag")
-        run = request.args.get("run")
+    def data_route(self, request):
+        run = request.args.get('run_id')
+        tag = request.args.get('tag')
         ctx = plugin_util.context(request.environ)
         experiment = plugin_util.experiment_id(request.environ)
-        body = self.scalars_impl(ctx, experiment, tag, run)
-        return http_util.Respond(request, body, "application/json")
+        return self.respond_as_json(self._get_data(ctx, experiment, tag, run))

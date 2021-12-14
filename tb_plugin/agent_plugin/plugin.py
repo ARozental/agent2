@@ -1,7 +1,9 @@
 import mimetypes
+import json
 import os
 
-from werkzeug import wrappers
+import werkzeug
+from werkzeug import exceptions, wrappers
 
 from tensorboard import errors
 from tensorboard import plugin_util
@@ -21,6 +23,7 @@ class AgentPlugin(base_plugin.TBPlugin):
     """Raw summary example plugin for TensorBoard."""
 
     plugin_name = 'AGENT'
+    headers = [('X-Content-Type-Options', 'nosniff')]
 
     def __init__(self, context):
         """Instantiates AgentPlugin.
@@ -39,12 +42,51 @@ class AgentPlugin(base_plugin.TBPlugin):
 
     def get_plugin_apps(self):
         return {
-            "/scalars": self.scalars_route,
-            "/tags": self._serve_tags,
-            "/static/*": self._serve_static_file,
+            '/index.js': self.static_file_route,
+            '/index.html': self.static_file_route,
+            '/scalars': self.scalars_route,
+            '/runs': self.runs_route,
         }
 
-    def index_impl(self, ctx, experiment):
+    @staticmethod
+    def respond_as_json(obj):
+        content = json.dumps(obj)
+        return werkzeug.Response(content, content_type='application/json', headers=AgentPlugin.headers)
+
+    @wrappers.Request.application
+    def static_file_route(self, request):
+        filename = os.path.basename(request.path)
+        extension = os.path.splitext(filename)[1]
+        if extension == '.html':
+            mimetype = 'text/html'
+        elif extension == '.css':
+            mimetype = 'text/css'
+        elif extension == '.js':
+            mimetype = 'application/javascript'
+        else:
+            mimetype = 'application/octet-stream'
+        filepath = os.path.join(os.path.dirname(__file__), 'static', filename)
+        try:
+            with open(filepath, 'rb') as infile:
+                contents = infile.read()
+        except IOError:
+            raise exceptions.NotFound("404 Not Found")
+        return werkzeug.Response(
+            contents, content_type=mimetype, headers=AgentPlugin.headers
+        )
+
+    def is_active(self):
+        """Returns whether there is relevant data for the plugin to process.
+
+        When there are no runs with scalar data, TensorBoard will hide the plugin
+        from the main navigation bar.
+        """
+        return True
+
+    def frontend_metadata(self):
+        return base_plugin.FrontendMetadata(es_module_path="/index.js")
+
+    def _get_runs(self, ctx, experiment):
         mapping = self._data_provider.list_tensors(
             ctx,
             experiment_id=experiment,
@@ -60,55 +102,10 @@ class AgentPlugin(base_plugin.TBPlugin):
         return result
 
     @wrappers.Request.application
-    def _serve_tags(self, request):
-        """Serves run to tag info.
-
-        Frontend clients can use the Multiplexer's run+tag structure to request data
-        for a specific run+tag. Responds with a map of the form:
-        {runName: [tagName, tagName, ...]}
-        """
+    def runs_route(self, request):
         ctx = plugin_util.context(request.environ)
         experiment = plugin_util.experiment_id(request.environ)
-        run_info = self.index_impl(ctx, experiment)
-
-        return http_util.Respond(request, run_info, "application/json")
-
-    @wrappers.Request.application
-    def _serve_static_file(self, request):
-        """Returns a resource file from the static asset directory.
-
-        Requests from the frontend have a path in this form:
-        /data/plugin/example_raw_scalars/static/foo
-        This serves the appropriate asset: ./static/foo.
-
-        Checks the normpath to guard against path traversal attacks.
-        """
-        static_path_part = request.path[len(_PLUGIN_DIRECTORY_PATH_PART):]
-        resource_name = os.path.normpath(
-            os.path.join(*static_path_part.split("/"))
-        )
-        if not resource_name.startswith("static" + os.path.sep):
-            return http_util.Respond(
-                request, "Not found", "text/plain", code=404
-            )
-
-        resource_path = os.path.join(os.path.dirname(__file__), resource_name)
-        with open(resource_path, "rb") as read_file:
-            mimetype = mimetypes.guess_type(resource_path)[0]
-            return http_util.Respond(
-                request, read_file.read(), content_type=mimetype
-            )
-
-    def is_active(self):
-        """Returns whether there is relevant data for the plugin to process.
-
-        When there are no runs with scalar data, TensorBoard will hide the plugin
-        from the main navigation bar.
-        """
-        return True
-
-    def frontend_metadata(self):
-        return base_plugin.FrontendMetadata(es_module_path="/static/index.js")
+        return self.respond_as_json(self._get_runs(ctx, experiment))
 
     def scalars_impl(self, ctx, experiment, tag, run):
         """Returns scalar data for the specified tag and run.

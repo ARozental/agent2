@@ -15,7 +15,7 @@ export default {
   },
   mounted() {
     axios
-        .get('../tags')
+        .get('./runs')
         .then(response => console.log(response));
   }
 }

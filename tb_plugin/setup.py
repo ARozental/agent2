@@ -22,11 +22,6 @@ class BuildFrontend(setuptools.Command):
         root = pathlib.Path(__file__).parent.absolute()
         os.chdir(root / "frontend")
 
-        # Delete the current files/folders
-        shutil.rmtree(os.path.join(root, 'frontend', 'css'))
-        shutil.rmtree(os.path.join(root, 'frontend', 'img'))
-        shutil.rmtree(os.path.join(root, 'frontend', 'js'))
-
         # Run the build
         subprocess.run(['docker-compose', 'up', '-d'], check=True)
         subprocess.run(['docker-compose', 'run', '--rm', 'npm', 'install'], check=True)

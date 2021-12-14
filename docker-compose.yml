@@ -1,0 +1,11 @@
+version: "3.7"
+services:
+  npm:
+    image: node:16.13.0-alpine
+    user: 1000:1000
+    network_mode: host
+    container_name: npm_agent
+    volumes:
+      - ./tb_plugin:/var/www/html
+    working_dir: /var/www/html/frontend
+    entrypoint: [ 'npm' ]

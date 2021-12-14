@@ -18,7 +18,7 @@
       </b-col>
       <b-col cols="9">
         <b-card>
-          <TextDisplay v-if="selected.run_id !== null && selected.tag !== null"/>
+          <TextDisplay v-if="data !== null"/>
         </b-card>
       </b-col>
     </b-row>
@@ -37,6 +37,7 @@ export default {
       runs: state => state.runs,
       tags: state => state.tags,
       selected: state => state.selected,
+      data: state => state.data,
     }),
     selected_run: {
       get() {

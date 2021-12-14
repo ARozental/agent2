@@ -99,7 +99,7 @@ class AgentPlugin(base_plugin.TBPlugin):
                 if not self._version_checker.ok(md.version, run, tag):
                     continue
                 result[run].append(tag)
-        return result
+        return [{'id': key, 'tags': tags} for key, tags in result.items()]
 
     @wrappers.Request.application
     def runs_route(self, request):

@@ -19,9 +19,7 @@ module.exports = {
         plugins: [
             new HtmlWebpackPlugin({
                 inject: true,
-                // scriptLoading: 'blocking',
-                // filename: 'index.html', // the output file name that will be created
-                template: 'public/index.html', // this is important - a template file to use for insertion
+                template: 'public/index.html',
             }),
             new InlineChunkHtmlPlugin(HtmlWebpackPlugin, [/\.(js|css)$/]),
         ]

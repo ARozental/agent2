@@ -1,13 +1,13 @@
 <template>
   <b-card>
     <h6>Run</h6>
-    <b-select v-model="selected_run" size="sm">
+    <b-select v-model="run_id" size="sm">
       <b-select-option :value="null">Select One</b-select-option>
       <b-select-option v-for="run in runs" :key="run" :value="run">{{ run }}</b-select-option>
     </b-select>
 
     <br>
-    <b-checkbox>Using embedding?</b-checkbox>
+    <b-checkbox v-model="use_e">Using embedding?</b-checkbox>
   </b-card>
 </template>
 
@@ -20,16 +20,24 @@ export default {
     ...mapState({
       runs: state => state.runs,
       tags: state => state.tags,
-      selected_run_id: state => state.selected_run_id,
+      selected: state => state.selected,
       data: state => state.data,
     }),
-    selected_run: {
+    run_id: {
       get() {
-        return this.selected_run_id;
+        return this.selected.run_id;
       },
       set(value) {
         this.$store.commit('setSelectedRunID', value);
         this.$store.dispatch('getData');
+      },
+    },
+    use_e: {
+      get() {
+        return this.selected.use_e;
+      },
+      set(value) {
+        this.$store.commit('setSelectedUseE', value);
       },
     },
   },

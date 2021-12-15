@@ -1,13 +1,8 @@
 <template>
   <div v-if="item !== undefined">
-    <b-card title="Level 0">
-      <TextDisplay :text="item['reconstructed']['reconstructed/0/text_summary']"
-                   :expected="item.expected"
-                   :update-gate="item.pndb.update_gate"/>
-    </b-card>
-
-    <b-card title="Level 1">
-      <TextDisplay :text="item['reconstructed']['reconstructed/1/text_summary']"
+    <b-card v-for="level in [0, 1]" class="mb-4">
+      <b-card-title>Level {{ level }}</b-card-title>
+      <TextDisplay :text="item['reconstructed']['reconstructed' + useE + '/' + level + '/text_summary']"
                    :expected="item.expected"
                    :update-gate="item.pndb.update_gate"/>
     </b-card>
@@ -26,6 +21,7 @@ export default {
   computed: {
     ...mapState({
       data: state => state.data,
+      use_e: state => state.selected.use_e,
     }),
     steps() {
       return this.data.map(item => item.step);
@@ -36,6 +32,9 @@ export default {
     item() {
       return this.data.find(x => x.step === this.currentStep);
     },
+    useE() {
+      return this.use_e ? '_e' : '';
+    }
   },
   data() {
     return {

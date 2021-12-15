@@ -8,12 +8,18 @@ export default new Vuex.Store({
     state: {
         runs: null,
         tags: null,
-        selected_run_id: null,
+        selected: {
+            run_id: null,
+            use_e: false,
+        },
         data: null,
     },
     mutations: {
         setSelectedRunID(state, run_id) {
-            state.selected_run_id = run_id;
+            state.selected.run_id = run_id;
+        },
+        setSelectedUseE(state, value) {
+            state.selected.use_e = value;
         },
         setRunsTags(state, data) {
             state.runs = data.map(run => run.id);
@@ -39,7 +45,7 @@ export default new Vuex.Store({
             axios
                 .get('./data', {
                     params: {
-                        run_id: state.selected_run_id,
+                        run_id: state.selected.run_id,
                     }
                 })
                 .then(r => r.data)

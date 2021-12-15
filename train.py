@@ -135,8 +135,9 @@ def train(index, flags, training_started):
     #steal some old weights from trained models
     # with Storage.fs.open("models/trained_old.tar", 'rb') as f:
     #   trained_old = torch.load(f, map_location=torch.device('cpu'))
-    # with Storage.fs.open("models/new_model.tar", 'rb') as f:
-    #   untrained_new = torch.load(f, map_location=torch.device('cpu'))
+    # with Storage.fs.open("models/new_p_model.tar", 'rb') as f:
+    #   untrained_new = torch.load(f,
+    #                              map_location=torch.device('cpu'))
     # recycle_weights(untrained_new, trained_old)
     # torch.save(untrained_new, "recycled8.tar")
     # 1+None

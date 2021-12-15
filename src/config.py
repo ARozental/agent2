@@ -50,6 +50,7 @@ class Config:
 
     cnn_padding = 2  # kernel = (2 * padding) + 1
     reconstruction_d = 0.0
+    cnn_compressor = True
 
     # These are the loss weights for the main_loss.  Either per level (nested) or all levels (global)
     #rm here is not really rm it is the non masked part of the mlm

@@ -7,7 +7,6 @@ Vue.use(Vuex)
 export default new Vuex.Store({
     state: {
         runs: null,
-        tags: null,
         selected: {
             run_id: null,
             use_e: false,
@@ -23,22 +22,24 @@ export default new Vuex.Store({
         },
         setRunsTags(state, data) {
             state.runs = data.map(run => run.id);
-            state.tags = ['reconstructed/1/text_summary'] //Array.from(new Set([].concat(...data.map(run => run.tags))));
         },
         setData(state, data) {
-            console.log(data);
             state.data = data;
         },
     },
     actions: {
-        loadRuns({commit}) {
+        loadRuns({commit, state, dispatch}) {
             axios
                 .get('./runs')
                 .then(r => r.data)
-                .then(response => commit('setRunsTags', response));
+                .then(response => {
+                    commit('setRunsTags', response)
+                    commit('setSelectedRunID', state.runs[0])
+                    dispatch('getData');
+                });
         },
         getData({commit, state}) {
-            if (state.selected_run_id === null)
+            if (state.selected.run_id === null)
                 return;
 
             state.data = null;

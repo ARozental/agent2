@@ -81,6 +81,7 @@ def train(index, flags, training_started):
     if not Config.use_accelerator:
         model.to(Config.device)
 
+    print([name for name, param in model.named_parameters() if ("discriminator" not in name) and ("generator" not in name)])
     main_params = [param for name, param in model.named_parameters() if
                    ("discriminator" not in name) and ("generator" not in name)]
     generator_params = [param for name, param in model.named_parameters() if "generator" in name]

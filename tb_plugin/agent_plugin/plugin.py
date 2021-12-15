@@ -22,7 +22,7 @@ _DEFAULT_DOWNSAMPLING = 100
 class AgentPlugin(base_plugin.TBPlugin):
     """Raw summary example plugin for TensorBoard."""
 
-    plugin_name = 'AGENT'
+    plugin_name = 'agent'
     headers = [('X-Content-Type-Options', 'nosniff')]
 
     def __init__(self, context):
@@ -44,8 +44,8 @@ class AgentPlugin(base_plugin.TBPlugin):
         return {
             '/index.js': self.static_file_route,
             '/index.html': self.static_file_route,
-            '/data': self.data_route,
             '/runs': self.runs_route,
+            '/data': self.data_route,
         }
 
     @staticmethod
@@ -86,48 +86,99 @@ class AgentPlugin(base_plugin.TBPlugin):
     def frontend_metadata(self):
         return base_plugin.FrontendMetadata(es_module_path="/index.js")
 
-    def _get_runs(self, ctx, experiment):
+    def _get_runs(self, ctx, experiment, plugin_name):
         mapping = self._data_provider.list_tensors(
             ctx,
             experiment_id=experiment,
-            plugin_name=_TEXT_PLUGIN_NAME,
+            plugin_name=plugin_name,
         )
+
         result = {run: [] for run in mapping}
+
         for (run, tag_to_content) in mapping.items():
             for (tag, metadatum) in tag_to_content.items():
                 md = metadata.parse_plugin_metadata(metadatum.plugin_content)
-                if not self._version_checker.ok(md.version, run, tag):
+                if plugin_name != self.plugin_name and not self._version_checker.ok(md.version, run, tag):
                     continue
                 result[run].append(tag)
-        return [{'id': key, 'tags': tags} for key, tags in result.items()]
+
+        return result
 
     @wrappers.Request.application
     def runs_route(self, request):
         ctx = plugin_util.context(request.environ)
         experiment = plugin_util.experiment_id(request.environ)
-        return self.respond_as_json(self._get_runs(ctx, experiment))
+        runs_text = self._get_runs(ctx, experiment, _TEXT_PLUGIN_NAME)
+        runs_agent = self._get_runs(ctx, experiment, self.plugin_name)
+        run_keys = list(set(runs_text.keys()).union(set(runs_agent.keys())))
+        return self.respond_as_json([
+            {
+                'id': key,
+                'tags': {
+                    'text': runs_text.get(key, []),
+                    'agent': runs_agent.get(key, []),
+                }
+            }
+            for key in run_keys])
 
-    def _get_data(self, ctx, experiment, tag, run):
-        all_text = self._data_provider.read_tensors(
+    def _get_data(self, ctx, experiment, run):
+        reconstructed = self._data_provider.read_tensors(
             ctx,
             experiment_id=experiment,
             plugin_name=_TEXT_PLUGIN_NAME,
             downsample=self._downsample_to,
-            run_tag_filter=provider.RunTagFilter(runs=[run], tags=[tag]),
+            run_tag_filter=provider.RunTagFilter(runs=[run], tags=[
+                'reconstructed/0/text_summary',
+                'reconstructed/1/text_summary',
+                'reconstructed_e/0/text_summary',
+                'reconstructed_e/1/text_summary',
+            ]),
         )
 
-        text = all_text.get(run, {}).get(tag, None)
-        if text is None:
-            return []
-        return [
-            process_event(d.wall_time, d.step, d.numpy, False)
-            for d in text
-        ]
+        reconstructed = reconstructed[run]
+        for key, values in reconstructed.items():
+            reconstructed[key] = [process_event(d.wall_time, d.step, d.numpy, False) for d in values]
+
+        agent = self._data_provider.read_tensors(
+            ctx,
+            experiment_id=experiment,
+            plugin_name=self.plugin_name,
+            downsample=self._downsample_to,
+            run_tag_filter=provider.RunTagFilter(runs=[run], tags=[
+                'expected/1',
+                'pndb/update_gate/1',
+            ]),
+        )
+
+        if run in agent:
+            agent = agent[run]
+            agent['expected/1'] = [process_event(d.wall_time, d.step, d.numpy, False) for d in agent['expected/1']]
+            agent['pndb/update_gate/1'] = [{
+                'step': d.step,
+                'wall_time': d.wall_time,
+                'update_gate': d.numpy.tolist(),
+            } for d in agent['pndb/update_gate/1']]
+        else:
+            agent = None
+
+        result = []
+        first_key = 'reconstructed/0/text_summary'
+        for i in range(len(reconstructed[first_key])):
+            result.append({
+                'step': reconstructed[first_key][i]['step'],
+                'wall_time': reconstructed[first_key][i]['wall_time'],
+                'reconstructed': {key: item[i]['text'] for key, item in reconstructed.items()},
+                'expected': None if agent is None else agent['expected/1'][i]['text'],
+                'pndb': None if agent is None else {
+                    'update_gate': agent['pndb/update_gate/1'][i]['update_gate'],
+                },
+            })
+
+        return result
 
     @wrappers.Request.application
     def data_route(self, request):
         run = request.args.get('run_id')
-        tag = request.args.get('tag')
         ctx = plugin_util.context(request.environ)
         experiment = plugin_util.experiment_id(request.environ)
-        return self.respond_as_json(self._get_data(ctx, experiment, tag, run))
+        return self.respond_as_json(self._get_data(ctx, experiment, run))

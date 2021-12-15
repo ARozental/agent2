@@ -3,6 +3,9 @@ from src.config import Config
 from src.storage import Storage
 
 from torch.utils.tensorboard import SummaryWriter
+from tensorboard.compat.proto import summary_pb2
+from tensorboard.compat.proto.tensor_pb2 import TensorProto
+from tensorboard.compat.proto.tensor_shape_pb2 import TensorShapeProto
 import pandas as pd
 import os
 
@@ -12,7 +15,7 @@ class Logger:
     viz = pd.DataFrame()
     loss_name_mapping = {
         'm': 'mlm',
-        #'md': 'mlm_diff',
+        # 'md': 'mlm_diff',
         'c': 'coherence',
         'r': 'reconstruction',
         'e': 'eos',
@@ -22,13 +25,18 @@ class Logger:
         're': 'reconstruction_eos',
         'rj': 'reconstruction_join',
         'rm': 'reconstruction_mlm',
-        #'rmd': 'reconstruction_diff_mlm',
+        # 'rmd': 'reconstruction_diff_mlm',
         'g': 'generator',
         'disc': 'discriminator'
-        #'cd': 'coherence_discriminator',
-        #'rcd': 'reconstruction_coherence_discriminator'
-
+        # 'cd': 'coherence_discriminator',
+        # 'rcd': 'reconstruction_coherence_discriminator'
     }
+
+    agent_plugin_metadata = summary_pb2.SummaryMetadata(
+        plugin_data=summary_pb2.SummaryMetadata.PluginData(plugin_name='agent', content=b''),
+        summary_description='',
+        data_class=summary_pb2.DATA_CLASS_TENSOR,
+    )
 
     @classmethod
     def setup(cls):
@@ -56,6 +64,10 @@ class Logger:
             log_dir = os.path.join(*log_dir)
 
         return log_dir
+
+    @classmethod
+    def add_summary(cls, summary, global_step):
+        cls.writer._get_file_writer().add_summary(summary, global_step)
 
     @classmethod
     def log_losses(cls, g_loss, disc_loss, main_loss, loss_object, step):
@@ -91,6 +103,17 @@ class Logger:
             cls.writer.add_scalar('l2/join/bias/' + str(i), level.join_classifier_b, step)
 
     @classmethod
+    def text(cls, tag, text):
+        tensor = TensorProto(dtype='DT_STRING',
+                             string_val=[text.encode(encoding='utf_8')],
+                             tensor_shape=TensorShapeProto(dim=[TensorShapeProto.Dim(size=1)]))
+        return summary_pb2.Summary(
+            value=[summary_pb2.Summary.Value(tag=tag,
+                                             metadata=cls.agent_plugin_metadata,
+                                             tensor=tensor)]
+        )
+
+    @classmethod
     def log_text(cls, generated, step):
         if cls.writer is None:
             return
@@ -106,6 +129,13 @@ class Logger:
         cls.writer.add_text('reconstructed/' + str(level), '  \n'.join(text), step)
 
     @classmethod
+    def log_expected(cls, text, level, step):
+        if cls.writer is None:
+            return
+
+        cls.add_summary(cls.text('expected/' + str(level), ''.join(text)), step)
+
+    @classmethod
     def log_reconstructed_e(cls, text, level, step):
         if cls.writer is None:
             return
@@ -113,9 +143,18 @@ class Logger:
         cls.writer.add_text('reconstructed_e/' + str(level), '  \n'.join(text), step)
 
     @classmethod
-    def log_pndb(cls, averages, step):
+    def log_pndb(cls, update_gate, averages, step):
         if cls.writer is None:
             return
+
+        tensor = TensorProto(
+            dtype='DT_FLOAT',
+            float_val=update_gate.reshape(-1).tolist(),
+            tensor_shape=TensorShapeProto(dim=[TensorShapeProto.Dim(size=update_gate.shape[0])])
+        )
+        cls.add_summary(summary_pb2.Summary(value=[
+            summary_pb2.Summary.Value(tag='pndb/update_gate/1', metadata=cls.agent_plugin_metadata, tensor=tensor)]
+        ), step)
 
         cls.writer.add_scalar('pndb/avg_all_update', averages['all'], step)
         cls.writer.add_scalar('pndb/avg_proper_update', averages['proper'], step)

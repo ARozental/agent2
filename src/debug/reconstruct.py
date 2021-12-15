@@ -46,6 +46,8 @@ def reconstruct_text(batch_tree, model, embedding_matrix, first_A1s, first_pndb_
         print('Level_e', i, reconstructed_e[i])
         Logger.log_reconstructed(reconstructed[i], i, step=global_step)
         Logger.log_reconstructed_e(reconstructed_e[i], i, step=global_step)
+        if i == len(reconstructed) - 1:
+            Logger.log_expected(expected[0], i, step=global_step)
         # for j, item in enumerate(text):
         #    Logger.log_viz(batch.level_nodes[i][j], text[j], i, step=global_step)
         if i == len(reconstructed) - 1:  # Upper most level

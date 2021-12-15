@@ -169,8 +169,8 @@ class AgentPlugin(base_plugin.TBPlugin):
                 'wall_time': reconstructed[first_key][i]['wall_time'],
                 'reconstructed': {key: item[i]['text'] for key, item in reconstructed.items()},
                 'expected': None if agent is None else agent['expected/1'][i]['text'],
-                'pndb': None if agent is None else {
-                    'update_gate': agent['pndb/update_gate/1'][i]['update_gate'],
+                'pndb': {
+                    'update_gate': None if agent is None else agent['pndb/update_gate/1'][i]['update_gate'],
                 },
             })
 

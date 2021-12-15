@@ -8,24 +8,19 @@ export default new Vuex.Store({
     state: {
         runs: null,
         tags: null,
-        selected: {
-            run_id: null,
-            tag: null,
-        },
+        selected_run_id: null,
         data: null,
     },
     mutations: {
         setSelectedRunID(state, run_id) {
-            state.selected.run_id = run_id;
-        },
-        setSelectedTag(state, tag) {
-            state.selected.tag = tag;
+            state.selected_run_id = run_id;
         },
         setRunsTags(state, data) {
             state.runs = data.map(run => run.id);
-            state.tags = Array.from(new Set([].concat(...data.map(run => run.tags))));
+            state.tags = ['reconstructed/1/text_summary'] //Array.from(new Set([].concat(...data.map(run => run.tags))));
         },
         setData(state, data) {
+            console.log(data);
             state.data = data;
         },
     },
@@ -37,14 +32,14 @@ export default new Vuex.Store({
                 .then(response => commit('setRunsTags', response));
         },
         getData({commit, state}) {
-            if (state.selected.run_id === null || state.selected.tag === null)
+            if (state.selected_run_id === null)
                 return;
 
+            state.data = null;
             axios
                 .get('./data', {
                     params: {
-                        run_id: state.selected.run_id,
-                        tag: state.selected.tag
+                        run_id: state.selected_run_id,
                     }
                 })
                 .then(r => r.data)

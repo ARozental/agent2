@@ -1,21 +1,39 @@
 <template>
   <div id="app">
-    <Main/>
+    <b-container>
+      <b-row>
+        <b-col cols="3">
+          <Sidebar/>
+        </b-col>
+        <b-col cols="9">
+          <b-card>
+            <MainContent v-if="data !== null"/>
+          </b-card>
+        </b-col>
+      </b-row>
+    </b-container>
   </div>
 </template>
 
 <script>
-import Main from './components/Main.vue'
-import axios from 'axios';
+import MainContent from './components/MainContent.vue'
+import Sidebar from "./components/Sidebar";
+import {mapState} from "vuex";
 
 export default {
   name: 'App',
   components: {
-    Main
+    Sidebar,
+    MainContent,
+  },
+  computed: {
+    ...mapState({
+      data: state => state.data,
+    }),
   },
   mounted() {
     this.$store.dispatch('loadRuns');
-  }
+  },
 }
 </script>
 

@@ -1,45 +1,38 @@
 <template>
   <div>
-    <b-jumbotron>
-      {{ text }}
-    </b-jumbotron>
-    <br>
-    <vue-slider v-model="currentStep" :marks="steps" :adsorb="true" :included="true" :max="maxSteps"></vue-slider>
+    <span v-for="(part, i) in textParts" :key="i"
+          class="border border-right"
+          :style="bgStyle(i)"
+          v-b-tooltip.hover :title="tooltipTitle(i)">
+      {{ part }}&nbsp;
+    </span>
   </div>
 </template>
 
 <script>
-import {mapState} from "vuex";
+import * as d3 from "d3-scale-chromatic";
 
 export default {
   name: "TextDisplay",
+  props: ['text', 'expected', 'updateGate'],
   computed: {
-    ...mapState({
-      data: state => state.data,
-    }),
-    steps() {
-      return this.data.map(item => item.step);
+    textParts() {
+      return this.text.split(' ');
     },
-    maxSteps() {
-      return this.steps[this.steps.length - 1];
-    },
-    text() {
-      let item = this.data.find(x => x.step === this.currentStep);
-      if (item === undefined) {
-        return 'Unable to find';
-      }
+  },
+  methods: {
+    bgStyle(index) {
+      if (this.updateGate === null)
+        return null;
 
-      return item.text;
+      return 'background-color: ' + d3.interpolateGreens(this.updateGate[index]) + ';';
     },
-  },
-  data() {
-    return {
-      currentStep: 0,
-      marks2: [0, 10, 30, 90, 100],
+    tooltipTitle(index) {
+      if (this.updateGate === null)
+        return null;
+
+      return this.updateGate[index].toFixed(3);
     }
-  },
-  mounted() {
-    this.currentStep = this.data[this.data.length - 1].step;
   },
 }
 </script>

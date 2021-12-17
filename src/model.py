@@ -35,9 +35,12 @@ class AgentModel(nn.Module):
         local_char_embedding_matrix = self.char_embedding_layer(local_char_embedding_tokens)
 
         # first encoder call
+        self.agent_levels[0].encoder.eval()
         word_embedding_matrix = self.agent_levels[0].compressor(
             self.agent_levels[0].encoder(local_char_embedding_matrix, real_positions, eos_positions.float()),
             real_positions)  # [distinct_words_in_batch,word_vector_size]
+        if not(debug):
+          self.agent_levels[0].encoder.train()
 
         special_vectors = torch.stack(
             [

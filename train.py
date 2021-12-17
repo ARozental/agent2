@@ -183,6 +183,8 @@ def train(index, flags, training_started):
                 (epoch % (grad_acc_steps * Config.log_every) == 0 and step == 0) or
                 (step % (grad_acc_steps * Config.log_every) == 0 and step > 0)
             )
+            if will_reconstruct:
+              model.eval()
 
             if Config.use_tpu:
                 will_reconstruct = False  # The TPU version computes the reconstruct vectors separately on the CPU

@@ -10,7 +10,7 @@ class Decoder(nn.Module):
     def __init__(self, level):
         super().__init__()
         self.level = level
-        self.pos_encoder = PositionalEncoding(Config.vector_sizes[level], Config.drop_rate)  # should it be always 0?
+        self.pos_encoder = PositionalEncoding(Config.vector_sizes[level], dropout=0.0,max_len=max(Config.sequence_lengths))  # should it be always 0?
         encoder_layers = EncoderLayer(Config.vector_sizes[level], Config.num_heads[level], Config.fnn_sizes[level],
                                       Config.drop_rate, activation="gelu")  # change to swiglu
         encoder_layers.activation = gelu_new

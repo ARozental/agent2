@@ -105,9 +105,12 @@ class AgentLevel(nn.Module):
             labels = all_ids
 
             real_positions = (1 - mask.float())
+            self.encoder.eval()
             vectors = self.compressor(self.encoder(matrices, real_positions, eos_positions), real_positions)
             if debug or Config.agent_level > 1:
                 [n.set_vector(v.detach()) for n, v in zip(node_batch, vectors)]
+            if not (debug):
+              self.encoder.train()
 
             # pndb
             A1s, pndb_lookup_ids = None, None
@@ -180,9 +183,12 @@ class AgentLevel(nn.Module):
             labels = all_ids
 
             real_positions = (1 - mask.float())
+            self.encoder.eval()
             vectors = self.compressor(self.encoder(matrices, real_positions, eos_positions), real_positions)
             if debug:
                 [n.set_vector(v.detach()) for n, v in zip(node_batch, vectors)]
+            else:
+              self.encoder.train()
             return matrices, real_positions, eos_positions, join_positions, embedding, labels, vectors, num_dummy, None, None, None
 
     def vecs_to_children_vecs(self, vecs, A1s, pndb_lookup_ids,embedding_matrix):

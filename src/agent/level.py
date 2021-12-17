@@ -105,7 +105,7 @@ class AgentLevel(nn.Module):
             labels = all_ids
 
             real_positions = (1 - mask.float())
-            self.encoder.eval()
+            #self.encoder.eval()
             vectors = self.compressor(self.encoder(matrices, real_positions, eos_positions), real_positions)
             if debug or Config.agent_level > 1:
                 [n.set_vector(v.detach()) for n, v in zip(node_batch, vectors)]
@@ -183,7 +183,7 @@ class AgentLevel(nn.Module):
             labels = all_ids
 
             real_positions = (1 - mask.float())
-            self.encoder.eval()
+            #self.encoder.eval()
             vectors = self.compressor(self.encoder(matrices, real_positions, eos_positions), real_positions)
             if debug:
                 [n.set_vector(v.detach()) for n, v in zip(node_batch, vectors)]

@@ -253,10 +253,11 @@ def train(index, flags, training_started):
                       else:
                           torch.nn.utils.clip_grad_norm_(main_params, Config.grad_clip_value)
 
-                    if Config.use_tpu:
-                        xm.optimizer_step(main_optimizer)
-                    else:
-                        main_optimizer.step()
+                    if not(will_reconstruct):
+                      if Config.use_tpu:
+                          xm.optimizer_step(main_optimizer)
+                      else:
+                          main_optimizer.step()
                     main_optimizer.zero_grad()
                     scheduler.step()
                     global_step += 1

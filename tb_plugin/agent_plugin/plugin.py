@@ -87,13 +87,18 @@ class AgentPlugin(base_plugin.TBPlugin):
         return base_plugin.FrontendMetadata(es_module_path="/index.js")
 
     def _get_runs(self, ctx, experiment, plugin_name):
+        run_names = self._data_provider.list_runs(
+            ctx,
+            experiment_id=experiment,
+        )
+
         mapping = self._data_provider.list_tensors(
             ctx,
             experiment_id=experiment,
             plugin_name=plugin_name,
         )
 
-        result = {run: [] for run in mapping}
+        result = {run.run_id: [] for run in run_names}
 
         for (run, tag_to_content) in mapping.items():
             for (tag, metadatum) in tag_to_content.items():
@@ -110,7 +115,6 @@ class AgentPlugin(base_plugin.TBPlugin):
         experiment = plugin_util.experiment_id(request.environ)
         runs_text = self._get_runs(ctx, experiment, _TEXT_PLUGIN_NAME)
         runs_agent = self._get_runs(ctx, experiment, self.plugin_name)
-        run_keys = list(set(runs_text.keys()).union(set(runs_agent.keys())))
         return self.respond_as_json([
             {
                 'id': key,
@@ -119,7 +123,7 @@ class AgentPlugin(base_plugin.TBPlugin):
                     'agent': runs_agent.get(key, []),
                 }
             }
-            for key in run_keys])
+            for key in runs_text.keys()])
 
     def _get_data(self, ctx, experiment, run):
         reconstructed = self._data_provider.read_tensors(

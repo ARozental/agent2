@@ -185,12 +185,12 @@ def train(index, flags, training_started):
             )
             if will_reconstruct:
               model.eval()
+              print("embedding matrix size: " + str(len(inputs['set_word_vectors']['local_char_embedding_tokens'])))
 
             if Config.use_tpu:
                 will_reconstruct = False  # The TPU version computes the reconstruct vectors separately on the CPU
 
             # print(len(batch.level_nodes[0]),len(batch.level_nodes[1]),len(batch.level_nodes[0])/ len(batch.level_nodes[1]))# todo: this is for debug => fix it
-
             with xp.StepTrace('train_loop', step_num=step):
                 noise_levels = torch.stack([total_loss_object[level]['d'] for level in range(Config.agent_level + 1)])
                 g_loss, disc_loss, main_loss, loss_object, word_embedding_matrix, first_A1s, first_pndb_lookup_ids = model.forward(

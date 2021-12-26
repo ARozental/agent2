@@ -185,7 +185,6 @@ def train(index, flags, training_started):
             )
             if will_reconstruct:
               model.eval()
-              print("embedding matrix size: " + str(len(inputs['set_word_vectors']['local_char_embedding_tokens'])))
 
             if Config.use_tpu:
                 will_reconstruct = False  # The TPU version computes the reconstruct vectors separately on the CPU

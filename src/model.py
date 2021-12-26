@@ -39,6 +39,8 @@ class AgentModel(nn.Module):
         word_embedding_matrix = self.agent_levels[0].compressor(
             self.agent_levels[0].encoder(local_char_embedding_matrix, real_positions, eos_positions.float()),
             real_positions)  # [distinct_words_in_batch,word_vector_size]
+        if debug:
+          print("word_embedding_matrix size: " + str(len(word_embedding_matrix)))
         if not(debug):
           self.agent_levels[0].encoder.train()
 

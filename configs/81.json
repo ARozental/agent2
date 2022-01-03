@@ -8,7 +8,7 @@
   "vector_sizes": [46, 96, 156, 96, 128, 156],
   "num_heads": [4, 4, 2, 2, 2, 2],
   "fnn_sizes": [192, 384, 768, 14, 16, 18],
-  "num_transformer_layers":  [8, 16, 8, 2, 2, 2],
+  "num_transformer_layers":  [8, 12, 8, 2, 2, 2],
   "batch_size": 50,
   "max_word_embedding_size": 5000,
   "node_sizes": [64, 32, 1000, 1000, 1000],

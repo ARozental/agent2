@@ -51,6 +51,8 @@ class AgentLevel(nn.Module):
         if self.level == 1 and (Config.use_pndb1 is not None or Config.use_pndb2 is not None):
             self.pndb = Pndb()
 
+
+
     def eos_classifier1(self, dot):
         # needed to make sure w1 can never be negative
         return F.elu(dot * self.classifier1w * torch.sign(self.classifier1w) * 10.0) + self.classifier1b * 10.0

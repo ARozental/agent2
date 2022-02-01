@@ -23,61 +23,67 @@ class PositionalEncoding(nn.Module):
     def forward(self, x):
         return self.dropout(self.pe[:x.size(0), :])
 
-#todo: delete and use regular nn.TransformerEncoderLayer
-#class EncoderLayer(nn.TransformerEncoderLayer):
-EncoderLayer = nn.TransformerEncoderLayer
+class Rotary(torch.nn.Module):
+    def __init__(self, dim, base=10000):
+        super().__init__()
+        inv_freq = 1.0 / (base ** (torch.arange(0, dim, 2).float() / dim))
+        self.register_buffer("inv_freq", inv_freq)
+        self.seq_len_cached = None
+        self.cos_cached = None
+        self.sin_cached = None
+
+    def forward(self, x, seq_dim=1):
+        seq_len = x.shape[seq_dim]
+        if seq_len != self.seq_len_cached:
+            self.seq_len_cached = seq_len
+            t = torch.arange(x.shape[seq_dim], device=x.device).type_as(self.inv_freq)
+            freqs = torch.einsum("i,j->ij", t, self.inv_freq)
+            emb = torch.cat((freqs, freqs), dim=-1).to(x.device)
+            self.cos_cached = emb.cos()[:, None, None, :]
+            self.sin_cached = emb.sin()[:, None, None, :]
+        return self.cos_cached, self.sin_cached
+
+# rotary pos emb helpers:
+
+def rotate_half(x):
+    x1, x2 = x[..., : x.shape[-1] // 2], x[..., x.shape[-1] // 2:]
+    return torch.cat(
+        (-x2, x1), dim=x1.ndim - 1
+    )   # dim=-1 triggers a bug in torch < 1.8.0
+
+@torch.jit.script
+def apply_rotary_pos_emb(q, k, cos, sin):
+    return (q * cos) + (rotate_half(q) * sin), (k * cos) + (rotate_half(k) * sin)
+
+
+class RotaryEncoderLayer(nn.TransformerEncoderLayer):
+  def forward(self, src, src_mask=None, src_key_padding_mask=None):
+    r"""Pass the input through the encoder layer.
+
+    Args:
+        src: the sequence to the encoder layer (required).
+        src_mask: the mask for the src sequence (optional).
+        src_key_padding_mask: the mask for the src keys per batch (optional).
+
+    Shape:
+        see the docs in Transformer class.
+    """
+    # rot = Rotary(src.shape[-1])
+    # rot.forward(src)
+    # q,k = apply_rotary_pos_emb(src, src,rot.cos_cached,rot.sin_cached)
+    src2 = self.self_attn(src,src, src, attn_mask=src_mask,
+                          key_padding_mask=src_key_padding_mask)[0]
+    src = src + self.dropout1(src2)
+    src = self.norm1(src)
+    src2 = self.linear2(self.dropout(self.activation(self.linear1(src))))
+    src = src + self.dropout2(src2)
+    src = self.norm2(src)
+    return src
+
+
+EncoderLayer = RotaryEncoderLayer#nn.TransformerEncoderLayer
 TransformerEncoder = nn.TransformerEncoder
 
-
-# class EncoderLayer(nn.TransformerEncoderLayer):
-#     def forward(self, src, src_mask=None, eos_positions=None, src_key_padding_mask=None) -> torch.Tensor:
-#         r"""Pass the input through the encoder layer.
-#
-#         Args:
-#             src: the sequence to the encoder layer (required).
-#             src_mask: the mask for the src sequence (optional).
-#             src_key_padding_mask: the mask for the src keys per batch (optional).
-#             eos_positions:
-#
-#         Shape:
-#             see the docs in Transformer class.
-#
-#         eos_positions => [batch,max_length,1]
-#         """
-#
-#         ttt = torch.tensor([[[ 0.1044,  2.7534, -0.4628,  0.1192],[ 1.3539,  0.8297,  1.1808,  0.5982]],
-#                             [[ 2.1954,  0.3700,  1.1908,  0.5982],[ 1.1953,  0.5169,  2.8376, -0.0195]],
-#                             [[ 1.0933, -0.6032,  0.4644,  1.4896],[-0.1194,  1.3594,  1.3380,  0.5812]],
-#                             [[-1.3659, -1.8948, -0.3575,  0.1278],[-1.3659, -1.8948, -0.3575,  0.1278]],
-#                             [[ 1.9110, -0.3735, -0.2392, -1.0227],[-1.1085, -1.4616, -0.0251,  2.0344]],
-#                             [[-0.4807, -1.0984,  0.5656,  0.9581],[ 1.9110, -0.3735, -0.2392, -1.0227]],
-#                             [[ 1.1352, -0.6281,  0.5856,  0.9569], [ 1.1352, -0.6281,  0.5856,  0.9569]]])
-#         src = src[:,0:2,:]
-#         ttt = ttt[:,0:2,:]
-#         src_key_padding_mask = src_key_padding_mask[0:2]
-#
-#         real_positions = torch.log((1 - src_key_padding_mask.float()))
-#         print(real_positions)
-#         src2 = self.self_attn(src, src, src, attn_mask=src_mask, key_padding_mask=real_positions)[0]
-#         #print("src_mask",src_mask)
-#         #print("src_key_padding_mask",src_key_padding_mask)
-#         #print("src2",src2.transpose(0, 1))
-#         print("ttt",self.self_attn(ttt, ttt, ttt, attn_mask=src_mask, key_padding_mask=real_positions)[0].transpose(0, 1))
-#         [x for x in range(100000)]
-#         1+None
-#         src = src + self.dropout1(src2)
-#         src = self.norm1(src)
-#
-#         #src = src * (1 - eos_positions) + eos_matrix * eos_positions
-#
-#         src2 = self.linear2(self.dropout(self.activation(self.linear1(src))))
-#         src = src + self.dropout2(src2)
-#         src = self.norm2(src)
-#
-#         #src = src * (1 - eos_positions) + eos_matrix * eos_positions
-#
-#         return src
-#
 #
 # class TransformerEncoder(nn.TransformerEncoder):
 #     def forward(self, src, mask=None, src_key_padding_mask=None, eos_positions=None) -> torch.Tensor:

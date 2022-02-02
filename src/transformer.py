@@ -152,7 +152,7 @@ class EncoderLayer2(nn.TransformerEncoderLayer):
                  layer_norm_eps=1e-5, batch_first=False,
                  device=None, dtype=None,rotary=None) -> None:
         factory_kwargs = {'device': device, 'dtype': dtype}
-        super(EncoderLayer2, self).__init__(d_model, nhead, dim_feedforward, dropout, activation,layer_norm_eps, batch_first,device, dtype)
+        super().__init__(d_model, nhead, dim_feedforward, dropout)
         self.rotary = rotary
         #self.self_attn = nn.MultiheadAttention(d_model, nhead, dropout=dropout, batch_first=batch_first, **factory_kwargs)
         self.self_attn = MultiHeadAttention2(nhead,d_model, dropout=dropout)
@@ -195,7 +195,7 @@ class EncoderLayer2(nn.TransformerEncoderLayer):
 
 class TransformerEncoder2(nn.TransformerEncoder):
   def __init__(self, encoder_layer, num_layers, norm=None):
-    super(TransformerEncoder2, self).__init__(encoder_layer, num_layers, norm)
+    super().__init__(encoder_layer, num_layers, norm)
     self.layers = get_clones(encoder_layer, num_layers)
     self.num_layers = num_layers
     self.norm = norm

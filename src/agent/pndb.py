@@ -4,15 +4,18 @@ import torch
 from src.config import Config
 import math
 import torch.nn.functional as F
-from src.utils import attention
+from src.utils import attention, prob_to_logit
+from src.transformer import Rotary
 
 
 class Pndb(nn.Module):
     def __init__(self, level=1):
         super().__init__()
-        self.pos_encoder = PositionalEncoding(Config.vector_sizes[level], Config.drop_rate)
+        #self.pos_encoder = PositionalEncoding(Config.vector_sizes[level], Config.drop_rate)
+        self.rotary = Rotary(Config.vector_sizes[level])
+
         encoder_layers = EncoderLayer(Config.vector_sizes[level], 1, Config.vector_sizes[level],
-                                      Config.drop_rate, activation="gelu")  # change to swiglu
+                                      Config.drop_rate, activation="gelu",rotary=self.rotary)  # change to swiglu
         self.pndb_transformer_encoder_write = TransformerEncoder(encoder_layers, 2)  # not sure we need it...
         self.pndb_transformer_encoder_read = TransformerEncoder(encoder_layers, 2)  # not sure we need it...
 
@@ -37,7 +40,8 @@ class Pndb(nn.Module):
         # input is the matrices from a single book only! each node should have a root_id so we can make sure of that
         k = self.to_k(raw_embedding_matrices)
 
-        for_ignore = self.pndb_transformer_encoder_write(raw_embedding_matrices.transpose(0, 1), src_key_padding_mask=torch.log(real_positions)).transpose(0, 1)
+        #for_ignore = self.pndb_transformer_encoder_write(raw_embedding_matrices.transpose(0, 1), src_key_padding_mask=torch.log(real_positions)).transpose(0, 1)
+        for_ignore = self.pndb_transformer_encoder_write(raw_embedding_matrices, src_key_padding_mask=torch.log(real_positions))
         v = raw_embedding_matrices * self.ignore_gate(for_ignore, self.ignore1)
         A = attention(self.questions, k, v, Config.vector_sizes[1], real_positions=real_positions)  # [batch,num_questions,hidden]
         A = A.mean(0)  # we can have a sum here and subtract later
@@ -50,7 +54,8 @@ class Pndb(nn.Module):
         return post_decoder_matrices + A2 * gate_values
 
     def get_data_from_A_matrix(self, A1s,pndb_lookup_ids, post_decoder_matrices,real_positions_for_mask):
-        for_update = self.pndb_transformer_encoder_read(post_decoder_matrices.transpose(0, 1), src_key_padding_mask=torch.log(real_positions_for_mask)).transpose(0, 1)
+        #for_update = self.pndb_transformer_encoder_read(post_decoder_matrices.transpose(0, 1), src_key_padding_mask=torch.log(real_positions_for_mask)).transpose(0, 1)
+        for_update = self.pndb_transformer_encoder_read(post_decoder_matrices, src_key_padding_mask=prob_to_logit(real_positions_for_mask))
 
         k = self.to_output_k(post_decoder_matrices)
         selected_A1s = torch.index_select(A1s, 0, pndb_lookup_ids) #todo: is this a horrible place where the memory explodes?

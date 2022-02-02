@@ -8,10 +8,22 @@ from src.losses.mlm import calc_rmlm_loss
 from src.losses.coherence import calc_rc_loss, calc_lower_rc_loss, make_fake_normal_vectors
 
 
-def calc_reconstruction_loss(agent_level, matrices, decompressed, real_positions, eos_positions, join_positions,
+def calc_reconstruction_loss(agent_level, matrices, vectors, reencoded_matrices, real_positions, eos_positions, join_positions,
                              embeddings,
                              labels, pndb,A1s, pndb_lookup_ids, num_dummy=0, dummy_logit_bias=None):
     # matrices, mask, labels => [batch,seq_length,vec_size]
+
+
+    #todo: decompressed-last_compressed here?
+    decompressed = agent_level.decompressor(vectors)
+    regularization_diff = decompressed-reencoded_matrices
+    regularization_diff = (regularization_diff * real_positions.unsqueeze(-1)).norm(dim=[2]).mean(dim=1)
+    regularization_diff = 2*regularization_diff / (((decompressed * real_positions.unsqueeze(-1)).norm(dim=[2]) +
+                                                    (reencoded_matrices * real_positions.unsqueeze(-1)).norm(dim=[2])).mean(dim=1))
+
+
+
+
     if Config.use_pndb2 is not None and agent_level.level == 1:
         decompressed = pndb.old_get_data_from_A_matrix(pndb.create_A_matrix(matrices, real_positions), decompressed)
 
@@ -34,7 +46,8 @@ def calc_reconstruction_loss(agent_level, matrices, decompressed, real_positions
     reconstruction_diff = matrices - post_decoder
     reconstruction_diff = reconstruction_diff #* (eos_positions.unsqueeze(-1)*2+1) #bug because eos is doubly counted in numerator but not denominator
     reconstruction_diff = (reconstruction_diff * real_positions.unsqueeze(-1)).norm(dim=[2]).mean(dim=1)
-    reconstruction_diff = reconstruction_diff / ((matrices * real_positions.unsqueeze(-1)).norm(dim=[2]).mean(dim=1))
+    reconstruction_diff = 2*reconstruction_diff / (((matrices * real_positions.unsqueeze(-1)).norm(dim=[2]) +
+                                                    (post_decoder * real_positions.unsqueeze(-1)).norm(dim=[2])).mean(dim=1))
 
     if agent_level.level == 0:
         logits = logits + agent_level.token_bias
@@ -80,9 +93,9 @@ def calc_reconstruction_loss(agent_level, matrices, decompressed, real_positions
     #rc_loss = torch.zeros(batch * seq_length, device=Config.device)
 
 
-    if Config.join_texts and agent_level.level > 0:
-        rj_loss = calc_join_loss(agent_level, post_decoder, join_positions)
-    else:
-        rj_loss = torch.zeros(post_decoder.size(0), device=post_decoder.device)
-
+    # if Config.join_texts and agent_level.level > 0:
+    #     rj_loss = calc_join_loss(agent_level, post_decoder, join_positions)
+    # else:
+    #     rj_loss = torch.zeros(post_decoder.size(0), device=post_decoder.device)
+    rj_loss = regularization_diff
     return reconstruction_diff, reconstruction_losses,eos_loss, re_loss, rj_loss,rc_loss

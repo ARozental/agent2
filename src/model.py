@@ -186,35 +186,38 @@ class AgentModel(nn.Module):
         del random_matrices
 
         with xp.Trace('MLMLoss' + str(level_num)):
-            mlm_loss, rm_loss = calc_mlm_loss(self.agent_levels[level_num], matrices, real_positions,
+            mlm_loss, rm_loss, reencoded_matrices = calc_mlm_loss(self.agent_levels[level_num], matrices, real_positions,
                                               eos_positions,
                                               embedding_matrix,
                                               labels, num_dummy=num_dummy,
                                               dummy_logit_bias=dummy_logit_bias,
                                               pndb=self.agent_levels[1].pndb, A1s=A1s, pndb_lookup_ids=pndb_lookup_ids)
 
-        with xp.Trace('CallingDecompressor' + str(level_num)):
-            if not Config.noise or debug or level_num == Config.agent_level:
-                decompressed = self.agent_levels[level_num].decompressor(vectors)
-            else:
-                decompressed = self.agent_levels[level_num].decompressor(
-                    make_noise(vectors, noise_levels[level_num + 1]))
+        #moved to calc_reconstruction_loss
+        # with xp.Trace('CallingDecompressor' + str(level_num)):
+        #     if not Config.noise or debug or level_num == Config.agent_level:
+        #         decompressed = self.agent_levels[level_num].decompressor(vectors)
+        #     else:
+        #         decompressed = self.agent_levels[level_num].decompressor(
+        #             make_noise(vectors, noise_levels[level_num + 1]))
 
         with xp.Trace('ReconstructionLoss' + str(level_num)):
             reconstruction_diff_loss, reconstruction_loss, eos_loss, re_loss, rj_loss, rc_loss = \
                 calc_reconstruction_loss(
                     self.agent_levels[level_num],
-                    matrices, decompressed, real_positions,
+                    matrices, vectors, reencoded_matrices, real_positions,
                     eos_positions,
                     join_positions,
                     embedding_matrix, labels, self.agent_levels[1].pndb, A1s, pndb_lookup_ids,
                     num_dummy=num_dummy, dummy_logit_bias=dummy_logit_bias)
 
-        with xp.Trace('JoinLoss' + str(level_num)):
-            if Config.join_texts and level_num >= 1:
-                join_loss = calc_join_loss(self.agent_levels[level_num], decompressed, join_positions)
-            else:
-                join_loss = torch.tensor([0.0] * matrices.size(0), device=matrices.device)
+        #remove join loss
+        join_loss = torch.tensor([0.0] * matrices.size(0), device=matrices.device)
+        # with xp.Trace('JoinLoss' + str(level_num)):
+        #     if Config.join_texts and level_num >= 1:
+        #         join_loss = calc_join_loss(self.agent_levels[level_num], decompressed, join_positions)
+        #     else:
+        #         join_loss = torch.tensor([0.0] * matrices.size(0), device=matrices.device)
 
         with xp.Trace('LossKeeper' + str(level_num)):
             loss_keeper = np.ones(matrices.size(0))

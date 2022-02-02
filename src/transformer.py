@@ -55,8 +55,8 @@ class Rotary(torch.nn.Module):
             seq_len = x.shape[seq_dim]
             m = [list(range(seq_len))]
             for i in range(seq_len - 1):
-                x = [m[-1][0] + 1] + m[-1][:-1]
-                m.append(x)
+                y = [m[-1][0] + 1] + m[-1][:-1]
+                m.append(y)
             self.short_matrix = -torch.tensor(m, requires_grad=False,device=x.device)
         return self.short_matrix
 

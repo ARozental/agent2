@@ -3,7 +3,7 @@ import torch
 import math
 from torch.nn import functional as F
 #from src.floating_attention import multi_head_attention_forward
-from src.utils import gelu_new
+from src.utils import gelu_new,prob_to_logit
 import copy
 def get_clones(module, N):
   return nn.ModuleList([copy.deepcopy(module) for i in range(N)])
@@ -35,6 +35,7 @@ class Rotary(torch.nn.Module):
         self.seq_len_cached = None
         self.cos_cached = None
         self.sin_cached = None
+        self.short_matrix = None
 
     def forward(self, x, seq_dim=1):
         seq_len = x.shape[seq_dim]
@@ -49,6 +50,17 @@ class Rotary(torch.nn.Module):
             # self.sin_cached = emb.sin()[:, None, None, :]
         return self.cos_cached, self.sin_cached
 
+    def get_short_matrix(self, x, seq_dim=1):
+        if self.short_matrix == None:
+            seq_len = x.shape[seq_dim]
+            m = [list(range(seq_len))]
+            for i in range(seq_len - 1):
+                x = [m[-1][0] + 1] + m[-1][:-1]
+                m.append(x)
+            self.short_matrix = -torch.tensor(m, requires_grad=False)
+        return self.short_matrix
+
+
 # rotary pos emb helpers:
 
 def rotate_half(x):
@@ -62,15 +74,12 @@ def apply_rotary_pos_emb(q, k, cos, sin):
     return (q * cos) + (rotate_half(q) * sin), (k * cos) + (rotate_half(k) * sin)
 
 
-def attention(q, k, v, d_k, mask=None, dropout=None):
-  print("FFFF")
-  print(q.shape) #[21, 4, 16, 8] batch,heads,length,hidden/heads
+def attention(q, k, v, d_k, mask, att_prior_bias, dropout=None):
   scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(d_k)
-  print(scores.shape) #[21, 4, 16, 8] batch,heads,length,hidden/heads
-  print(mask.shape) #[21, 4, 16, 8] batch,heads,length,hidden/heads
 
 
   scores += mask.unsqueeze(1).unsqueeze(2) #add floating attention
+  scores += att_prior_bias.unsqueeze(0)
 
 
 
@@ -99,6 +108,8 @@ class MultiHeadAttention2(nn.Module):
     self.dropout = nn.Dropout(dropout)
     self.out = nn.Linear(d_model, d_model)
 
+    self.att_prior_bias = nn.Parameter(torch.tensor([math.log(p/(1-p)) for p in [ (2**j)/(2**(heads+1)) for j in range(1,heads+1) ]], requires_grad=True))
+    self.sigmoid = nn.Sigmoid()
   def forward(self, q, k, v, rotary= None, mask=None):
     bs = q.size(0)
 
@@ -115,13 +126,17 @@ class MultiHeadAttention2(nn.Module):
     v = v.view(bs, -1, self.h, self.d_k)
 
 
-    # transpose to get dimensions bs * h * sl * d_model
+    prior_bias_matrices = self.sigmoid(self.att_prior_bias).unsqueeze(-1).unsqueeze(-1)*rotary.get_short_matrix(q)#(heads,length,length)
 
+    # transpose to get dimensions bs * h * sl * d_model
     k = k.transpose(1, 2)
     q = q.transpose(1, 2)
     v = v.transpose(1, 2)
     # calculate attention using function we will define next
-    scores = attention(q, k, v, self.d_k, mask, self.dropout)
+
+
+
+    scores = attention(q, k, v, self.d_k, mask, prior_bias_matrices, self.dropout)
 
     # concatenate heads and put through final linear layer
     concat = scores.transpose(1, 2).contiguous() \
@@ -171,10 +186,7 @@ class EncoderLayer2(nn.TransformerEncoderLayer):
         #src2 = self.self_attn(src, src, src, attn_mask=src_mask,key_padding_mask=src_key_padding_mask)[0]
 
         src2 = self.self_attn.forward(src, src, src, rotary=self.rotary, mask=src_key_padding_mask)
-        print("GGGG")
-        print(src.shape)
         src = src + self.dropout1(src2)
-        print(src.mean())
         src = self.norm1(src)
         src2 = self.linear2(self.dropout(self.activation(self.linear1(src))))
         src = src + self.dropout2(src2)

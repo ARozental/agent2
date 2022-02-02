@@ -24,6 +24,8 @@ def prob_to_logit(p):
   p = torch.clip(p,min=0.000001,max=0.999999)
   return torch.log(p / (1 - p))
 
+
+
 def metsumm(stepno=''):
     if not Config.use_tpu:
         return

@@ -11,7 +11,7 @@ class Encoder(nn.Module):
     def __init__(self, level):
         super().__init__()
         #self.pos_encoder = PositionalEncoding(Config.vector_sizes[level], dropout=0.0)
-        self.rotary = Rotary(Config.vector_sizes[level])
+        self.rotary = Rotary(Config.sequence_lengths[level], Config.vector_sizes[level])
         encoder_layers = EncoderLayer(Config.vector_sizes[level], Config.num_heads[level], Config.fnn_sizes[level],
                                       dropout=Config.drop_rate, activation="gelu", rotary=self.rotary)  # change to swiglu
         encoder_layers.activation = gelu_new #in the transformer now

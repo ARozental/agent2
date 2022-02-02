@@ -12,7 +12,7 @@ class Pndb(nn.Module):
     def __init__(self, level=1):
         super().__init__()
         #self.pos_encoder = PositionalEncoding(Config.vector_sizes[level], Config.drop_rate)
-        self.rotary = Rotary(Config.vector_sizes[level])
+        self.rotary = Rotary(Config.sequence_lengths[level], Config.vector_sizes[level])
 
         encoder_layers = EncoderLayer(Config.vector_sizes[level], 1, Config.vector_sizes[level],
                                       Config.drop_rate, activation="gelu",rotary=self.rotary)  # change to swiglu

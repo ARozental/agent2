@@ -28,7 +28,7 @@ class PositionalEncoding(nn.Module):
         return self.dropout(self.pe[:x.size(0), :])
 
 class Rotary(torch.nn.Module):
-    def __init__(self, dim, base=10000):
+    def __init__(self, seq_len, dim, base=10000):
         super().__init__()
         inv_freq = 1.0 / (base ** (torch.arange(0, dim, 2).float() / dim))
         self.register_buffer("inv_freq", inv_freq)
@@ -37,27 +37,38 @@ class Rotary(torch.nn.Module):
         self.sin_cached = None
         self.short_matrix = None
 
+        t = torch.arange(seq_len).type_as(self.inv_freq)
+        freqs = torch.einsum("i,j->ij", t, self.inv_freq)
+        emb = torch.cat((freqs, freqs), dim=-1)
+        self.cos_cached = nn.Parameter(emb.cos())
+        self.sin_cached = nn.Parameter(emb.sin())
+
+        m = [list(range(seq_len))]
+
+        for i in range(seq_len - 1):
+            y = [m[-1][0] + 1] + m[-1][:-1]
+            m.append(y)
+        self.short_matrix = nn.Parameter(-torch.tensor(m),requires_grad=False)
+
     def forward(self, x, seq_dim=1):
-        seq_len = x.shape[seq_dim]
-        if seq_len != self.seq_len_cached:
-            self.seq_len_cached = seq_len
-            t = torch.arange(x.shape[seq_dim], device=x.device).type_as(self.inv_freq)
-            freqs = torch.einsum("i,j->ij", t, self.inv_freq)
-            emb = torch.cat((freqs, freqs), dim=-1).to(x.device) #emb shape = len,hidden
-            self.cos_cached = emb.cos()
-            self.sin_cached = emb.sin()
-            # self.cos_cached = emb.cos()[:, None, None, :] #WFT is that, why 4d => because it should happen after getting the multi-head
-            # self.sin_cached = emb.sin()[:, None, None, :]
+        # seq_len = x.shape[seq_dim]
+        # if seq_len != self.seq_len_cached:
+        #     self.seq_len_cached = seq_len
+        #     t = torch.arange(x.shape[seq_dim], device=x.device).type_as(self.inv_freq)
+        #     freqs = torch.einsum("i,j->ij", t, self.inv_freq)
+        #     emb = torch.cat((freqs, freqs), dim=-1).to(x.device) #emb shape = len,hidden
+        #     self.cos_cached = emb.cos()
+        #     self.sin_cached = emb.sin()
         return self.cos_cached, self.sin_cached
 
     def get_short_matrix(self, x, seq_dim=1):
-        if self.short_matrix == None:
-            seq_len = x.shape[seq_dim]
-            m = [list(range(seq_len))]
-            for i in range(seq_len - 1):
-                y = [m[-1][0] + 1] + m[-1][:-1]
-                m.append(y)
-            self.short_matrix = -torch.tensor(m, requires_grad=False,device=x.device)
+        # if self.short_matrix == None:
+        #     seq_len = x.shape[seq_dim]
+        #     m = [list(range(seq_len))]
+        #     for i in range(seq_len - 1):
+        #         y = [m[-1][0] + 1] + m[-1][:-1]
+        #         m.append(y)
+        #     self.short_matrix = -torch.tensor(m, requires_grad=False,device=x.device)
         return self.short_matrix
 
 

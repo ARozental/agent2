@@ -152,6 +152,7 @@ def train(index, flags, training_started):
     if Config.skip_batches is not None:
         global_step = Config.skip_batches - 1
     count_parameters(model, trainable=True)
+    original_drop_rate = Config.drop_rate
     for epoch in range(1000001):
 
         if Config.use_tpu and Config.use_all_tpu_cores:
@@ -166,6 +167,7 @@ def train(index, flags, training_started):
         total_model_time = 0
         start_time = time.time()
         for step, (batch, inputs) in enumerate(parallel_loader):
+            Config.drop_rate = original_drop_rate
             inputs = prepare_inputs(inputs, squeeze=True)
 
             grad_acc_steps = Config.grad_acc_fn(global_step)
@@ -185,6 +187,7 @@ def train(index, flags, training_started):
             )
             if will_reconstruct:
               model.eval()
+              Config.drop_rate = 0.0
 
             if Config.use_tpu:
                 will_reconstruct = False  # The TPU version computes the reconstruct vectors separately on the CPU

@@ -110,7 +110,7 @@ class MultiHeadAttention2(nn.Module):
     k = self.k_linear(k)
     v = self.v_linear(v)
 
-    cos_cached, sin_cached = rotary(q)
+    cos_cached, sin_cached = rotary()
     q, k = apply_rotary_pos_emb(q, k, cos_cached, sin_cached)
 
     q = q.view(bs, -1, self.h, self.d_k)

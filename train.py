@@ -75,6 +75,7 @@ def train(index, flags, training_started):
     )
 
     model = AgentModel()
+    #todo: model(max_batch).backwords.step
     if Config.multi_gpu:
         model = nn.DataParallel(model, device_ids=[0, 1])
 

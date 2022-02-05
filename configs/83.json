@@ -23,7 +23,7 @@
   "save_every": 500,
   "grad_clip_value":0.99,
   "grad_acc_steps": 1,
-  "lr": 0.0005,
+  "lr": 0.0003,
   "momentum": 0.9,
   "gpu_num": 0,
   "dataset":"wiki",
@@ -42,8 +42,8 @@
             "re": 0.5
         },
         "1": {
-            "m": 0.2,
-            "d": 0.1,
+            "m": 0.25,
+            "d": 0.03,
             "c": 0.02,
             "r": 0.5,
             "e": 0.02,

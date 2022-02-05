@@ -118,7 +118,7 @@ class MultiHeadAttention2(nn.Module):
     v = v.view(bs, -1, self.h, self.d_k)
 
 
-    prior_bias_matrices = self.sigmoid(self.att_prior_bias).unsqueeze(-1).unsqueeze(-1)*rotary.short_matrix(q)#(heads,length,length)
+    prior_bias_matrices = self.sigmoid(self.att_prior_bias).unsqueeze(-1).unsqueeze(-1)*rotary.short_matrix#(heads,length,length)
 
     # transpose to get dimensions bs * h * sl * d_model
     k = k.transpose(1, 2)

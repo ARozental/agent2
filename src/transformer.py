@@ -2,7 +2,6 @@ import torch.nn as nn
 import torch
 import math
 from torch.nn import functional as F
-#from src.floating_attention import multi_head_attention_forward
 from src.utils import gelu_new,prob_to_logit
 import copy
 def get_clones(module, N):
@@ -50,26 +49,8 @@ class Rotary(torch.nn.Module):
             m.append(y)
         self.short_matrix = nn.Parameter(-torch.tensor(m),requires_grad=False)
 
-    def forward(self, x, seq_dim=1):
-        # seq_len = x.shape[seq_dim]
-        # if seq_len != self.seq_len_cached:
-        #     self.seq_len_cached = seq_len
-        #     t = torch.arange(x.shape[seq_dim], device=x.device).type_as(self.inv_freq)
-        #     freqs = torch.einsum("i,j->ij", t, self.inv_freq)
-        #     emb = torch.cat((freqs, freqs), dim=-1).to(x.device) #emb shape = len,hidden
-        #     self.cos_cached = emb.cos()
-        #     self.sin_cached = emb.sin()
+    def forward(self):
         return self.cos_cached, self.sin_cached
-
-    def get_short_matrix(self, x, seq_dim=1):
-        # if self.short_matrix == None:
-        #     seq_len = x.shape[seq_dim]
-        #     m = [list(range(seq_len))]
-        #     for i in range(seq_len - 1):
-        #         y = [m[-1][0] + 1] + m[-1][:-1]
-        #         m.append(y)
-        #     self.short_matrix = -torch.tensor(m, requires_grad=False,device=x.device)
-        return self.short_matrix
 
 
 # rotary pos emb helpers:
@@ -137,7 +118,7 @@ class MultiHeadAttention2(nn.Module):
     v = v.view(bs, -1, self.h, self.d_k)
 
 
-    prior_bias_matrices = self.sigmoid(self.att_prior_bias).unsqueeze(-1).unsqueeze(-1)*rotary.get_short_matrix(q)#(heads,length,length)
+    prior_bias_matrices = self.sigmoid(self.att_prior_bias).unsqueeze(-1).unsqueeze(-1)*rotary.short_matrix(q)#(heads,length,length)
 
     # transpose to get dimensions bs * h * sl * d_model
     k = k.transpose(1, 2)

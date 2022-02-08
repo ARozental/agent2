@@ -34,7 +34,7 @@ class Pndb(nn.Module):
         return torch.sigmoid(g(x))
 
     def update_gate(self, x, A, g1, g2, b):
-        return torch.sigmoid(g1(x) + g2(A) + b)
+        return torch.sigmoid(g1(x) + g2(A) + b - 4.0) #todo: move to init b
 
     def create_A_matrix(self, raw_embedding_matrices, real_positions):
         # input is the matrices from a single book only! each node should have a root_id so we can make sure of that

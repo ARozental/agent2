@@ -235,7 +235,8 @@ class AgentModel(nn.Module):
                 "j": (join_loss * loss_keeper).sum(),
                 "d": (reconstruction_diff_loss * loss_keeper).sum(),
 
-                "rc": (rc_loss.view(matrices.shape[:2]) * loss_keeper.unsqueeze(-1)).sum(),
+                #"rc": (rc_loss.view(matrices.shape[:2]) * loss_keeper.unsqueeze(-1)).sum(),
+                "rc": (rm_loss * loss_keeper).sum(),
                 "re": (re_loss * loss_keeper).sum(),
                 "rj": (rj_loss * loss_keeper).sum(),
                 "rm": (rm_loss * loss_keeper).sum(),

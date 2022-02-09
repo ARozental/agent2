@@ -189,7 +189,6 @@ def train(index, flags, training_started):
             if will_reconstruct:
               model.eval()
               Config.drop_rate = 0.0
-            print("will_reconstruct: " + str(will_reconstruct))
 
             if Config.use_tpu:
                 will_reconstruct = False  # The TPU version computes the reconstruct vectors separately on the CPU
@@ -197,8 +196,7 @@ def train(index, flags, training_started):
             # print(len(batch.level_nodes[0]),len(batch.level_nodes[1]),len(batch.level_nodes[0])/ len(batch.level_nodes[1]))# todo: this is for debug => fix it
             with xp.StepTrace('train_loop', step_num=step):
                 noise_levels = torch.stack([total_loss_object[level]['d'] for level in range(Config.agent_level + 1)])
-                try:
-                    g_loss, disc_loss, main_loss, loss_object, word_embedding_matrix, first_A1s, first_pndb_lookup_ids = model.forward(
+                g_loss, disc_loss, main_loss, loss_object, word_embedding_matrix, first_A1s, first_pndb_lookup_ids = model.forward(
                     batch,
                     inputs,
                     generate=GENERATE_TEXT,
@@ -206,8 +204,6 @@ def train(index, flags, training_started):
                     noise_levels=noise_levels,
                     global_step=global_step,
                     xm=None if not Config.use_tpu else xm)
-                except:
-                  continue
                 if loss_object is None:
                     continue
 

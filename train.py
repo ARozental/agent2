@@ -189,6 +189,7 @@ def train(index, flags, training_started):
             if will_reconstruct:
               model.eval()
               Config.drop_rate = 0.0
+            print("will_reconstruct: " + str(will_reconstruct))
 
             if Config.use_tpu:
                 will_reconstruct = False  # The TPU version computes the reconstruct vectors separately on the CPU

@@ -24,8 +24,8 @@ def calc_reconstruction_loss(agent_level, matrices, vectors, reencoded_matrices,
 
 
 
-    if Config.use_pndb2 is not None and agent_level.level == 1:
-        decompressed = pndb.old_get_data_from_A_matrix(pndb.create_A_matrix(matrices, real_positions), decompressed)
+    # if Config.use_pndb2 is not None and agent_level.level == 1:
+    #     decompressed = pndb.old_get_data_from_A_matrix(pndb.create_A_matrix(matrices, real_positions), decompressed)
 
     # overrides real_positions with the best the decompressor can do
     eos_loss, projected_eos_positions = calc_eos_loss(agent_level, decompressed, eos_positions)
@@ -33,9 +33,14 @@ def calc_reconstruction_loss(agent_level, matrices, vectors, reencoded_matrices,
 
     # [batch,seq_length,vec_size]
     post_decoder = agent_level.decoder(decompressed, real_positions_for_mask, eos_positions)
+
     if Config.use_pndb1 is not None and agent_level.level == 1:
         #post_decoder = pndb.old_get_data_from_A_matrix(pndb.create_A_matrix(matrices, real_positions), post_decoder)
-        post_decoder, _ = pndb.get_data_from_A_matrix(A1s, pndb_lookup_ids, post_decoder,real_positions_for_mask)
+        post_decoder, gate_values = pndb.get_data_from_A_matrix(A1s, pndb_lookup_ids, post_decoder,real_positions_for_mask)
+        memory_loss = (gate_values.squeeze(-1) * real_positions_for_mask).sum(dim=-1) / real_positions_for_mask.sum(dim=-1)
+    else:
+        memory_loss = torch.zeros(post_decoder.size(0), device=post_decoder.device)
+
 
     logits = torch.matmul(post_decoder, torch.transpose(embeddings, 0, 1))  # [batch, max_length, embedding_size)
 
@@ -98,4 +103,5 @@ def calc_reconstruction_loss(agent_level, matrices, vectors, reencoded_matrices,
     # else:
     #     rj_loss = torch.zeros(post_decoder.size(0), device=post_decoder.device)
     rj_loss = regularization_diff
+    rc_loss = memory_loss
     return reconstruction_diff, reconstruction_losses,eos_loss, re_loss, rj_loss,rc_loss

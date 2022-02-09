@@ -27,14 +27,14 @@ class Pndb(nn.Module):
             self.ignore1 = nn.Linear(Config.vector_sizes[level], 1)
             self.update11 = nn.Linear(Config.vector_sizes[level], 1)
             self.update12 = nn.Linear(Config.vector_sizes[level], 1)
-            self.b1 = nn.Parameter(torch.rand(1, requires_grad=True))
+            self.b1 = nn.Parameter(torch.rand(1, requires_grad=True)) - 3.4567 #satrt small
             self.to_output_k = nn.Linear(Config.vector_sizes[level], Config.vector_sizes[level])
 
     def ignore_gate(self, x, g):
         return torch.sigmoid(g(x))
 
     def update_gate(self, x, A, g1, g2, b):
-        return torch.sigmoid(g1(x) + g2(A) + b - 4.0) #todo: move to init b
+        return torch.sigmoid(g1(x) + g2(A) + b)
 
     def create_A_matrix(self, raw_embedding_matrices, real_positions):
         # input is the matrices from a single book only! each node should have a root_id so we can make sure of that

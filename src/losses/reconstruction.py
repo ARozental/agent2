@@ -37,7 +37,11 @@ def calc_reconstruction_loss(agent_level, matrices, vectors, reencoded_matrices,
     if Config.use_pndb1 is not None and agent_level.level == 1:
         #post_decoder = pndb.old_get_data_from_A_matrix(pndb.create_A_matrix(matrices, real_positions), post_decoder)
         post_decoder, gate_values = pndb.get_data_from_A_matrix(A1s, pndb_lookup_ids, post_decoder,real_positions_for_mask)
-        memory_loss = (gate_values.squeeze(-1) * real_positions_for_mask).sum(dim=-1) / real_positions_for_mask.sum(dim=-1)
+        real_sum = real_positions.sum(dim=-1)
+        gate_values = gate_values.squeeze(-1) * real_positions
+        e_x = gate_values.sum(dim=-1) / real_sum #E(x)
+        v_x = ((gate_values-e_x.unsqueeze(-1))**2).sum(dim=-1) / real_sum
+        memory_loss = e_x - e_x*(v_x**0.5) #better to make a hard decision here so minus var #Popoviciu's inequality => var<= 1/4
     else:
         memory_loss = torch.zeros(post_decoder.size(0), device=post_decoder.device)
 

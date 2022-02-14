@@ -47,3 +47,11 @@ maybe reconstruction won't generate good words; give it reconstruction-coherence
 is lr too high for new model?
 
 
+
+
+
+
+
+#increase rc/pndb-read loss, 0.005 is too small probably
+#re1=0.8 is probably the lowest value that works on config 85 maybe minus var???
+#d1 is probably too small at 85, 0.03

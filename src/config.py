@@ -125,6 +125,7 @@ class Config:
     # Run configuration below (keeping device here makes it easier to use throughout all of the code)
     use_cuda = True
     use_tpu = False
+    use_hpu = False
     use_all_tpu_cores = False
     use_accelerator = False
     multi_gpu = False
@@ -144,6 +145,11 @@ class Config:
     def setup_device():
         if Config.use_tpu:
             return  # Don't do anything because needs to be done inline to support all cores
+        elif Config.use_hpu:
+            from habana_frameworks.torch.utils.library_loader import load_habana_module
+            load_habana_module()
+            Config.device = torch.device('hpu')
+            import habana_frameworks.torch.core as htcore
         elif Config.use_accelerator:
             from accelerate import Accelerator
             Config.accelerator = Accelerator()

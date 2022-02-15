@@ -64,6 +64,10 @@ def train(index, flags, training_started):
     if Config.use_tpu and xm.is_master_ordinal():
         xm.rendezvous('download_only_once')
 
+    if Config.use_hpu:
+        import habana_frameworks.torch.core as htcore
+        torch.multiprocessing.set_start_method('spawn')
+
     dataloader = DataLoader(
         dataset,
         batch_size=1,
@@ -104,7 +108,11 @@ def train(index, flags, training_started):
             import bitsandbytes as bnb
             main_optimizer = bnb.optim.Adam(main_params, Config.lr)
         else:
-            main_optimizer = torch.optim.AdamW(main_params, Config.lr,amsgrad=True) #there are still some explosions with amsgrad but no drop before them....
+            if Config.use_hpu:
+                from habana_frameworks.torch.hpex.optimizers import FusedAdamW
+                main_optimizer = FusedAdamW(main_params, Config.lr, amsgrad=True)
+            else:
+                main_optimizer = torch.optim.AdamW(main_params, Config.lr,amsgrad=True) #there are still some explosions with amsgrad but no drop before them....
     else:
         main_optimizer = madgrad.MADGRAD(main_params, lr=Config.lr, momentum=Config.momentum)  # 0.01,0.9 is the default
     # main_optimizer = torch.optim.AdamW(main_params, 0.001) #todo: for dummy only
@@ -267,6 +275,9 @@ def train(index, flags, training_started):
                     main_optimizer.zero_grad()
                     scheduler.step()
                     global_step += 1
+
+                    if Config.use_hpu:
+                        htcore.mark_step()
 
                     # if Config.use_tpu and not Config.use_all_tpu_cores:
                     #     xm.mark_step()

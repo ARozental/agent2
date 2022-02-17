@@ -37,7 +37,7 @@ class Pndb(nn.Module):
         return torch.sigmoid(g1(x) + g2(A) + b)
 
     def create_A_matrix(self, raw_embedding_matrices, real_positions):
-        # input is the matrices from a single book only! each node should have a root_id so we can make sure of that
+        # input is the word (level 1) matrices from a single book only! each node should have a root_id so we can make sure of that
         k = self.to_k(raw_embedding_matrices)
 
         #for_ignore = self.pndb_transformer_encoder_write(raw_embedding_matrices.transpose(0, 1), src_key_padding_mask=torch.log(real_positions)).transpose(0, 1)

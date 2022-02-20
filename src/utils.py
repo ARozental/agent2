@@ -201,7 +201,7 @@ def prepare_inputs(inputs, squeeze=False, to_device=True):
         for key, value in values.items():
             if squeeze:
                 inputs[parent_key][key] = value.squeeze(0)
-            if Config.use_cuda and to_device:
+            if (Config.use_cuda or Config.use_hpu) and to_device:
                 inputs[parent_key][key] = inputs[parent_key][key].to(Config.device)
     return inputs
 

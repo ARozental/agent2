@@ -61,7 +61,7 @@ class AgentModel(nn.Module):
 
         return None, word_embedding_matrix, batch_tree.num_dummy_distinct
 
-    def forward(self, batch_tree, inputs, generate=False, debug=False, noise_levels=None, global_step=0, xm=None):
+    def forward(self, batch_tree, inputs, generate=False, debug=False, noise_levels=None, global_step=0, xm=None, step_inside = False):
         device = inputs['set_word_vectors']['lookup_ids'].device
         if Config.multi_gpu:
             inputs = prepare_inputs(inputs, squeeze=True, to_device=False)
@@ -102,7 +102,6 @@ class AgentModel(nn.Module):
                 with xp.Trace('SetWordVectors'):
                     vectors, wm, num_dummy0_embed = self.set_word_vectors(batch_tree, inputs, debug=debug)
                     word_embedding_matrix = wm
-
             for batch_index, node_batch in enumerate(batch_tree.level_batches[level_num]):
                 loss_object, main_loss, first_A1s, first_pndb_lookup_ids = self.forward_node_batch(level_num,
                                                                                                    batch_index,

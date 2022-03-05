@@ -177,7 +177,7 @@ class EncoderLayer2(nn.TransformerEncoderLayer):
 
         src2 = self.self_attn.forward(src, src, src, rotary=self.rotary, mask=src_key_padding_mask)
         src = src + self.dropout1(src2)
-        src = self.norm1(src)
+        src = self.norm1(src) #todo: check if deep norm be like src = self.norm1(sqrt(2*_layer_num) * src + self.dropout1(src2))
         src2 = self.linear2(self.dropout(self.activation(self.linear1(src))))
         src = src + self.dropout2(src2)
         src = self.norm2(src)

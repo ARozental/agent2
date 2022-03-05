@@ -7,7 +7,7 @@ import os
 import re
 import torch
 from src.utils import md5
-
+import random
 
 class Splitters:
     sentence_splitter = nltk.data.load('tokenizers/punkt/english.pickle')
@@ -164,10 +164,13 @@ class TreeTokenizer:
     @classmethod
     def batch_texts_to_trees(cls, texts):  # todo: why is it called twice??
         # input: ["I like big butts. I can not lie.","You other brothers can't deny"]
+        random.shuffle(texts) #in case we have big batches and small max_docs and always lose the same last texts
+
         texts_md5s = [md5(text) for text in texts]
         texts_md5s = [[item.strip(), text_md5] for (text, text_md5) in zip(texts, texts_md5s) for item in
                       cls.parse_extra_levels(text) if len(item) > 0]
 
+        #this limits us to a max number of top level texts
         texts = [x[0] for x in texts_md5s[:Config.mini_batch_size]]  # todo: fix that mini batch size thingy
         md5s = [x[1] for x in texts_md5s[:Config.mini_batch_size]]
 

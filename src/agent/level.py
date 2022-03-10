@@ -33,12 +33,12 @@ class AgentLevel(nn.Module):
         else:
             self.token_bias = None
 
-        self.classifier1w = nn.Parameter((2.2/10.0) * torch.ones(1, requires_grad=True))  # with sane init
-        self.classifier1b = nn.Parameter((-1.1/10.0) * torch.ones(1, requires_grad=True))  # with sane init
+        self.classifier1w = nn.Parameter((2.2/60.0) * torch.ones(1, requires_grad=True))  # with sane init
+        self.classifier1b = nn.Parameter((-1.1/60.0) * torch.ones(1, requires_grad=True))  # with sane init
 
         if Config.join_texts:
-            self.join_classifier_w = nn.Parameter((2.2/10.0) * torch.ones(1, requires_grad=True))  # with sane init
-            self.join_classifier_b = nn.Parameter((-1.1/10.0) * torch.ones(1, requires_grad=True))  # with sane init
+            self.join_classifier_w = nn.Parameter((2.2/60.0) * torch.ones(1, requires_grad=True))  # with sane init
+            self.join_classifier_b = nn.Parameter((-1.1/60.0) * torch.ones(1, requires_grad=True))  # with sane init
 
         # TODO - Initialize right (not uniform?)
         # TODO - Can we remove the join token for the base level??
@@ -55,11 +55,11 @@ class AgentLevel(nn.Module):
 
     def eos_classifier1(self, dot):
         # needed to make sure w1 can never be negative
-        return F.elu(dot * self.classifier1w * torch.sign(self.classifier1w) * 10.0) + self.classifier1b * 10.0
+        return F.elu(dot * self.classifier1w * torch.sign(self.classifier1w) * 30.0) + self.classifier1b * 30.0
 
     def join_classifier(self, dot):
         # needed to make sure w1 can never be negative
-        return F.elu(dot * self.join_classifier_w * torch.sign(self.join_classifier_w)* 10.0 ) + self.join_classifier_b * 10.0
+        return F.elu(dot * self.join_classifier_w * torch.sign(self.join_classifier_w)* 30.0 ) + self.join_classifier_b * 30.0
 
     def get_children(self, node_batch, inputs, embedding=None, word_embedding0=None, batch_index=0, debug=False):
         max_length = Config.sequence_lengths[self.level]

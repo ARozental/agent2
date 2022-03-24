@@ -1,4 +1,5 @@
 {
+  "comments": "freeze chars at 52k",
   "model_folder": "new_transformer_no_pndb",
   "exp_folder": "runs/new_transformer_no_pndb",
   "viz_file": "../viz/models/new_transformer_no_pndb.csv",
@@ -29,6 +30,7 @@
   "dataset":"wiki",
   "cnn_compressor": false,
   "noise": false,
+  "freeze_chars": true,
   "freeze0": false,
   "rebalance_losses_step": null,
   "force_resume": "y",

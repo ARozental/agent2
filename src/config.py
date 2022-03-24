@@ -133,7 +133,9 @@ class Config:
     gpu_num = 0
     device = None  # Will be set in setup()
     freeze0 = False
+    freeze_chars = False
     accelerator = None
+    comments = ""
 
     dataset = 'simple_wiki'  # wiki, simple_wiki
     max_dataset_len = None  # If want to use a smaller portion of the dataset

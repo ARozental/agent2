@@ -13,6 +13,7 @@ class Commands:
         )
 
         parser.add_argument('--freeze0', action='store_true', default=False, help='freeze tree weights for level 0')
+        parser.add_argument('--freeze_chars', action='store_true', default=False, help='freeze char embedding')
 
         parser.add_argument('-c', '--config', type=str,
                             help='the name of the json file in `configs/` to load')
@@ -79,6 +80,9 @@ class Commands:
 
         if args.freeze0:  # Only set if it was passed
             Config.freeze0 = args.freeze0
+
+        if args.freeze_chars:  # Only set if it was passed
+            Config.freeze_chars = args.freeze_chars
 
         if args.multi_gpu:
             Config.multi_gpu = args.multi_gpu

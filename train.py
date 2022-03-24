@@ -97,7 +97,8 @@ def train(index, flags, training_started):
                           ("decoder" not in name) and
                           ("coherence_checker" not in name) and
                           ("encoder_transform" not in name) and
-                          (("char_embedding_layer" in name) or ("agent_levels.0" in name))]
+                          (("char_embedding_layer" in name) or ("agent_levels.0" in name) or ("token_bias" in name))]
+    char_embedding_params = [param for name, param in model.named_parameters() if (("char_embedding_layer" in name) or ("token_bias" in name))]
 
     if Config.optimizer == "Adam":
         if Config.use_8bit:
@@ -148,8 +149,12 @@ def train(index, flags, training_started):
     all_model_times = []
     global_step = 0
     print("freeze tree 0: ", Config.freeze0)
+    print("freeze chars: ", Config.freeze_chars)
     if Config.freeze0:
         [setattr(p, "requires_grad", False) for p in level0_tree_params]
+    if Config.freeze_chars:
+        [setattr(p, "requires_grad", False) for p in char_embedding_params]
+
     if Config.skip_batches is not None:
         global_step = Config.skip_batches - 1
     count_parameters(model, trainable=True)

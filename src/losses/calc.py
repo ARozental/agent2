@@ -20,7 +20,12 @@ def loss_object_to_main_loss(loss_object):
 def loss_object_to_reconstruction_weights_loss(obj):
     loss = 0.0
     for l in obj.keys():
-        loss += obj[l]['rc'] * (Config.loss_weights[l]['rc'])
+        if 'rc' in Config.loss_weights[l].keys():
+            weight = Config.loss_weights[l]['rc']
+        else:
+            weight = Config.loss_weights['rc']
+        print(weight)
+        loss += obj[l]['rc'] * weight
         # loss += obj[l]['rm'] * (-Config.main_rm)
         # loss += obj[l]['rmd'] * (-Config.main_rmd)
     return loss

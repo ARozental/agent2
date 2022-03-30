@@ -34,7 +34,7 @@ class Config:
     max_coherence_noise = 0.8
 
     # PNDB - None is off; integer for number of questions
-    use_pndb1 = 128
+    use_pndb1 = None
     use_pndb2 = None  # doesn't work because we got lazy in text reconstruction stuff
 
     # smoothing

@@ -75,7 +75,7 @@ class AgentModel(nn.Module):
                 for key, value in values.items():
                     current_length = inputs['lengths'][parent_key + '-' + key]
                     inputs[parent_key][key] = value[:current_length]
-            del inputs['lengths']
+            #del inputs['lengths']
 
         # If don't do this then get an "int object is not iterable" error when Config.multi_gpu
         total_g_loss = torch.tensor(0, dtype=torch.float32, device=device)
@@ -117,7 +117,7 @@ class AgentModel(nn.Module):
                                                                                                    loss_object)
                 total_loss += main_loss
 
-                del inputs[str(level_num) + '-' + str(batch_index)]
+                #del inputs[str(level_num) + '-' + str(batch_index)]
 
         return total_g_loss, total_disc_loss, total_loss, loss_object, word_embedding_matrix, first_A1s, first_pndb_lookup_ids
 
@@ -235,7 +235,7 @@ class AgentModel(nn.Module):
                 "d": (reconstruction_diff_loss * loss_keeper).sum(),
 
                 #"rc": (rc_loss.view(matrices.shape[:2]) * loss_keeper.unsqueeze(-1)).sum(),
-                "rc": (rm_loss * loss_keeper).sum(),
+                "rc": (rc_loss * loss_keeper).sum(),
                 "re": (re_loss * loss_keeper).sum(),
                 "rj": (rj_loss * loss_keeper).sum(),
                 "rm": (rm_loss * loss_keeper).sum(),

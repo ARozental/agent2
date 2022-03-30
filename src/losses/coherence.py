@@ -83,6 +83,6 @@ def calc_lower_rc_loss(real_positions, lower_agent_level, post_decoder):
     labels = torch.zeros(batch * seq_length, device=post_decoder.device) #because for a trained model reconstructed vector are coherent
     coherence_losses = scores.squeeze(-1) ** 2 + (bce_loss(probs.squeeze(-1), labels) * 0.01)
     coherence_losses = coherence_losses * real_positions
-
+    coherence_losses = coherence_losses.reshape(batch, seq_length).mean(-1)
 
     return coherence_losses#, rcd_loss

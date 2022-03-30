@@ -11,7 +11,7 @@ from src.debug.profiler import Profiler as xp
 import torch.nn as nn
 import torch
 import numpy as np
-from src.losses.calc import loss_object_to_main_loss
+from src.losses.calc import loss_object_to_main_loss,loss_object_to_reconstruction_weights_loss
 
 
 class AgentModel(nn.Module):
@@ -61,7 +61,8 @@ class AgentModel(nn.Module):
 
         return None, word_embedding_matrix, batch_tree.num_dummy_distinct
 
-    def forward(self, batch_tree, inputs, generate=False, debug=False, noise_levels=None, global_step=0, xm=None, step_inside = False):
+    def forward(self, batch_tree, inputs, generate=False, debug=False, noise_levels=None, global_step=0,reconstruction_params=None,
+                xm=None, step_inside = False):
         device = inputs['set_word_vectors']['lookup_ids'].device
         if Config.multi_gpu:
             inputs = prepare_inputs(inputs, squeeze=True, to_device=False)
@@ -114,7 +115,8 @@ class AgentModel(nn.Module):
                                                                                                    noise_levels,
                                                                                                    num_real_nodes, xm,
                                                                                                    generate,
-                                                                                                   loss_object)
+                                                                                                   loss_object,
+                                                                                                   reconstruction_params)
                 total_loss += main_loss
 
                 #del inputs[str(level_num) + '-' + str(batch_index)]
@@ -123,8 +125,8 @@ class AgentModel(nn.Module):
 
     def forward_node_batch(self, level_num, batch_index, node_batch, inputs, word_embedding_matrix, debug,
                            num_dummy0_embed, first_A1s, first_pndb_lookup_ids, noise_levels, num_real_nodes, xm,
-                           generate,
-                           loss_object):
+                           generate,loss_object,
+                           reconstruction_params):
         num_dummy_nodes = 0
         if Config.use_tpu:
             num_dummy_nodes = len([True for node in node_batch if node.is_dummy])
@@ -246,12 +248,15 @@ class AgentModel(nn.Module):
 
             # TODO - Shouldn't this be divided by len(node_batch)?
             main_loss = loss_object_to_main_loss({level_num: losses}) / num_real_nodes
+            total_rc_loss = loss_object_to_reconstruction_weights_loss({level_num: losses}) / num_real_nodes
 
             if not(debug):
               if Config.use_accelerator:
                   Config.accelerator.backward(main_loss, retain_graph=True)
+                  Config.accelerator.backward(total_rc_loss, retain_graph=True,inputs=reconstruction_params)
               else:
                   main_loss.backward(retain_graph=True)
+                  total_rc_loss.backward(retain_graph=True,inputs=reconstruction_params)
 
             if Config.use_tpu and not Config.profile_tpu:
                 xm.mark_step()

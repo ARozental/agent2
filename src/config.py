@@ -64,7 +64,8 @@ class Config:
             'e': 0.001,
             'j': 0.0,
             're': 0.01,
-            'rj': 0.0000001
+            'rj': 0.0000001,
+            'rc': 0.0001,  # should be 0 as the random words matrix only has encoded words
 
         },
         1: {
@@ -76,9 +77,10 @@ class Config:
             'e': 0.005,
             'j': 0.0,
             're': 0.05,
-            'rj': 0.0000001
+            'rj': 0.0000001,
+            'rc': 0.0001,  # should be 0 as the random words matrix only has encoded words
+
         },
-      'rc': 0.0,  # should be 0 as the random words matrix only has encoded words
 
     }
 

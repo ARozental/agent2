@@ -86,16 +86,13 @@ def calc_reconstruction_loss(agent_level, matrices, vectors, reencoded_matrices,
 
     #rm_loss, rm_diff_loss = calc_rmlm_loss(agent_level, post_decoder, real_positions_for_mask, eos_positions, real_positions, matrices, embeddings,labels)  # no mask keep the decoded vectors and predict originals by encoding
 
-    #rc_loss
-    batch, seq_length, vec_size = post_decoder.shape
-    #rc_loss = torch.zeros(batch * seq_length, device=post_decoder.device)
 
-    # if agent_level.level > 0:
-    #     rc_loss= calc_lower_rc_loss(real_positions,
-    #                                            agent_level.previous_level,
-    #                                            post_decoder)
-    # else:
-    #     rc_loss = torch.zeros(batch * seq_length, device=Config.device)
+    if agent_level.level > 0:
+        rc_loss= calc_lower_rc_loss(real_positions,
+                                               agent_level.previous_level,
+                                               post_decoder)
+    else:
+        rc_loss = eos_loss * 0
 
     #no rc/rcd loss
     #rcd_loss = torch.zeros(batch * 2, device=Config.device)
@@ -106,6 +103,5 @@ def calc_reconstruction_loss(agent_level, matrices, vectors, reencoded_matrices,
     #     rj_loss = calc_join_loss(agent_level, post_decoder, join_positions)
     # else:
     #     rj_loss = torch.zeros(post_decoder.size(0), device=post_decoder.device)
-    rj_loss = regularization_diff
-    rc_loss = memory_loss
+    rj_loss = regularization_diff+memory_loss
     return reconstruction_diff, reconstruction_losses,eos_loss, re_loss, rj_loss,rc_loss

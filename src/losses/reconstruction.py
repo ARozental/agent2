@@ -94,14 +94,6 @@ def calc_reconstruction_loss(agent_level, matrices, vectors, reencoded_matrices,
     else:
         rc_loss = eos_loss * 0
 
-    #no rc/rcd loss
-    #rcd_loss = torch.zeros(batch * 2, device=Config.device)
-    #rc_loss = torch.zeros(batch * seq_length, device=Config.device)
-
-
-    # if Config.join_texts and agent_level.level > 0:
-    #     rj_loss = calc_join_loss(agent_level, post_decoder, join_positions)
-    # else:
-    #     rj_loss = torch.zeros(post_decoder.size(0), device=post_decoder.device)
+    #todo: current rc loss will make words too simple as it pushes them towords 'the'=>100% coherent, use descriminator?
     rj_loss = regularization_diff+memory_loss
     return reconstruction_diff, reconstruction_losses,eos_loss, re_loss, rj_loss,rc_loss

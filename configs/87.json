@@ -1,5 +1,5 @@
 {
-  "comments": "freeze chars at 52k, freeze0 71.5k",
+  "comments": "freeze chars at 52k, freeze0+rl 0.0002=>0.002 at 71.5k",
   "model_folder": "new_transformer_no_pndb",
   "exp_folder": "runs/new_transformer_no_pndb",
   "viz_file": "../viz/models/new_transformer_no_pndb.csv",
@@ -24,7 +24,7 @@
   "save_every": 500,
   "grad_clip_value":0.99,
   "grad_acc_steps": 1,
-  "lr": 0.0002,
+  "lr": 0.002,
   "momentum": 0.9,
   "gpu_num": 0,
   "dataset":"wiki",

@@ -1,5 +1,5 @@
 {
-  "comments": "freeze chars at 52k, add rc loss at 84k",
+  "comments": "freeze chars at 52k, freeze0 71.5k",
   "model_folder": "new_transformer_no_pndb",
   "exp_folder": "runs/new_transformer_no_pndb",
   "viz_file": "../viz/models/new_transformer_no_pndb.csv",
@@ -31,7 +31,7 @@
   "cnn_compressor": false,
   "noise": false,
   "freeze_chars": true,
-  "freeze0": false,
+  "freeze0": true,
   "rebalance_losses_step": null,
   "force_resume": "y",
   "mlm_pndb": true,

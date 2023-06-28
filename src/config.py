@@ -153,7 +153,7 @@ class Config:
             Config.accelerator = Accelerator()
             Config.device = Config.accelerator.device
         elif Config.use_cuda and torch.cuda.is_available():
-            Config.device = torch.device('cuda')
+            Config.device = torch.device('cuda', Config.gpu_num)
         else:
             Config.device = torch.device('cpu')
 

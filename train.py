@@ -77,7 +77,7 @@ def train(index, flags, training_started):
     model = AgentModel()
     #todo: model(max_batch).backwords.step
     if Config.multi_gpu:
-        model = nn.DataParallel(model, device_ids=[0, 1])
+        model = nn.DataParallel(model).to(torch.device("cuda"))
 
     if not Config.use_accelerator:
         model.to(Config.device)

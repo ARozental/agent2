@@ -102,7 +102,8 @@ class MultiHeadAttention2(nn.Module):
 
     self.att_prior_bias = nn.Parameter(torch.tensor([math.log(p/(1-p)) for p in [ (2**j)/(2**(heads+1)) for j in range(1,heads+1) ]], requires_grad=True))
     self.sigmoid = nn.Sigmoid()
-  def forward(self, q, k, v, rotary= None, mask=None):
+    self.batch_first = False
+  def forward(self, q, k, v, rotary= None, mask=None, is_causal=False):
     bs = q.size(0)
 
     # perform linear operation and split into h heads
@@ -141,7 +142,7 @@ class MultiHeadAttention2(nn.Module):
 
 class EncoderLayer2(nn.TransformerEncoderLayer):
     def __init__(self, d_model, nhead, dim_feedforward=2048, dropout=0.1, activation="gelu",
-                 layer_norm_eps=1e-5, batch_first=False,
+                 layer_norm_eps=1e-5,
                  device=None, dtype=None,rotary=None) -> None:
         super().__init__(d_model, nhead, dim_feedforward, dropout)
         self.rotary = rotary
@@ -160,7 +161,7 @@ class EncoderLayer2(nn.TransformerEncoderLayer):
         self.activation = gelu_new
 
     def forward(self, src, src_mask = None,
-                src_key_padding_mask= None):
+                src_key_padding_mask= None, is_causal=False):
         r"""Pass the input through the encoder layer.
 
         Args:

@@ -6,9 +6,9 @@ authors = ["Your Name <you@example.com>"]
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.11"
-torch = "^1.10.0"
-torchvision = "^0.11.1"
-torchaudio = "^0.10.0"
+torch = {version="^2.0.1", source="pytorch"}
+torchvision = "^0.15.2"
+torchaudio = "^2.0.2"
 numpy = "^1.21.3"
 datasets = "^1.14.0"
 nltk = "^3.6.5"
@@ -16,10 +16,15 @@ gcsfs = "^2021.10.1"
 tensorboard = "^2.7.0"
 madgrad = "^1.1"
 prettytable = "^2.2.1"
-bitsandbytes-cuda102 = "^0.25.0"
+bitsandbytes = "^0.39.0"
 wikiextractor = "^3.0.6"
 
 [tool.poetry.dev-dependencies]
+
+[[tool.poetry.source]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cu118"
+priority = "supplemental"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

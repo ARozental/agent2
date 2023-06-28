@@ -94,7 +94,7 @@ class SimpleWikiDataset(Dataset):
             }
 
         print('Downloading SimpleWiki Dump...')
-        url = 'https://dumps.wikimedia.org/simplewiki/20211101/simplewiki-20211101-pages-articles.xml.bz2'
+        url = 'https://dumps.wikimedia.org/simplewiki/latest/simplewiki-latest-pages-articles.xml.bz2'
         urllib.request.urlretrieve(url, os.path.join(output_folder, 'raw.xml.bz2'))
 
         print('Decompressing dump')

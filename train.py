@@ -76,11 +76,11 @@ def train(index, flags, training_started):
 
     model = AgentModel()
     #todo: model(max_batch).backwords.step
+    if not Config.use_accelerator:
+        model.to(Config.device)
     if Config.multi_gpu:
         model = nn.DataParallel(model).to(torch.device("cuda"))
 
-    if not Config.use_accelerator:
-        model.to(Config.device)
 
     print([name for name, param in model.named_parameters() if ("discriminator" not in name) and ("generator" not in name)])
     main_params = [param for name, param in model.named_parameters() if
